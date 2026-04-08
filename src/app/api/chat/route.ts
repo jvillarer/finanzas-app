@@ -52,7 +52,6 @@ export async function POST(req: NextRequest) {
     const stream = await anthropic.messages.stream({
       model: "claude-opus-4-6",
       max_tokens: 1024,
-      thinking: { type: "adaptive" },
       system: sistemaFinal,
       messages: mensajes,
     });
