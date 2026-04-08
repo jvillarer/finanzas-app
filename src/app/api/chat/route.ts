@@ -16,48 +16,67 @@ Tu rol es ayudar al usuario a:
 - Responder preguntas sobre sus transacciones
 - Dar consejos financieros personalizados
 - Registrar nuevas transacciones cuando el usuario mencione un gasto o ingreso
+- Analizar fotos de tickets/recibos y registrar cada producto automáticamente
 
-IMPORTANTE: Cuando el usuario mencione que gastó o recibió dinero (ej: "gasté $500 en comida", "me pagaron $10,000", "compré gasolina por $800"),
-SIEMPRE usa la herramienta crear_transaccion para registrarlo automáticamente. No preguntes confirmación, registralo y luego confirma al usuario.
+REGLAS IMPORTANTES:
+1. Cuando el usuario mencione que gastó o recibió dinero (ej: "gasté $500 en comida", "me pagaron $10,000"),
+   usa crear_transaccion para registrarlo.
+2. Cuando el usuario mande una foto de un ticket o recibo de compra,
+   usa crear_multiples_transacciones para registrar CADA artículo del ticket por separado,
+   agrupando por categoría cuando tenga sentido. Extrae el monto de cada producto.
+   Si no puedes leer algún precio claramente, omítelo.
+3. Nunca pidas confirmación antes de registrar — registra y luego confirma al usuario.
 
-Categorías disponibles: Comida, Transporte, Supermercado, Entretenimiento, Salud, Servicios, Ropa, Educación, Gasolina, Restaurantes, Otros
+Categorías disponibles: Comida, Transporte, Supermercado, Entretenimiento, Salud, Servicios, Ropa, Educación, Gasolina, Restaurantes, Higiene, Hogar, Mascotas, Otros
 
 Sé conciso, claro y amigable. Usa pesos mexicanos (MXN) como moneda.`;
 
-// Herramienta para crear transacciones
+// Herramientas disponibles para Claude
 const HERRAMIENTAS: Anthropic.Tool[] = [
   {
     name: "crear_transaccion",
     description:
-      "Registra una nueva transacción (gasto o ingreso) en el historial financiero del usuario. Úsala cuando el usuario mencione que gastó, pagó, compró, recibió dinero, le depositaron, etc.",
+      "Registra una sola transacción (gasto o ingreso). Úsala cuando el usuario mencione un gasto o ingreso específico en texto.",
     input_schema: {
       type: "object" as const,
       properties: {
-        monto: {
-          type: "number",
-          description: "Monto de la transacción en pesos MXN (número positivo)",
-        },
-        descripcion: {
-          type: "string",
-          description: "Descripción breve del gasto o ingreso",
-        },
-        categoria: {
-          type: "string",
-          description:
-            "Categoría del gasto: Comida, Transporte, Supermercado, Entretenimiento, Salud, Servicios, Ropa, Educación, Gasolina, Restaurantes, Otros",
-        },
-        tipo: {
-          type: "string",
-          enum: ["gasto", "ingreso"],
-          description: "Tipo: 'gasto' si el usuario pagó/gastó, 'ingreso' si recibió dinero",
-        },
-        fecha: {
-          type: "string",
-          description:
-            "Fecha en formato YYYY-MM-DD. Si no se especifica, usar la fecha de hoy.",
-        },
+        monto: { type: "number", description: "Monto en pesos MXN (positivo)" },
+        descripcion: { type: "string", description: "Descripción breve" },
+        categoria: { type: "string", description: "Categoría del gasto" },
+        tipo: { type: "string", enum: ["gasto", "ingreso"] },
+        fecha: { type: "string", description: "Fecha YYYY-MM-DD, hoy si no se especifica" },
       },
       required: ["monto", "tipo", "categoria"],
+    },
+  },
+  {
+    name: "crear_multiples_transacciones",
+    description:
+      "Registra múltiples transacciones de una sola vez. Úsala cuando el usuario mande foto de un ticket/recibo o mencione varios gastos juntos. Agrupa productos similares por categoría si son muy pequeños.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        transacciones: {
+          type: "array",
+          description: "Lista de transacciones a registrar",
+          items: {
+            type: "object",
+            properties: {
+              monto: { type: "number", description: "Monto en pesos MXN" },
+              descripcion: { type: "string", description: "Nombre del producto o descripción" },
+              categoria: { type: "string", description: "Categoría" },
+              tipo: { type: "string", enum: ["gasto", "ingreso"] },
+              fecha: { type: "string", description: "Fecha YYYY-MM-DD" },
+            },
+            required: ["monto", "tipo", "categoria", "descripcion"],
+          },
+        },
+        resumen: {
+          type: "string",
+          description: "Nombre del establecimiento o descripción general del ticket (ej: 'Walmart Monterrey')",
+        },
+      },
+      required: ["transacciones"],
     },
   },
 ];
@@ -70,20 +89,29 @@ interface TransaccionInput {
   fecha?: string;
 }
 
+interface MultipleTransaccionesInput {
+  transacciones: TransaccionInput[];
+  resumen?: string;
+}
+
+interface ImagenRequest {
+  base64: string;
+  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // Verificar sesión activa
     const supabase = await createServerSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return new Response("No autorizado", { status: 401 });
-    }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return new Response("No autorizado", { status: 401 });
 
-    const { mensajes, incluirContexto } = await req.json();
+    const { mensajes, incluirContexto, imagen } = await req.json() as {
+      mensajes: { role: string; content: string }[];
+      incluirContexto: boolean;
+      imagen?: ImagenRequest;
+    };
 
-    // Obtener transacciones recientes como contexto
+    // Contexto de transacciones recientes
     let contextoTransacciones = "";
     if (incluirContexto) {
       const { data: transacciones } = await supabase
@@ -93,112 +121,149 @@ export async function POST(req: NextRequest) {
         .limit(50);
 
       if (transacciones && transacciones.length > 0) {
-        const resumen = construirResumen(transacciones);
-        contextoTransacciones = `\n\n--- DATOS FINANCIEROS DEL USUARIO ---\n${resumen}\n---`;
+        contextoTransacciones = `\n\n--- DATOS FINANCIEROS DEL USUARIO ---\n${construirResumen(transacciones)}\n---`;
       }
     }
 
-    // Fecha de hoy para contexto del modelo
     const hoy = new Date().toISOString().split("T")[0];
-    const sistemaFinal =
-      PROMPT_SISTEMA +
-      contextoTransacciones +
-      `\n\nFecha de hoy: ${hoy}`;
+    const sistemaFinal = PROMPT_SISTEMA + contextoTransacciones + `\n\nFecha de hoy: ${hoy}`;
 
-    // Primera llamada a Claude con herramientas
+    // Construir mensajes para la API — si hay imagen, el último mensaje la incluye
+    type MensajeAPI = { role: string; content: string | Anthropic.ContentBlockParam[] };
+    const mensajesAPI: MensajeAPI[] = [...mensajes];
+
+    if (imagen && mensajesAPI.length > 0) {
+      const ultimoMensaje = mensajesAPI[mensajesAPI.length - 1];
+      mensajesAPI[mensajesAPI.length - 1] = {
+        role: ultimoMensaje.role,
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: imagen.mediaType,
+              data: imagen.base64,
+            },
+          },
+          {
+            type: "text",
+            text: ultimoMensaje.content || "Analiza este ticket y registra cada producto",
+          },
+        ],
+      };
+    }
+
+    // Primera llamada a Claude
     const respuesta = await anthropic.messages.create({
       model: "claude-opus-4-6",
-      max_tokens: 1024,
+      max_tokens: 2048,
       system: sistemaFinal,
       tools: HERRAMIENTAS,
-      messages: mensajes,
+      messages: mensajesAPI as Anthropic.MessageParam[],
     });
 
     let textoFinal = "";
-    let transaccionCreada = null;
+    let transaccionesCreadas: TransaccionInput[] = [];
 
-    // Verificar si Claude quiere usar una herramienta
     if (respuesta.stop_reason === "tool_use") {
       const bloqueHerramienta = respuesta.content.find(
         (b) => b.type === "tool_use"
       ) as Anthropic.ToolUseBlock | undefined;
 
-      if (bloqueHerramienta && bloqueHerramienta.name === "crear_transaccion") {
+      if (!bloqueHerramienta) {
+        textoFinal = "No pude procesar la solicitud.";
+      } else if (bloqueHerramienta.name === "crear_transaccion") {
+        // --- Transacción individual ---
         const datos = bloqueHerramienta.input as TransaccionInput;
+        const fecha = datos.fecha || hoy;
 
-        // Guardar transacción en Supabase
-        const fechaTransaccion = datos.fecha || hoy;
-        const { data: nuevaTransaccion, error: errorInsert } = await supabase
-          .from("transacciones")
-          .insert({
-            usuario_id: user.id,
-            monto: datos.monto,
-            descripcion: datos.descripcion || datos.categoria,
-            categoria: datos.categoria,
-            tipo: datos.tipo,
-            fecha: fechaTransaccion,
-          })
-          .select()
-          .single();
-
-        const resultadoHerramienta = errorInsert
-          ? `Error al guardar: ${errorInsert.message}`
-          : `Transacción guardada exitosamente con ID ${nuevaTransaccion?.id}`;
-
-        if (!errorInsert) {
-          transaccionCreada = {
-            monto: datos.monto,
-            descripcion: datos.descripcion || datos.categoria,
-            categoria: datos.categoria,
-            tipo: datos.tipo,
-            fecha: fechaTransaccion,
-          };
-        }
-
-        // Segunda llamada a Claude con el resultado de la herramienta
-        const respuestaFinal = await anthropic.messages.create({
-          model: "claude-opus-4-6",
-          max_tokens: 512,
-          system: sistemaFinal,
-          tools: HERRAMIENTAS,
-          messages: [
-            ...mensajes,
-            { role: "assistant", content: respuesta.content },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "tool_result",
-                  tool_use_id: bloqueHerramienta.id,
-                  content: resultadoHerramienta,
-                },
-              ],
-            },
-          ],
+        const { error } = await supabase.from("transacciones").insert({
+          usuario_id: user.id,
+          monto: datos.monto,
+          descripcion: datos.descripcion || datos.categoria,
+          categoria: datos.categoria,
+          tipo: datos.tipo,
+          fecha,
         });
 
-        textoFinal =
-          (
-            respuestaFinal.content.find(
-              (b) => b.type === "text"
-            ) as Anthropic.TextBlock | undefined
-          )?.text || "Transacción registrada.";
+        if (!error) {
+          transaccionesCreadas = [{ ...datos, fecha }];
+        }
+
+        const resultado = error ? `Error: ${error.message}` : "Transacción guardada correctamente.";
+        textoFinal = await llamarClaudeConResultado(
+          anthropic, sistemaFinal, HERRAMIENTAS, mensajesAPI as Anthropic.MessageParam[],
+          respuesta.content, bloqueHerramienta.id, resultado
+        );
+
+      } else if (bloqueHerramienta.name === "crear_multiples_transacciones") {
+        // --- Múltiples transacciones (ticket) ---
+        const datos = bloqueHerramienta.input as MultipleTransaccionesInput;
+        const filas = datos.transacciones.map((t) => ({
+          usuario_id: user.id,
+          monto: t.monto,
+          descripcion: t.descripcion || t.categoria,
+          categoria: t.categoria,
+          tipo: t.tipo,
+          fecha: t.fecha || hoy,
+        }));
+
+        const { error } = await supabase.from("transacciones").insert(filas);
+
+        if (!error) {
+          transaccionesCreadas = datos.transacciones.map((t) => ({
+            ...t,
+            fecha: t.fecha || hoy,
+          }));
+        }
+
+        const total = filas.reduce((s, t) => s + t.monto, 0);
+        const resultado = error
+          ? `Error: ${error.message}`
+          : `${filas.length} transacciones guardadas. Total: $${total.toFixed(2)} MXN.`;
+
+        textoFinal = await llamarClaudeConResultado(
+          anthropic, sistemaFinal, HERRAMIENTAS, mensajesAPI as Anthropic.MessageParam[],
+          respuesta.content, bloqueHerramienta.id, resultado
+        );
       }
     } else {
-      // Respuesta de texto normal
-      textoFinal =
-        (
-          respuesta.content.find(
-            (b) => b.type === "text"
-          ) as Anthropic.TextBlock | undefined
-        )?.text || "";
+      textoFinal = (respuesta.content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined)?.text || "";
     }
 
-    return Response.json({ texto: textoFinal, transaccionCreada });
+    return Response.json({ texto: textoFinal, transaccionesCreadas });
   } catch (error) {
     console.error("Error en chat:", error);
     return new Response("Error al procesar el mensaje", { status: 500 });
   }
+}
+
+// Llama a Claude con el resultado de una herramienta y devuelve el texto final
+async function llamarClaudeConResultado(
+  anthropic: Anthropic,
+  sistema: string,
+  herramientas: Anthropic.Tool[],
+  mensajesOriginales: Anthropic.MessageParam[],
+  contenidoAsistente: Anthropic.ContentBlock[],
+  toolUseId: string,
+  resultado: string
+): Promise<string> {
+  const respuestaFinal = await anthropic.messages.create({
+    model: "claude-opus-4-6",
+    max_tokens: 1024,
+    system: sistema,
+    tools: herramientas,
+    messages: [
+      ...mensajesOriginales,
+      { role: "assistant", content: contenidoAsistente },
+      {
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: toolUseId, content: resultado }],
+      },
+    ],
+  });
+
+  return (respuestaFinal.content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined)?.text || "Listo.";
 }
 
 interface Transaccion {
@@ -210,21 +275,14 @@ interface Transaccion {
 }
 
 function construirResumen(transacciones: Transaccion[]): string {
-  const ingresos = transacciones
-    .filter((t) => t.tipo === "ingreso")
-    .reduce((s, t) => s + Number(t.monto), 0);
-  const gastos = transacciones
-    .filter((t) => t.tipo === "gasto")
-    .reduce((s, t) => s + Number(t.monto), 0);
+  const ingresos = transacciones.filter((t) => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
+  const gastos = transacciones.filter((t) => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
 
-  // Gastos por categoría
   const porCategoria: Record<string, number> = {};
-  transacciones
-    .filter((t) => t.tipo === "gasto")
-    .forEach((t) => {
-      const cat = t.categoria || "Otros";
-      porCategoria[cat] = (porCategoria[cat] || 0) + Number(t.monto);
-    });
+  transacciones.filter((t) => t.tipo === "gasto").forEach((t) => {
+    const cat = t.categoria || "Otros";
+    porCategoria[cat] = (porCategoria[cat] || 0) + Number(t.monto);
+  });
 
   const categorias = Object.entries(porCategoria)
     .sort((a, b) => b[1] - a[1])
@@ -232,13 +290,9 @@ function construirResumen(transacciones: Transaccion[]): string {
     .map(([cat, monto]) => `  - ${cat}: $${monto.toFixed(2)}`)
     .join("\n");
 
-  const ultimas = transacciones
-    .slice(0, 10)
-    .map(
-      (t) =>
-        `  - [${t.fecha}] ${t.tipo === "ingreso" ? "+" : "-"}$${Number(t.monto).toFixed(2)} | ${t.descripcion || t.categoria}`
-    )
-    .join("\n");
+  const ultimas = transacciones.slice(0, 10).map((t) =>
+    `  - [${t.fecha}] ${t.tipo === "ingreso" ? "+" : "-"}$${Number(t.monto).toFixed(2)} | ${t.descripcion || t.categoria}`
+  ).join("\n");
 
   return `Resumen (últimas ${transacciones.length} transacciones):
 Total ingresos: $${ingresos.toFixed(2)} MXN
