@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
                 media_type: "application/pdf",
                 data: pdfBase64,
               },
-            } as Anthropic.RequestDocumentBlock,
+            } as any,
             {
               type: "text",
               text: "Extrae todas las transacciones de este estado de cuenta y regístralas usando la herramienta disponible.",
