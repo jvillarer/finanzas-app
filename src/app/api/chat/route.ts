@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
           },
           {
             type: "text",
-            text: ultimoMensaje.content || "Analiza este ticket y registra cada producto",
+            text: (typeof ultimoMensaje.content === "string" ? ultimoMensaje.content : "") || "Analiza este ticket y registra cada producto",
           },
         ],
       };
