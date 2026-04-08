@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 
 interface Mensaje {
   rol: "user" | "assistant";
@@ -154,13 +155,29 @@ export default function ChatPage() {
               <span className="text-xl mr-2 shrink-0 mt-1">🤖</span>
             )}
             <div
-              className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap ${
+              className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm ${
                 msg.rol === "user"
                   ? "bg-primary-500 text-white rounded-br-sm"
                   : "bg-white text-gray-700 shadow-sm border border-gray-100 rounded-bl-sm"
               }`}
             >
-              {msg.contenido || (
+              {msg.contenido ? (
+                msg.rol === "user" ? (
+                  <span>{msg.contenido}</span>
+                ) : (
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                      ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
+                      li: ({ children }) => <li>{children}</li>,
+                    }}
+                  >
+                    {msg.contenido}
+                  </ReactMarkdown>
+                )
+              ) : (
                 <span className="flex gap-1 items-center text-gray-400">
                   <span className="animate-bounce delay-0">·</span>
                   <span className="animate-bounce delay-75">·</span>
