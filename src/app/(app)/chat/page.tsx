@@ -7,11 +7,19 @@ interface Mensaje {
   contenido: string;
 }
 
+interface TransaccionCreada {
+  monto: number;
+  descripcion: string;
+  categoria: string;
+  tipo: "gasto" | "ingreso";
+  fecha: string;
+}
+
 const SUGERENCIAS = [
   "¿Cuánto gasté este mes?",
   "¿En qué categoría gasto más?",
-  "¿Cómo puedo ahorrar más?",
-  "Muestra mi balance general",
+  "Gasté $500 en comida hoy",
+  "Me depositaron $15,000 de nómina",
 ];
 
 export default function ChatPage() {
@@ -19,12 +27,13 @@ export default function ChatPage() {
     {
       rol: "assistant",
       contenido:
-        "Hola, soy tu asistente financiero. Puedo analizar tus transacciones y darte consejos personalizados. ¿En qué te ayudo hoy?",
+        "Hola, soy tu asistente financiero. Puedo analizar tus transacciones, darte consejos y también registrar nuevos gastos e ingresos. Dime por ejemplo: \"Gasté $300 en gasolina hoy\" y lo agrego automáticamente. ¿En qué te ayudo?",
     },
   ]);
   const [input, setInput] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+  const [notificacion, setNotificacion] = useState<TransaccionCreada | null>(null);
   const listaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -35,6 +44,14 @@ export default function ChatPage() {
       behavior: "smooth",
     });
   }, [mensajes]);
+
+  // Ocultar notificación después de 4 segundos
+  useEffect(() => {
+    if (notificacion) {
+      const timer = setTimeout(() => setNotificacion(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [notificacion]);
 
   const enviar = async (texto?: string) => {
     const pregunta = (texto ?? input).trim();
@@ -50,7 +67,7 @@ export default function ChatPage() {
     setMensajes(nuevosMensajes);
     setCargando(true);
 
-    // Añadir mensaje vacío del asistente para el streaming
+    // Placeholder mientras carga
     setMensajes((prev) => [...prev, { rol: "assistant", contenido: "" }]);
 
     try {
@@ -67,32 +84,25 @@ export default function ChatPage() {
       });
 
       if (!res.ok) throw new Error("Error del servidor");
-      if (!res.body) throw new Error("Sin respuesta");
 
-      // Leer el stream chunk a chunk
-      const lector = res.body.getReader();
-      const decoder = new TextDecoder();
+      const datos = await res.json();
 
-      while (true) {
-        const { done, value } = await lector.read();
-        if (done) break;
+      // Actualizar el último mensaje con la respuesta
+      setMensajes((prev) => {
+        const actualizado = [...prev];
+        actualizado[actualizado.length - 1] = {
+          rol: "assistant",
+          contenido: datos.texto,
+        };
+        return actualizado;
+      });
 
-        const chunk = decoder.decode(value, { stream: true });
-        setMensajes((prev) => {
-          const actualizado = [...prev];
-          const ultimo = actualizado[actualizado.length - 1];
-          if (ultimo.rol === "assistant") {
-            actualizado[actualizado.length - 1] = {
-              ...ultimo,
-              contenido: ultimo.contenido + chunk,
-            };
-          }
-          return actualizado;
-        });
+      // Mostrar notificación si se creó una transacción
+      if (datos.transaccionCreada) {
+        setNotificacion(datos.transaccionCreada);
       }
-    } catch (e) {
+    } catch {
       setError("No se pudo enviar el mensaje. Verifica tu conexión.");
-      // Remover el mensaje vacío del asistente si falló
       setMensajes((prev) =>
         prev.filter((m, i) => !(i === prev.length - 1 && m.contenido === ""))
       );
@@ -102,15 +112,33 @@ export default function ChatPage() {
     }
   };
 
+  const formatearMonto = (monto: number) =>
+    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(monto);
+
   return (
     <main className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Encabezado */}
       <header className="bg-primary-500 text-white px-6 pt-8 pb-4 shrink-0">
         <h1 className="text-lg font-bold">Chat con IA</h1>
         <p className="text-primary-200 text-xs">
-          Analiza tus finanzas con inteligencia artificial
+          Analiza tus finanzas y registra gastos con lenguaje natural
         </p>
       </header>
+
+      {/* Notificación de transacción creada */}
+      {notificacion && (
+        <div className="mx-4 mt-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm animate-pulse-once shrink-0">
+          <span className="text-green-500 text-xl">✅</span>
+          <div>
+            <p className="text-green-800 text-sm font-semibold">
+              {notificacion.tipo === "gasto" ? "Gasto" : "Ingreso"} registrado
+            </p>
+            <p className="text-green-600 text-xs">
+              {formatearMonto(notificacion.monto)} · {notificacion.categoria} · {notificacion.fecha}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Lista de mensajes */}
       <div
@@ -147,7 +175,7 @@ export default function ChatPage() {
         {mensajes.length === 1 && (
           <div className="pt-2">
             <p className="text-xs text-gray-400 mb-2 text-center">
-              Prueba preguntando:
+              Prueba diciendo:
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {SUGERENCIAS.map((s) => (
@@ -180,7 +208,7 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && enviar()}
-            placeholder="Pregunta sobre tus finanzas..."
+            placeholder="&quot;Gasté $200 en uber&quot; o pregunta algo..."
             disabled={cargando}
             className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-300 disabled:opacity-50"
           />
