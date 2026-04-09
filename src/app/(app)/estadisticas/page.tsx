@@ -5,6 +5,7 @@ import { obtenerTransacciones, calcularResumen, formatearMonto } from "@/lib/tra
 import type { Transaccion } from "@/lib/supabase";
 import GraficaCategorias from "@/components/GraficaCategorias";
 import GraficaMensual from "@/components/GraficaMensual";
+import EstadoResultados from "@/components/EstadoResultados";
 
 type Periodo = "mes" | "3meses" | "todo";
 
@@ -116,6 +117,9 @@ export default function EstadisticasPage() {
               </h2>
               <GraficaMensual transacciones={filtradas} />
             </div>
+
+            {/* Estado de resultados */}
+            <EstadoResultados transacciones={filtradas} />
 
             {/* Top categorías */}
             {topCategorias.length > 0 && (
