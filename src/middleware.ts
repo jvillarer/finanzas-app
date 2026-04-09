@@ -34,12 +34,12 @@ export async function middleware(request: NextRequest) {
   const ruta = request.nextUrl.pathname;
   const esPublica = RUTAS_PUBLICAS.some((r) => ruta.startsWith(r));
 
-  // Sin sesión y ruta protegida → login
-  if (!user && !esPublica && ruta !== "/") {
+  // Sin sesión y ruta no pública → login
+  if (!user && !esPublica) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Con sesión y en login/registro → dashboard
+  // Con sesión y en login/registro/home → dashboard
   if (user && (ruta === "/login" || ruta === "/registro" || ruta === "/")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }

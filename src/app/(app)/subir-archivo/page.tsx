@@ -78,7 +78,7 @@ export default function SubirArchivoPage() {
           const datos = await res.json();
 
           if (!datos.transacciones || datos.transacciones.length === 0) {
-            setMensajeError("Claude no encontró transacciones en el PDF. ¿Es un estado de cuenta bancario?");
+            setMensajeError("No se encontraron transacciones en el PDF. ¿Es un estado de cuenta bancario?");
             setEstado("inicio");
             return;
           }
@@ -154,7 +154,7 @@ export default function SubirArchivoPage() {
     return (
       <main className="bg-gray-50 flex flex-col items-center justify-center min-h-[80vh] p-6 text-center">
         <div className="text-6xl mb-6 animate-pulse">🤖</div>
-        <h2 className="text-lg font-bold text-gray-800 mb-2">Claude está leyendo tu estado de cuenta</h2>
+        <h2 className="text-lg font-bold text-gray-800 mb-2">La IA está leyendo tu estado de cuenta</h2>
         <p className="text-gray-500 text-sm mb-6">Extrayendo y categorizando todas las transacciones...</p>
         <div className="flex gap-2 justify-center">
           <span className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -256,7 +256,7 @@ export default function SubirArchivoPage() {
         <span className="text-2xl">🤖</span>
         <div>
           <p className="text-primary-700 text-sm font-semibold">PDF con IA</p>
-          <p className="text-primary-500 text-xs">Sube tu estado de cuenta en PDF y Claude extrae y categoriza todas las transacciones automáticamente</p>
+          <p className="text-primary-500 text-xs">Sube tu estado de cuenta en PDF y la IA extrae y categoriza todas las transacciones automáticamente</p>
         </div>
       </div>
 
