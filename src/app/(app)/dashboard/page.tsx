@@ -7,29 +7,27 @@ import type { Transaccion } from "@/lib/supabase";
 import NuevaTransaccion from "@/components/NuevaTransaccion";
 import { createClient } from "@/lib/supabase";
 
-const CAT_CONFIG: Record<string, { color: string; emoji: string }> = {
-  Comida:          { color: "#FF6B35", emoji: "🍽" },
-  Supermercado:    { color: "#00C896", emoji: "🛒" },
-  Transporte:      { color: "#4FACFE", emoji: "🚗" },
-  Entretenimiento: { color: "#A855F7", emoji: "🎬" },
-  Salud:           { color: "#FF4D6D", emoji: "💊" },
-  Servicios:       { color: "#F59E0B", emoji: "⚡" },
-  Ropa:            { color: "#EC4899", emoji: "👕" },
-  Hogar:           { color: "#14B8A6", emoji: "🏠" },
-  Educación:       { color: "#6366F1", emoji: "📚" },
-  Otros:           { color: "#94A3B8", emoji: "📦" },
+const CAT_ICON: Record<string, string> = {
+  Comida: "🍽",
+  Supermercado: "🛒",
+  Transporte: "🚗",
+  Entretenimiento: "🎬",
+  Salud: "💊",
+  Servicios: "⚡",
+  Ropa: "👕",
+  Hogar: "🏠",
+  Educación: "📚",
+  Otros: "📦",
 };
 
-function SkeletonRow() {
+type Filtro = "todos" | "gastos" | "ingresos";
+
+function Skel({ w, h }: { w: string; h: string }) {
   return (
-    <div className="flex items-center gap-4 px-5 py-4 animate-pulse">
-      <div className="w-12 h-12 rounded-2xl bg-gray-100 shrink-0" />
-      <div className="flex-1 space-y-2">
-        <div className="h-3.5 bg-gray-100 rounded-full w-1/2" />
-        <div className="h-2.5 bg-gray-100 rounded-full w-1/3" />
-      </div>
-      <div className="h-4 bg-gray-100 rounded-full w-16" />
-    </div>
+    <div
+      className={`rounded-xl animate-pulse ${w} ${h}`}
+      style={{ backgroundColor: "rgba(255,255,255,0.07)" }}
+    />
   );
 }
 
@@ -39,20 +37,17 @@ export default function DashboardPage() {
   const [cargando, setCargando] = useState(true);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [nombre, setNombre] = useState("");
-
-  const cerrarSesion = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
-  };
+  const [iniciales, setIniciales] = useState("??");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
 
   const cargar = async () => {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.user_metadata?.nombre_completo) {
-        setNombre(user.user_metadata.nombre_completo.split(" ")[0]);
+        const n = user.user_metadata.nombre_completo as string;
+        setNombre(n.split(" ")[0]);
+        setIniciales(n.split(" ").slice(0, 2).map((p: string) => p[0]).join("").toUpperCase());
       }
       const datos = await obtenerTransacciones();
       setTransacciones(datos);
@@ -66,153 +61,149 @@ export default function DashboardPage() {
   useEffect(() => { cargar(); }, []);
 
   const { ingresos, gastos, balance } = calcularResumen(transacciones);
+
   const hora = new Date().getHours();
-  const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
+  const saludo = hora < 12 ? "Buenos días," : hora < 18 ? "Buenas tardes," : "Buenas noches,";
   const mesRaw = new Date().toLocaleString("es-MX", { month: "long", year: "numeric" });
-  const mesActual = mesRaw.charAt(0).toUpperCase() + mesRaw.slice(1);
+  const mesLabel = "SALDO · " + (mesRaw.charAt(0).toUpperCase() + mesRaw.slice(1).toUpperCase());
+
+  const lista = transacciones.filter((t) =>
+    filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
+  );
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: "#F8F7FC" }}>
+    <main className="min-h-screen" style={{ backgroundColor: "#111" }}>
 
-      {/* ── DARK HEADER ── */}
-      <div style={{ backgroundColor: "#100C28" }} className="px-5 pt-14 pb-8">
-
-        {/* Saludo + logout */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <p className="text-xs font-semibold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>
-              {saludo}
-            </p>
-            <h1 className="text-white text-xl font-bold mt-0.5 tracking-tight">
-              {nombre ? nombre : "Mi cuenta"}
-            </h1>
-          </div>
-          <button
-            onClick={cerrarSesion}
-            className="w-10 h-10 rounded-2xl flex items-center justify-center active:scale-95 transition-transform"
-            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }}
-            aria-label="Cerrar sesión"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" className="w-5 h-5" style={{ opacity: 0.6 }} strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-            </svg>
-          </button>
+      {/* ── HEADER ── */}
+      <div className="px-5 pt-14 pb-2 flex items-start justify-between">
+        <div>
+          <p className="text-sm" style={{ color: "#6b7280" }}>{saludo}</p>
+          <h1 className="text-2xl font-black text-white tracking-tight">
+            {cargando ? <Skel w="w-28" h="h-7" /> : (nombre || "Mis Finanzas")}
+          </h1>
         </div>
+        <button
+          onClick={async () => {
+            const supabase = createClient();
+            await supabase.auth.signOut();
+            router.push("/login");
+            router.refresh();
+          }}
+          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+          style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.08)" }}
+        >
+          {iniciales}
+        </button>
+      </div>
 
-        {/* Balance total */}
-        <div className="mb-7">
-          <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>
-            Balance total
-          </p>
-          {cargando ? (
-            <div className="h-14 w-52 rounded-2xl animate-pulse" style={{ background: "rgba(255,255,255,0.1)" }} />
-          ) : (
-            <p
-              className="text-5xl font-bold tracking-tight tabular-nums"
-              style={{ color: balance >= 0 ? "#FFFFFF" : "#FF6B6B" }}
-            >
+      {/* ── BALANCE CARD ── */}
+      <div className="mx-4 mt-4 p-5 rounded-3xl" style={{ backgroundColor: "#1c1c1c" }}>
+        <p className="text-[10px] font-bold tracking-widest mb-1" style={{ color: "#6b7280" }}>
+          {mesLabel}
+        </p>
+
+        {cargando
+          ? <Skel w="w-44" h="h-12" />
+          : <p className="text-5xl font-black tracking-tight" style={{ color: balance < 0 ? "#ef4444" : "#ffffff" }}>
               {formatearMonto(balance)}
             </p>
-          )}
-        </div>
+        }
+        <p className="text-xs mb-4 mt-0.5" style={{ color: "#6b7280" }}>MXN disponibles</p>
 
-        {/* Stats row: dos píldoras simples */}
-        <div className="flex gap-3">
-          <div className="flex-1 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.06)" }}>
-            <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>Gastos</p>
-            <p className="text-white text-lg font-bold tabular-nums">
-              {cargando
-                ? <span className="inline-block w-20 h-5 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.15)" }} />
-                : formatearMonto(gastos)}
-            </p>
+        <div className="flex gap-2">
+          <div className="flex-1 rounded-2xl px-3 py-3" style={{ backgroundColor: "rgba(34,197,94,0.1)" }}>
+            {cargando
+              ? <Skel w="w-20" h="h-5" />
+              : <p className="text-lg font-black" style={{ color: "#22c55e" }}>+{formatearMonto(ingresos)}</p>
+            }
+            <p className="text-[10px] font-semibold mt-0.5" style={{ color: "#6b7280" }}>Ingresos</p>
           </div>
-          <div className="flex-1 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.06)" }}>
-            <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>Ingresos</p>
-            <p className="text-lg font-bold tabular-nums" style={{ color: "#6EFACC" }}>
-              {cargando
-                ? <span className="inline-block w-20 h-5 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.15)" }} />
-                : formatearMonto(ingresos)}
-            </p>
+          <div className="flex-1 rounded-2xl px-3 py-3" style={{ backgroundColor: "rgba(239,68,68,0.08)" }}>
+            {cargando
+              ? <Skel w="w-20" h="h-5" />
+              : <p className="text-lg font-black" style={{ color: "#ef4444" }}>-{formatearMonto(gastos)}</p>
+            }
+            <p className="text-[10px] font-semibold mt-0.5" style={{ color: "#6b7280" }}>Gastos</p>
           </div>
         </div>
       </div>
 
-      {/* ── BODY CLARO ── */}
-      <div className="rounded-t-[2rem] -mt-4 pt-7 pb-40" style={{ backgroundColor: "#F8F7FC" }}>
+      {/* ── FILTER TABS ── */}
+      <div className="px-4 mt-5 mb-3 flex gap-2">
+        {(["todos", "gastos", "ingresos"] as Filtro[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFiltro(f)}
+            className="px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all"
+            style={{
+              backgroundColor: filtro === f ? "#22c55e" : "#1c1c1c",
+              color: filtro === f ? "#000" : "#6b7280",
+            }}
+          >
+            {f === "todos" ? "Recientes" : f === "gastos" ? "Gastos" : "Ingresos"}
+          </button>
+        ))}
+      </div>
 
-        {/* Header sección — sin botón duplicado */}
-        <div className="flex items-center justify-between px-5 mb-4">
-          <h2 className="text-base font-bold" style={{ color: "#100C28" }}>Movimientos</h2>
-          <span className="text-xs font-semibold" style={{ color: "#9CA3AF" }}>{mesActual}</span>
-        </div>
-
-        {/* Lista */}
-        <div className="mx-4 bg-white rounded-3xl overflow-hidden" style={{ boxShadow: "0 2px 24px rgba(16,12,40,0.06)" }}>
-          {cargando ? (
-            <>{[1, 2, 3, 4, 5].map((i) => <SkeletonRow key={i} />)}</>
-          ) : transacciones.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-              <div className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4 text-2xl" style={{ backgroundColor: "#EEEdf9" }}>
-                💳
+      {/* ── LISTA ── */}
+      <div className="px-4 space-y-0.5 pb-6">
+        {cargando
+          ? [1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-1 py-4 animate-pulse">
+                <div className="w-11 h-11 rounded-2xl shrink-0" style={{ backgroundColor: "#1c1c1c" }} />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 rounded-full w-1/2" style={{ backgroundColor: "#1c1c1c" }} />
+                  <div className="h-2.5 rounded-full w-1/3" style={{ backgroundColor: "#1c1c1c" }} />
+                </div>
+                <div className="h-4 rounded-full w-16" style={{ backgroundColor: "#1c1c1c" }} />
               </div>
-              <p className="font-bold text-sm mb-1" style={{ color: "#100C28" }}>Sin movimientos aún</p>
-              <p className="text-gray-400 text-xs leading-relaxed">
-                Agrega tu primer movimiento con el botón de arriba
-              </p>
+            ))
+          : lista.length === 0
+          ? (
+            <div className="text-center py-16">
+              <p className="text-4xl mb-3">💳</p>
+              <p className="text-sm font-semibold text-white mb-1">Sin movimientos</p>
+              <p className="text-xs" style={{ color: "#6b7280" }}>Agrega tu primer gasto con el botón +</p>
             </div>
-          ) : (
-            <ul>
-              {transacciones.slice(0, 25).map((t, idx) => {
-                const cfg = t.tipo === "ingreso"
-                  ? { color: "#00C896", emoji: "💰" }
-                  : (CAT_CONFIG[t.categoria || ""] || CAT_CONFIG["Otros"]);
-                const esUltimo = idx === Math.min(transacciones.length, 25) - 1;
-
-                return (
-                  <li
-                    key={t.id}
-                    className={`flex items-center gap-4 px-5 py-4 ${!esUltimo ? "border-b border-gray-50" : ""}`}
+          )
+          : lista.slice(0, 30).map((t) => {
+              const emoji = t.tipo === "ingreso" ? "💰" : (CAT_ICON[t.categoria] || "📦");
+              const fechaStr = new Date(t.fecha + "T12:00:00").toLocaleDateString("es-MX", {
+                day: "numeric", month: "short",
+              });
+              return (
+                <div key={t.id} className="flex items-center gap-3 rounded-2xl px-1 py-3.5">
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0"
+                    style={{ backgroundColor: "#1c1c1c" }}
                   >
-                    {/* Icono */}
-                    <div
-                      className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-xl"
-                      style={{ backgroundColor: cfg.color + "18" }}
-                    >
-                      {cfg.emoji}
-                    </div>
-
-                    {/* Texto */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: "#100C28" }}>
-                        {t.descripcion || t.categoria || "Sin descripción"}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(t.fecha + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
-                        {t.categoria ? ` · ${t.categoria}` : ""}
-                      </p>
-                    </div>
-
-                    {/* Monto */}
-                    <p
-                      className="text-sm font-bold tabular-nums shrink-0"
-                      style={{ color: t.tipo === "ingreso" ? "#00C896" : "#100C28" }}
-                    >
-                      {t.tipo === "ingreso" ? "+" : "−"}{formatearMonto(t.monto)}
+                    {emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">
+                      {t.descripcion || t.categoria || "Sin descripción"}
                     </p>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+                    <p className="text-xs mt-0.5" style={{ color: "#6b7280" }}>
+                      {fechaStr}{t.categoria ? ` · ${t.categoria}` : ""}
+                    </p>
+                  </div>
+                  <p
+                    className="text-sm font-black shrink-0"
+                    style={{ color: t.tipo === "ingreso" ? "#22c55e" : "#ffffff" }}
+                  >
+                    {t.tipo === "ingreso" ? "+" : "−"}{formatearMonto(t.monto)}
+                  </p>
+                </div>
+              );
+            })
+        }
       </div>
 
       {/* FAB */}
       <button
         onClick={() => setMostrarFormulario(true)}
-        className="fixed bottom-28 right-5 w-14 h-14 text-white rounded-2xl flex items-center justify-center text-2xl font-light active:scale-95 transition-transform"
-        style={{ backgroundColor: "#534AB7", boxShadow: "0 8px 24px rgba(83,74,183,0.45)" }}
-        aria-label="Nueva transacción"
+        className="fixed bottom-24 right-5 w-14 h-14 rounded-2xl text-black text-2xl font-bold flex items-center justify-center active:scale-95 transition-transform"
+        style={{ backgroundColor: "#22c55e", boxShadow: "0 8px 24px rgba(34,197,94,0.35)" }}
       >
         +
       </button>
