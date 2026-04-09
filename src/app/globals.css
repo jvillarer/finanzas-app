@@ -9,6 +9,7 @@
 
   * {
     -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
   }
 
   html {
@@ -17,16 +18,12 @@
   }
 
   body {
-    @apply bg-[#F4F4F8] text-gray-900 antialiased;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
+    background-color: #100C28;
+    color: #100C28;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Números más legibles */
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
   }
 }
 
@@ -39,16 +36,34 @@
     display: none;
   }
 
-  /* Safe area para iPhone */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* Glassmorphism */
   .glass {
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Animación slide-up para modales */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
