@@ -59,22 +59,36 @@ export default function ChatPage() {
     }
   }, [notificacion]);
 
+  // Comprimir imagen antes de enviar (max 1200px, 80% calidad)
+  const comprimirImagen = (archivo: File): Promise<{ base64: string; previewUrl: string }> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      const urlTemporal = URL.createObjectURL(archivo);
+      img.onload = () => {
+        const MAX_PX = 1200;
+        const escala = Math.min(1, MAX_PX / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * escala);
+        canvas.height = Math.round(img.height * escala);
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        URL.revokeObjectURL(urlTemporal);
+        const base64 = dataUrl.split(",")[1];
+        resolve({ base64, previewUrl: dataUrl });
+      };
+      img.src = urlTemporal;
+    });
+  };
+
   // Manejar selección de imagen
-  const manejarImagen = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const manejarImagen = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = e.target.files?.[0];
     if (!archivo) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const resultado = reader.result as string;
-      // resultado = "data:image/jpeg;base64,XXXX..."
-      const [encabezado, base64] = resultado.split(",");
-      const mediaType = encabezado.match(/:(.*?);/)?.[1] || "image/jpeg";
-      setImagenPendiente({ base64, mediaType, previewUrl: resultado });
-    };
-    reader.readAsDataURL(archivo);
-    // Reset input para poder seleccionar la misma imagen dos veces
     e.target.value = "";
+
+    const { base64, previewUrl } = await comprimirImagen(archivo);
+    setImagenPendiente({ base64, mediaType: "image/jpeg", previewUrl });
   };
 
   const enviar = async (texto?: string) => {
