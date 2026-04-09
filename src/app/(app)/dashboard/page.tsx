@@ -68,7 +68,8 @@ export default function DashboardPage() {
   const { ingresos, gastos, balance } = calcularResumen(transacciones);
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
-  const mesActual = new Date().toLocaleString("es-MX", { month: "long", year: "numeric" });
+  const mesRaw = new Date().toLocaleString("es-MX", { month: "long", year: "numeric" });
+  const mesActual = mesRaw.charAt(0).toUpperCase() + mesRaw.slice(1);
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: "#F8F7FC" }}>
@@ -115,60 +116,23 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Virtual card */}
-        <div
-          className="rounded-3xl p-5 overflow-hidden relative"
-          style={{ background: "linear-gradient(135deg, #534AB7 0%, #6C5DD3 50%, #9B8FE8 100%)" }}
-        >
-          {/* Decorativos */}
-          <div
-            className="absolute rounded-full pointer-events-none"
-            style={{ width: 160, height: 160, top: -40, right: -40, background: "rgba(255,255,255,0.07)" }}
-          />
-          <div
-            className="absolute rounded-full pointer-events-none"
-            style={{ width: 200, height: 200, bottom: -60, left: -60, background: "rgba(0,0,0,0.1)" }}
-          />
-
-          <div className="relative">
-            {/* Card header */}
-            <div className="flex justify-between items-start mb-7">
-              <div>
-                <p className="text-[10px] font-semibold tracking-widest uppercase mb-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>
-                  Periodo actual
-                </p>
-                <p className="text-white text-sm font-bold capitalize">{mesActual}</p>
-              </div>
-              {/* Overlapping circles (card brand) */}
-              <div className="flex items-center">
-                <div className="w-8 h-8 rounded-full" style={{ background: "rgba(255,255,255,0.3)" }} />
-                <div className="w-8 h-8 rounded-full -ml-3" style={{ background: "rgba(255,255,255,0.15)" }} />
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="flex justify-between items-end">
-              <div>
-                <p className="text-[10px] font-semibold tracking-widest uppercase mb-1" style={{ color: "rgba(255,255,255,0.45)" }}>
-                  Gastos
-                </p>
-                <p className="text-white text-xl font-bold tabular-nums">
-                  {cargando
-                    ? <span className="inline-block w-20 h-6 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.2)" }} />
-                    : formatearMonto(gastos)}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] font-semibold tracking-widest uppercase mb-1" style={{ color: "rgba(255,255,255,0.45)" }}>
-                  Ingresos
-                </p>
-                <p className="text-xl font-bold tabular-nums" style={{ color: "#6EFACC" }}>
-                  {cargando
-                    ? <span className="inline-block w-20 h-6 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.2)" }} />
-                    : formatearMonto(ingresos)}
-                </p>
-              </div>
-            </div>
+        {/* Stats row: dos píldoras simples */}
+        <div className="flex gap-3">
+          <div className="flex-1 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>Gastos</p>
+            <p className="text-white text-lg font-bold tabular-nums">
+              {cargando
+                ? <span className="inline-block w-20 h-5 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.15)" }} />
+                : formatearMonto(gastos)}
+            </p>
+          </div>
+          <div className="flex-1 rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <p className="text-[10px] font-bold tracking-widest uppercase mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>Ingresos</p>
+            <p className="text-lg font-bold tabular-nums" style={{ color: "#6EFACC" }}>
+              {cargando
+                ? <span className="inline-block w-20 h-5 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.15)" }} />
+                : formatearMonto(ingresos)}
+            </p>
           </div>
         </div>
       </div>
@@ -176,16 +140,10 @@ export default function DashboardPage() {
       {/* ── BODY CLARO ── */}
       <div className="rounded-t-[2rem] -mt-4 pt-7 pb-40" style={{ backgroundColor: "#F8F7FC" }}>
 
-        {/* Header sección */}
+        {/* Header sección — sin botón duplicado */}
         <div className="flex items-center justify-between px-5 mb-4">
           <h2 className="text-base font-bold" style={{ color: "#100C28" }}>Movimientos</h2>
-          <button
-            onClick={() => setMostrarFormulario(true)}
-            className="flex items-center gap-1.5 text-white text-xs font-bold px-4 py-2 rounded-full active:scale-95 transition-transform"
-            style={{ backgroundColor: "#100C28" }}
-          >
-            <span className="text-sm leading-none">+</span> Agregar
-          </button>
+          <span className="text-xs font-semibold" style={{ color: "#9CA3AF" }}>{mesActual}</span>
         </div>
 
         {/* Lista */}
