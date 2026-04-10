@@ -223,63 +223,78 @@ export default function ChatPage() {
 
   // ── Desbloquear audio en iOS (llamar desde gesto directo del usuario) ──
   const desbloquearAudio = useCallback(() => {
-    if (audioDesbloqueadoRef.current || !window.speechSynthesis) return;
-    // iOS necesita un utterance con texto real (aunque sea espacio) para desbloquear
-    const utt = new SpeechSynthesisUtterance(" ");
-    utt.volume = 0;
-    utt.rate = 10; // rapidísimo para que no se escuche
-    window.speechSynthesis.speak(utt);
+    if (audioDesbloqueadoRef.current) return;
     audioDesbloqueadoRef.current = true;
+    // Desbloquear AudioContext en iOS con un buffer silencioso
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start(0);
+    } catch { /* ok */ }
   }, []);
 
-  // ── Hablar ──
-  const hablarLani = useCallback((texto: string, onEnd?: () => void) => {
-    if (!vozActiva && !modoVoz) { onEnd?.(); return; }
-    if (!window.speechSynthesis) { onEnd?.(); return; }
+  // ── Hablar con OpenAI TTS (fallback a browser) ──
+  const hablarLani = useCallback(async (texto: string, onEnd?: () => void) => {
+    if (!vozActiva && !modoVozRef.current) { onEnd?.(); return; }
 
+    const textoLimpio = limpiarMarkdown(texto);
+    if (!textoLimpio) { onEnd?.(); return; }
+
+    setHablando(true);
+
+    // Intentar OpenAI TTS primero
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto: textoLimpio }),
+      });
+
+      if (!res.ok) throw new Error("tts_failed");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+
+      audio.onended = () => {
+        setHablando(false);
+        URL.revokeObjectURL(url);
+        onEnd?.();
+      };
+      audio.onerror = () => {
+        setHablando(false);
+        URL.revokeObjectURL(url);
+        onEnd?.();
+      };
+
+      await audio.play();
+      return;
+    } catch {
+      // Fallback: browser speechSynthesis
+    }
+
+    // Fallback browser TTS
+    if (!window.speechSynthesis) { setHablando(false); onEnd?.(); return; }
     window.speechSynthesis.cancel();
-
-    // iOS bug: necesita ~100ms después de cancel() antes de speak()
     setTimeout(() => {
-      const textoLimpio = limpiarMarkdown(texto);
-      if (!textoLimpio) { onEnd?.(); return; }
-
       const utt = new SpeechSynthesisUtterance(textoLimpio);
       utt.lang = "es-MX";
-      utt.rate = 0.92;   // más lento = más claro
+      utt.rate = 0.9;
       utt.pitch = 1.05;
       utt.volume = 1;
-
       utt.onstart = () => setHablando(true);
       utt.onend = () => { setHablando(false); onEnd?.(); };
       utt.onerror = () => { setHablando(false); onEnd?.(); };
-
       synthRef.current = utt;
-
-      const elegirVozYHablar = () => {
-        const voces = window.speechSynthesis.getVoices();
-        // Prioridad: enhanced femenina es-MX → Paulina → cualquier es-MX → enhanced es → cualquier es
-        const voz =
-          voces.find((v) => v.lang === "es-MX" && /enhanced|premium/i.test(v.name)) ||
-          voces.find((v) => v.lang === "es-MX" && /paulina|female|mujer/i.test(v.name)) ||
-          voces.find((v) => v.lang === "es-MX") ||
-          voces.find((v) => v.lang === "es-ES" && /enhanced|premium/i.test(v.name)) ||
-          voces.find((v) => v.lang === "es-ES" && /monica|elena|female/i.test(v.name)) ||
-          voces.find((v) => v.lang.startsWith("es")) ||
-          null;
-        if (voz) utt.voice = voz;
-        window.speechSynthesis.speak(utt);
-      };
-
       const voces = window.speechSynthesis.getVoices();
-      if (voces.length > 0) {
-        elegirVozYHablar();
-      } else {
-        window.speechSynthesis.onvoiceschanged = () => elegirVozYHablar();
-        setTimeout(elegirVozYHablar, 600);
-      }
+      const voz = voces.find((v) => v.lang === "es-MX") || voces.find((v) => v.lang.startsWith("es")) || null;
+      if (voz) utt.voice = voz;
+      window.speechSynthesis.speak(utt);
     }, 100);
-  }, [vozActiva, modoVoz]);
+  }, [vozActiva]);
 
   // ── Grabar ──
   // eslint-disable-next-line react-hooks/exhaustive-deps
