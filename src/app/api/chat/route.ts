@@ -57,12 +57,14 @@ Sé conciso, claro y amigable. Usa pesos mexicanos (MXN) como moneda.
 
 FORMATO DE RESPUESTAS:
 - NUNCA uses tablas markdown (no uses | col | ni |---|)
-- Para desglosar gastos o listas de movimientos usa este formato limpio:
-  **Descripción** — $monto (fecha)
+- NUNCA uses el símbolo • directamente en el texto
+- Para desglosar gastos o listas de movimientos usa listas markdown con guión:
+  - **Descripción** — $monto (fecha)
   Ejemplo:
-  • Peda — $2,800 (10 abr)
-  • FIFA — $100 (10 abr)
-  • Estampitas del mundial — $100 (8 abr)
+  - **Peda** — $2,800 (10 abr)
+  - **Estampitas del mundial** — $100 (8 abr)
+  - **FIFA** — $100 (10 abr)
+- Siempre ordena las listas de MAYOR a MENOR monto
 - Para totales o resúmenes usa negritas: **Total: $3,000**
 - Respuestas cortas y directas, sin párrafos largos innecesarios`;
 
