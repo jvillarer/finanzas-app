@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 
 interface Mensaje {
@@ -10,11 +10,8 @@ interface Mensaje {
 }
 
 interface TransaccionCreada {
-  monto: number;
-  descripcion: string;
-  categoria: string;
-  tipo: "gasto" | "ingreso";
-  fecha: string;
+  monto: number; descripcion: string; categoria: string;
+  tipo: "gasto" | "ingreso"; fecha: string;
 }
 
 const SUGERENCIAS = [
@@ -30,15 +27,139 @@ function limpiarMarkdown(texto: string) {
     .replace(/\*(.+?)\*/g, "$1")
     .replace(/`(.+?)`/g, "$1")
     .replace(/#{1,6}\s/g, "")
-    .replace(/\n+/g, " ")
+    .replace(/\n+/g, ". ")
     .trim();
+}
+
+// ── Animación de ondas ──
+function WaveAnimation({ color = "#22c55e", size = 40 }: { color?: string; size?: number }) {
+  return (
+    <div className="flex items-center justify-center gap-1" style={{ height: size }}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="rounded-full"
+          style={{
+            width: 4,
+            backgroundColor: color,
+            animation: `wave 1s ease-in-out infinite`,
+            animationDelay: `${i * 0.1}s`,
+            height: `${[35, 65, 100, 65, 35][i]}%`,
+            opacity: 0.9,
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes wave {
+          0%, 100% { transform: scaleY(0.4); }
+          50% { transform: scaleY(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Modo voz full-screen ──
+function ModoVoz({
+  grabando,
+  hablando,
+  onToggleMic,
+  onCerrar,
+}: {
+  grabando: boolean;
+  hablando: boolean;
+  onToggleMic: () => void;
+  onCerrar: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-between px-8 pt-20 pb-16"
+      style={{ backgroundColor: "#0a0a0a" }}
+    >
+      {/* Cerrar */}
+      <button
+        onClick={onCerrar}
+        className="self-end w-10 h-10 rounded-full flex items-center justify-center"
+        style={{ backgroundColor: "#1c1c1c" }}
+      >
+        <svg viewBox="0 0 20 20" fill="#6b7280" className="w-4 h-4">
+          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+        </svg>
+      </button>
+
+      {/* Avatar Lani */}
+      <div className="flex flex-col items-center gap-6">
+        <div
+          className="w-28 h-28 rounded-full flex items-center justify-center text-6xl transition-all"
+          style={{
+            backgroundColor: hablando ? "#22c55e" : grabando ? "rgba(239,68,68,0.15)" : "#1c1c1c",
+            border: hablando
+              ? "3px solid #22c55e"
+              : grabando
+              ? "3px solid rgba(239,68,68,0.6)"
+              : "3px solid rgba(255,255,255,0.08)",
+            boxShadow: hablando
+              ? "0 0 40px rgba(34,197,94,0.3)"
+              : grabando
+              ? "0 0 40px rgba(239,68,68,0.2)"
+              : "none",
+          }}
+        >
+          🐑
+        </div>
+
+        {/* Estado */}
+        <div className="text-center">
+          <p className="text-xl font-black text-white mb-1">
+            {hablando ? "Lani está hablando" : grabando ? "Te escucho..." : "Lani"}
+          </p>
+          <p className="text-sm" style={{ color: "#6b7280" }}>
+            {hablando ? "Espera un momento" : grabando ? "Di tu gasto o pregunta" : "Toca el micrófono para hablar"}
+          </p>
+        </div>
+
+        {/* Onda */}
+        <div className="h-12 flex items-center">
+          {(hablando || grabando) ? (
+            <WaveAnimation color={hablando ? "#22c55e" : "#ef4444"} size={48} />
+          ) : (
+            <div className="flex items-center gap-1">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="w-1 rounded-full" style={{ height: 4, backgroundColor: "#333" }} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Botón micrófono */}
+      <button
+        onClick={onToggleMic}
+        disabled={hablando}
+        className="w-20 h-20 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-40"
+        style={{
+          backgroundColor: grabando ? "rgba(239,68,68,0.15)" : "#22c55e",
+          border: grabando ? "2px solid rgba(239,68,68,0.6)" : "none",
+          boxShadow: grabando ? "0 0 30px rgba(239,68,68,0.2)" : "0 8px 32px rgba(34,197,94,0.4)",
+        }}
+      >
+        {grabando ? (
+          <span className="w-6 h-6 rounded-sm" style={{ backgroundColor: "#ef4444" }} />
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth={2} className="w-8 h-8">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+          </svg>
+        )}
+      </button>
+    </div>
+  );
 }
 
 export default function ChatPage() {
   const [mensajes, setMensajes] = useState<Mensaje[]>([
     {
       rol: "assistant",
-      contenido: "¡Hola! 🐑 Soy Lani, tu asistente financiera. Dime tus gastos e ingresos y los registro al momento. También puedo **leer fotos de tickets** y registrar cada producto.\n\n¿En qué te ayudo?",
+      contenido: "¡Hola! 🐑 Soy Lani, tu asistente financiera. Dime tus gastos e ingresos y los registro al momento. También puedo **leer fotos de tickets**.\n\n¿En qué te ayudo?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -51,9 +172,12 @@ export default function ChatPage() {
 
   // Voz
   const [grabando, setGrabando] = useState(false);
-  const [vozActiva, setVozActiva] = useState(false);
+  const [hablando, setHablando] = useState(false);
+  const [vozActiva, setVozActiva] = useState(true);
+  const [modoVoz, setModoVoz] = useState(false);
   const [soportaVoz, setSoportaVoz] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const listaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,15 +199,41 @@ export default function ChatPage() {
     }
   }, [notificacion]);
 
-  // ── VOZ INPUT ──
-  const toggleGrabacion = () => {
-    if (grabando) {
-      recognitionRef.current?.stop();
-      return;
-    }
+  // ── Hablar ──
+  const hablarLani = useCallback((texto: string, onEnd?: () => void) => {
+    if (!vozActiva && !modoVoz) { onEnd?.(); return; }
+    if (!window.speechSynthesis) { onEnd?.(); return; }
 
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(limpiarMarkdown(texto));
+    utt.lang = "es-MX";
+    utt.rate = 1.05;
+    utt.pitch = 1.1;
+
+    utt.onstart = () => setHablando(true);
+    utt.onend = () => { setHablando(false); onEnd?.(); };
+    utt.onerror = () => { setHablando(false); onEnd?.(); };
+
+    synthRef.current = utt;
+
+    const hablar = () => {
+      const voces = window.speechSynthesis.getVoices();
+      const voz = voces.find((v) => v.lang === "es-MX") || voces.find((v) => v.lang.startsWith("es")) || null;
+      if (voz) utt.voice = voz;
+      window.speechSynthesis.speak(utt);
+    };
+
+    if (window.speechSynthesis.getVoices().length > 0) hablar();
+    else window.speechSynthesis.onvoiceschanged = hablar;
+  }, [vozActiva, modoVoz]);
+
+  // ── Grabar ──
+  const iniciarGrabacion = useCallback(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
+
+    window.speechSynthesis?.cancel();
+    setHablando(false);
 
     const rec = new SR();
     rec.lang = "es-MX";
@@ -101,35 +251,19 @@ export default function ChatPage() {
     recognitionRef.current = rec;
     rec.start();
     setGrabando(true);
-  };
+  }, []);
 
-  // ── VOZ OUTPUT ──
-  const hablarLani = (texto: string) => {
-    if (!vozActiva || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(limpiarMarkdown(texto));
-    utt.lang = "es-MX";
-    utt.rate = 1.05;
-    utt.pitch = 1.1;
+  const detenerGrabacion = useCallback(() => {
+    recognitionRef.current?.stop();
+    setGrabando(false);
+  }, []);
 
-    const cargarVoz = () => {
-      const voces = window.speechSynthesis.getVoices();
-      const voz =
-        voces.find((v) => v.lang === "es-MX") ||
-        voces.find((v) => v.lang.startsWith("es")) ||
-        null;
-      if (voz) utt.voice = voz;
-      window.speechSynthesis.speak(utt);
-    };
+  const toggleGrabacion = useCallback(() => {
+    if (grabando) detenerGrabacion();
+    else iniciarGrabacion();
+  }, [grabando, iniciarGrabacion, detenerGrabacion]);
 
-    if (window.speechSynthesis.getVoices().length > 0) {
-      cargarVoz();
-    } else {
-      window.speechSynthesis.onvoiceschanged = cargarVoz;
-    }
-  };
-
-  // ── IMAGEN ──
+  // ── Imagen ──
   const comprimirImagen = (archivo: File): Promise<{ base64: string; previewUrl: string }> =>
     new Promise((resolve) => {
       const img = new window.Image();
@@ -156,7 +290,7 @@ export default function ChatPage() {
     setImagenPendiente({ base64, mediaType: "image/jpeg", previewUrl });
   };
 
-  // ── ENVIAR ──
+  // ── Enviar ──
   const enviar = async (texto?: string) => {
     const pregunta = (texto ?? input).trim();
     if (!pregunta && !imagenPendiente) return;
@@ -200,8 +334,10 @@ export default function ChatPage() {
         return act;
       });
 
-      // Leer respuesta en voz
-      hablarLani(datos.texto);
+      // En modo voz: habla y luego vuelve a escuchar
+      hablarLani(datos.texto, () => {
+        if (modoVoz) setTimeout(() => iniciarGrabacion(), 400);
+      });
 
       const creadas: TransaccionCreada[] = datos.transaccionesCreadas || [];
       if (creadas.length === 1) {
@@ -218,9 +354,44 @@ export default function ChatPage() {
       setMensajes((prev) => prev.filter((m, i) => !(i === prev.length - 1 && m.contenido === "")));
     } finally {
       setCargando(false);
-      inputRef.current?.focus();
     }
   };
+
+  // Cerrar modo voz
+  const cerrarModoVoz = () => {
+    detenerGrabacion();
+    window.speechSynthesis?.cancel();
+    setHablando(false);
+    setModoVoz(false);
+  };
+
+  // Abrir modo voz
+  const abrirModoVoz = () => {
+    setModoVoz(true);
+    setTimeout(() => iniciarGrabacion(), 300);
+  };
+
+  // ── MODO VOZ FULL-SCREEN ──
+  if (modoVoz) {
+    return (
+      <>
+        <ModoVoz
+          grabando={grabando}
+          hablando={hablando}
+          onToggleMic={toggleGrabacion}
+          onCerrar={cerrarModoVoz}
+        />
+        {notificacion && (
+          <div
+            className="fixed bottom-8 left-4 right-4 z-[60] rounded-2xl px-4 py-3 text-sm font-semibold text-center fade-in"
+            style={{ backgroundColor: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", color: "#22c55e" }}
+          >
+            {notificacion}
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <main className="flex flex-col h-screen" style={{ backgroundColor: "#111" }}>
@@ -235,13 +406,15 @@ export default function ChatPage() {
         </div>
         <div className="flex-1">
           <p className="text-base font-black text-white">Lani</p>
-          <p className="text-xs font-semibold flex items-center gap-1" style={{ color: "#22c55e" }}>
-            <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: "#22c55e" }} />
-            en línea
+          <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "#22c55e" }}>
+            {hablando
+              ? <><WaveAnimation color="#22c55e" size={14} /> hablando</>
+              : <><span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: "#22c55e" }} />en línea</>
+            }
           </p>
         </div>
 
-        {/* Toggle voz output */}
+        {/* Toggle speaker */}
         {soportaVoz && (
           <button
             onClick={() => {
@@ -250,20 +423,18 @@ export default function ChatPage() {
             }}
             className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-95"
             style={{
-              backgroundColor: vozActiva ? "rgba(34,197,94,0.15)" : "#1c1c1c",
-              border: vozActiva ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(255,255,255,0.07)",
+              backgroundColor: vozActiva ? "rgba(34,197,94,0.12)" : "#1c1c1c",
+              border: vozActiva ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(255,255,255,0.07)",
             }}
-            title={vozActiva ? "Silenciar a Lani" : "Activar voz de Lani"}
+            title={vozActiva ? "Silenciar" : "Activar voz"}
           >
-            {vozActiva ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2} className="w-4 h-4">
+            <svg viewBox="0 0 24 24" fill="none" stroke={vozActiva ? "#22c55e" : "#4b5563"} strokeWidth={2} className="w-4 h-4">
+              {vozActiva ? (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth={2} className="w-4 h-4">
+              ) : (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-              </svg>
-            )}
+              )}
+            </svg>
           </button>
         )}
       </div>
@@ -282,9 +453,9 @@ export default function ChatPage() {
       {grabando && (
         <div
           className="mx-4 mt-3 shrink-0 rounded-2xl px-4 py-3 flex items-center gap-3 fade-in"
-          style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)" }}
+          style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}
         >
-          <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "#ef4444" }} />
+          <span className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ backgroundColor: "#ef4444" }} />
           <p className="text-sm font-semibold" style={{ color: "#ef4444" }}>Escuchando... habla ahora</p>
         </div>
       )}
@@ -352,6 +523,20 @@ export default function ChatPage() {
                 </button>
               ))}
             </div>
+
+            {/* Botón modo voz destacado */}
+            {soportaVoz && (
+              <button
+                onClick={abrirModoVoz}
+                className="mt-4 w-full py-3 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm transition-all active:scale-[0.98]"
+                style={{ backgroundColor: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", color: "#22c55e" }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2} className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                </svg>
+                Hablar con Lani
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -407,18 +592,21 @@ export default function ChatPage() {
             placeholder={grabando ? "Escuchando..." : imagenPendiente ? "Mensaje opcional..." : "Dile algo a Lani..."}
             disabled={cargando || grabando}
             className="flex-1 rounded-2xl px-4 py-3 text-sm font-medium outline-none text-white placeholder-gray-600 disabled:opacity-50"
-            style={{ backgroundColor: "#1c1c1c", border: `1px solid ${grabando ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.07)"}` }}
+            style={{
+              backgroundColor: "#1c1c1c",
+              border: `1px solid ${grabando ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.07)"}`,
+            }}
           />
 
-          {/* Micrófono (solo si hay soporte) */}
+          {/* Micrófono */}
           {soportaVoz && (
             <button
               onClick={toggleGrabacion}
-              disabled={cargando}
+              disabled={cargando || hablando}
               className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-95 disabled:opacity-30"
               style={{
-                backgroundColor: grabando ? "rgba(239,68,68,0.15)" : "#1c1c1c",
-                border: grabando ? "1px solid rgba(239,68,68,0.5)" : "1px solid rgba(255,255,255,0.07)",
+                backgroundColor: grabando ? "rgba(239,68,68,0.12)" : "#1c1c1c",
+                border: grabando ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(255,255,255,0.07)",
               }}
             >
               {grabando ? (
