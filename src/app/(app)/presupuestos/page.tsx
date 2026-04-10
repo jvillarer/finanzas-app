@@ -152,7 +152,7 @@ export default function PresupuestosPage() {
     const gastado = gastosPorCat[cat.nombre] || 0;
     const limite = p?.limite || 0;
     const pct = limite > 0 ? Math.min((gastado / limite) * 100, 100) : 0;
-    return { ...cat, id: p?.id, limite, gastado, pct };
+    return { id: p?.id, categoria: cat.nombre, emoji: cat.emoji, limite, gastado, pct };
   });
 
   const conPresupuesto = conDatos.filter((c) => c.limite > 0);
