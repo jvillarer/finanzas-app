@@ -155,14 +155,21 @@ export default function RegistroPage() {
       objetivo_financiero: objetivo,
     };
 
-    const { error: authError } = await supabase.auth.signUp({
+    const { data: signUpData, error: authError } = await supabase.auth.signUp({
       email: correo,
       password: contrasena,
       options: { data: metadata },
     });
 
     if (authError) {
-      setError(authError.message === "User already registered" ? "Correo ya registrado" : "Error al crear cuenta");
+      setError(authError.message === "User already registered" ? "Este correo ya tiene una cuenta" : "Error al crear cuenta");
+      setCargando(false);
+      return;
+    }
+
+    // Supabase no devuelve error si el correo ya existe — lo detectamos por identities vacío
+    if (signUpData?.user && signUpData.user.identities?.length === 0) {
+      setError("Este correo ya tiene una cuenta. ¿Quieres iniciar sesión?");
       setCargando(false);
       return;
     }
