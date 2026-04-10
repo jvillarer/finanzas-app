@@ -24,6 +24,16 @@ const SUGERENCIAS = [
   "Me depositaron $15,000 de nómina",
 ];
 
+function limpiarMarkdown(texto: string) {
+  return texto
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/`(.+?)`/g, "$1")
+    .replace(/#{1,6}\s/g, "")
+    .replace(/\n+/g, " ")
+    .trim();
+}
+
 export default function ChatPage() {
   const [mensajes, setMensajes] = useState<Mensaje[]>([
     {
@@ -36,14 +46,23 @@ export default function ChatPage() {
   const [error, setError] = useState("");
   const [notificacion, setNotificacion] = useState<string | null>(null);
   const [imagenPendiente, setImagenPendiente] = useState<{
-    base64: string;
-    mediaType: string;
-    previewUrl: string;
+    base64: string; mediaType: string; previewUrl: string;
   } | null>(null);
+
+  // Voz
+  const [grabando, setGrabando] = useState(false);
+  const [vozActiva, setVozActiva] = useState(false);
+  const [soportaVoz, setSoportaVoz] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   const listaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputImagenRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    setSoportaVoz(!!SR && !!window.speechSynthesis);
+  }, []);
 
   useEffect(() => {
     listaRef.current?.scrollTo({ top: listaRef.current.scrollHeight, behavior: "smooth" });
@@ -56,8 +75,63 @@ export default function ChatPage() {
     }
   }, [notificacion]);
 
-  const comprimirImagen = (archivo: File): Promise<{ base64: string; previewUrl: string }> => {
-    return new Promise((resolve) => {
+  // ── VOZ INPUT ──
+  const toggleGrabacion = () => {
+    if (grabando) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+
+    const rec = new SR();
+    rec.lang = "es-MX";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+
+    rec.onresult = (e: any) => {
+      const texto = e.results[0][0].transcript;
+      setGrabando(false);
+      enviar(texto);
+    };
+    rec.onerror = () => setGrabando(false);
+    rec.onend = () => setGrabando(false);
+
+    recognitionRef.current = rec;
+    rec.start();
+    setGrabando(true);
+  };
+
+  // ── VOZ OUTPUT ──
+  const hablarLani = (texto: string) => {
+    if (!vozActiva || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(limpiarMarkdown(texto));
+    utt.lang = "es-MX";
+    utt.rate = 1.05;
+    utt.pitch = 1.1;
+
+    const cargarVoz = () => {
+      const voces = window.speechSynthesis.getVoices();
+      const voz =
+        voces.find((v) => v.lang === "es-MX") ||
+        voces.find((v) => v.lang.startsWith("es")) ||
+        null;
+      if (voz) utt.voice = voz;
+      window.speechSynthesis.speak(utt);
+    };
+
+    if (window.speechSynthesis.getVoices().length > 0) {
+      cargarVoz();
+    } else {
+      window.speechSynthesis.onvoiceschanged = cargarVoz;
+    }
+  };
+
+  // ── IMAGEN ──
+  const comprimirImagen = (archivo: File): Promise<{ base64: string; previewUrl: string }> =>
+    new Promise((resolve) => {
       const img = new window.Image();
       const url = URL.createObjectURL(archivo);
       img.onload = () => {
@@ -73,7 +147,6 @@ export default function ChatPage() {
       };
       img.src = url;
     });
-  };
 
   const manejarImagen = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = e.target.files?.[0];
@@ -83,6 +156,7 @@ export default function ChatPage() {
     setImagenPendiente({ base64, mediaType: "image/jpeg", previewUrl });
   };
 
+  // ── ENVIAR ──
   const enviar = async (texto?: string) => {
     const pregunta = (texto ?? input).trim();
     if (!pregunta && !imagenPendiente) return;
@@ -126,6 +200,9 @@ export default function ChatPage() {
         return act;
       });
 
+      // Leer respuesta en voz
+      hablarLani(datos.texto);
+
       const creadas: TransaccionCreada[] = datos.transaccionesCreadas || [];
       if (creadas.length === 1) {
         const t = creadas[0];
@@ -133,8 +210,8 @@ export default function ChatPage() {
         setNotificacion(`✓ ${t.tipo === "gasto" ? "Gasto" : "Ingreso"} registrado: ${monto} · ${t.categoria}`);
       } else if (creadas.length > 1) {
         const total = creadas.reduce((s, t) => s + t.monto, 0);
-        const totalFmt = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(total);
-        setNotificacion(`✓ ${creadas.length} movimientos registrados · ${totalFmt}`);
+        const fmt = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(total);
+        setNotificacion(`✓ ${creadas.length} movimientos registrados · ${fmt}`);
       }
     } catch {
       setError("No se pudo enviar. Verifica tu conexión.");
@@ -153,19 +230,42 @@ export default function ChatPage() {
         className="flex items-center gap-3 px-5 pt-14 pb-4 shrink-0"
         style={{ backgroundColor: "#111", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
       >
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0"
-          style={{ backgroundColor: "#22c55e" }}
-        >
+        <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#22c55e" }}>
           🐑
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-base font-black text-white">Lani</p>
           <p className="text-xs font-semibold flex items-center gap-1" style={{ color: "#22c55e" }}>
             <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: "#22c55e" }} />
             en línea
           </p>
         </div>
+
+        {/* Toggle voz output */}
+        {soportaVoz && (
+          <button
+            onClick={() => {
+              if (vozActiva) window.speechSynthesis?.cancel();
+              setVozActiva((v) => !v);
+            }}
+            className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-95"
+            style={{
+              backgroundColor: vozActiva ? "rgba(34,197,94,0.15)" : "#1c1c1c",
+              border: vozActiva ? "1px solid rgba(34,197,94,0.4)" : "1px solid rgba(255,255,255,0.07)",
+            }}
+            title={vozActiva ? "Silenciar a Lani" : "Activar voz de Lani"}
+          >
+            {vozActiva ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2} className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth={2} className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+              </svg>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Notificación */}
@@ -178,15 +278,23 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* Banner grabando */}
+      {grabando && (
+        <div
+          className="mx-4 mt-3 shrink-0 rounded-2xl px-4 py-3 flex items-center gap-3 fade-in"
+          style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)" }}
+        >
+          <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: "#ef4444" }} />
+          <p className="text-sm font-semibold" style={{ color: "#ef4444" }}>Escuchando... habla ahora</p>
+        </div>
+      )}
+
       {/* ── MENSAJES ── */}
       <div ref={listaRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 no-scroll">
         {mensajes.map((msg, i) => (
           <div key={i} className={`flex ${msg.rol === "user" ? "justify-end" : "justify-start"}`}>
             {msg.rol === "assistant" && (
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-base shrink-0 mr-2 mt-1"
-                style={{ backgroundColor: "#22c55e" }}
-              >
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-base shrink-0 mr-2 mt-1" style={{ backgroundColor: "#22c55e" }}>
                 🐑
               </div>
             )}
@@ -221,11 +329,7 @@ export default function ChatPage() {
               ) : (
                 <span className="flex gap-1 items-center">
                   {[0, 1, 2].map((j) => (
-                    <span
-                      key={j}
-                      className="w-1.5 h-1.5 rounded-full animate-bounce"
-                      style={{ backgroundColor: "#6b7280", animationDelay: `${j * 0.15}s` }}
-                    />
+                    <span key={j} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: "#6b7280", animationDelay: `${j * 0.15}s` }} />
                   ))}
                 </span>
               )}
@@ -233,7 +337,6 @@ export default function ChatPage() {
           </div>
         ))}
 
-        {/* Sugerencias */}
         {mensajes.length === 1 && (
           <div className="pt-2">
             <p className="text-xs mb-2 text-center" style={{ color: "#6b7280" }}>Prueba diciendo:</p>
@@ -243,11 +346,7 @@ export default function ChatPage() {
                   key={s}
                   onClick={() => enviar(s)}
                   className="text-xs px-3 py-2 rounded-2xl font-semibold transition-all active:scale-95"
-                  style={{
-                    backgroundColor: "#1c1c1c",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    color: "#9ca3af",
-                  }}
+                  style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" }}
                 >
                   {s}
                 </button>
@@ -257,9 +356,7 @@ export default function ChatPage() {
         )}
       </div>
 
-      {error && (
-        <p className="text-center text-xs px-4 py-2 shrink-0" style={{ color: "#ef4444" }}>{error}</p>
-      )}
+      {error && <p className="text-center text-xs px-4 py-2 shrink-0" style={{ color: "#ef4444" }}>{error}</p>}
 
       {/* Preview imagen */}
       {imagenPendiente && (
@@ -270,9 +367,7 @@ export default function ChatPage() {
               onClick={() => setImagenPendiente(null)}
               className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
               style={{ backgroundColor: "#ef4444", color: "white" }}
-            >
-              ×
-            </button>
+            >×</button>
           </div>
         </div>
       )}
@@ -287,9 +382,11 @@ export default function ChatPage() {
         }}
       >
         <div className="flex gap-2 items-end">
+
+          {/* Cámara */}
           <button
             onClick={() => inputImagenRef.current?.click()}
-            disabled={cargando}
+            disabled={cargando || grabando}
             className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-opacity active:opacity-70 disabled:opacity-40"
             style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)" }}
           >
@@ -300,21 +397,44 @@ export default function ChatPage() {
           </button>
           <input type="file" accept="image/*" capture="environment" ref={inputImagenRef} onChange={manejarImagen} className="hidden" />
 
+          {/* Input texto */}
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && enviar()}
-            placeholder={imagenPendiente ? "Mensaje opcional..." : "Dile algo a Lani..."}
-            disabled={cargando}
+            placeholder={grabando ? "Escuchando..." : imagenPendiente ? "Mensaje opcional..." : "Dile algo a Lani..."}
+            disabled={cargando || grabando}
             className="flex-1 rounded-2xl px-4 py-3 text-sm font-medium outline-none text-white placeholder-gray-600 disabled:opacity-50"
-            style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)" }}
+            style={{ backgroundColor: "#1c1c1c", border: `1px solid ${grabando ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.07)"}` }}
           />
 
+          {/* Micrófono (solo si hay soporte) */}
+          {soportaVoz && (
+            <button
+              onClick={toggleGrabacion}
+              disabled={cargando}
+              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-95 disabled:opacity-30"
+              style={{
+                backgroundColor: grabando ? "rgba(239,68,68,0.15)" : "#1c1c1c",
+                border: grabando ? "1px solid rgba(239,68,68,0.5)" : "1px solid rgba(255,255,255,0.07)",
+              }}
+            >
+              {grabando ? (
+                <span className="w-3 h-3 rounded-sm animate-pulse" style={{ backgroundColor: "#ef4444" }} />
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth={1.8} className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                </svg>
+              )}
+            </button>
+          )}
+
+          {/* Enviar */}
           <button
             onClick={() => enviar()}
-            disabled={(!input.trim() && !imagenPendiente) || cargando}
+            disabled={(!input.trim() && !imagenPendiente) || cargando || grabando}
             className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-95 disabled:opacity-30"
             style={{ backgroundColor: "#22c55e" }}
           >
