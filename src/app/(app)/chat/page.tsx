@@ -36,6 +36,14 @@ function limpiarMarkdown(texto: string) {
     .replace(/\*(.+?)\*/g, "$1")
     .replace(/`(.+?)`/g, "$1")
     .replace(/#{1,6}\s/g, "")
+    // Eliminar emojis para que no se lean como "cara sonriente"
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+    .replace(/[\u{2600}-\u{27BF}]/gu, "")
+    .replace(/[\u{FE00}-\u{FE0F}]/gu, "")
+    .replace(/[\u{1F900}-\u{1F9FF}]/gu, "")
+    .replace(/[\u{1FA00}-\u{1FAFF}]/gu, "")
+    // Limpiar puntuación duplicada tras quitar emojis
+    .replace(/\s{2,}/g, " ")
     .replace(/\n+/g, ". ")
     .trim();
 }
@@ -187,6 +195,9 @@ export default function ChatPage() {
   const [soportaVoz, setSoportaVoz] = useState(false);
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
+  // Ref para evitar stale closure en callbacks async
+  const modoVozRef = useRef(false);
+  const iniciarGrabacionRef = useRef<() => void>(() => {});
 
   const listaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -197,6 +208,9 @@ export default function ChatPage() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     setSoportaVoz(!!SR && !!window.speechSynthesis);
   }, []);
+
+  // Mantener refs sincronizados
+  useEffect(() => { modoVozRef.current = modoVoz; }, [modoVoz]);
 
   useEffect(() => {
     listaRef.current?.scrollTo({ top: listaRef.current.scrollHeight, behavior: "smooth" });
@@ -229,10 +243,14 @@ export default function ChatPage() {
 
     // iOS bug: necesita ~100ms después de cancel() antes de speak()
     setTimeout(() => {
-      const utt = new SpeechSynthesisUtterance(limpiarMarkdown(texto));
+      const textoLimpio = limpiarMarkdown(texto);
+      if (!textoLimpio) { onEnd?.(); return; }
+
+      const utt = new SpeechSynthesisUtterance(textoLimpio);
       utt.lang = "es-MX";
-      utt.rate = 1.05;
-      utt.pitch = 1.1;
+      utt.rate = 0.92;   // más lento = más claro
+      utt.pitch = 1.05;
+      utt.volume = 1;
 
       utt.onstart = () => setHablando(true);
       utt.onend = () => { setHablando(false); onEnd?.(); };
@@ -242,7 +260,15 @@ export default function ChatPage() {
 
       const elegirVozYHablar = () => {
         const voces = window.speechSynthesis.getVoices();
-        const voz = voces.find((v) => v.lang === "es-MX") || voces.find((v) => v.lang.startsWith("es")) || null;
+        // Prioridad: enhanced femenina es-MX → Paulina → cualquier es-MX → enhanced es → cualquier es
+        const voz =
+          voces.find((v) => v.lang === "es-MX" && /enhanced|premium/i.test(v.name)) ||
+          voces.find((v) => v.lang === "es-MX" && /paulina|female|mujer/i.test(v.name)) ||
+          voces.find((v) => v.lang === "es-MX") ||
+          voces.find((v) => v.lang === "es-ES" && /enhanced|premium/i.test(v.name)) ||
+          voces.find((v) => v.lang === "es-ES" && /monica|elena|female/i.test(v.name)) ||
+          voces.find((v) => v.lang.startsWith("es")) ||
+          null;
         if (voz) utt.voice = voz;
         window.speechSynthesis.speak(utt);
       };
@@ -251,7 +277,6 @@ export default function ChatPage() {
       if (voces.length > 0) {
         elegirVozYHablar();
       } else {
-        // iOS a veces no dispara onvoiceschanged — fallback con timeout
         window.speechSynthesis.onvoiceschanged = () => elegirVozYHablar();
         setTimeout(elegirVozYHablar, 600);
       }
@@ -259,6 +284,7 @@ export default function ChatPage() {
   }, [vozActiva, modoVoz]);
 
   // ── Grabar ──
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const iniciarGrabacion = useCallback(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
@@ -283,6 +309,9 @@ export default function ChatPage() {
     rec.start();
     setGrabando(true);
   }, []);
+
+  // Mantener ref sincronizado para callbacks async
+  useEffect(() => { iniciarGrabacionRef.current = iniciarGrabacion; }, [iniciarGrabacion]);
 
   const detenerGrabacion = useCallback(() => {
     recognitionRef.current?.stop();
@@ -367,9 +396,9 @@ export default function ChatPage() {
         return act;
       });
 
-      // En modo voz: habla y luego vuelve a escuchar
+      // En modo voz: habla y luego vuelve a escuchar automáticamente
       hablarLani(datos.texto, () => {
-        if (modoVoz) setTimeout(() => iniciarGrabacion(), 400);
+        if (modoVozRef.current) setTimeout(() => iniciarGrabacionRef.current(), 600);
       });
 
       const creadas: TransaccionCreada[] = datos.transaccionesCreadas || [];
