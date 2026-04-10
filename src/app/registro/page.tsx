@@ -187,18 +187,47 @@ export default function RegistroPage() {
   if (exito) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#111" }}>
-        <div className="text-6xl mb-5">🐑</div>
-        <h1 className="text-2xl font-black text-white mb-2">¡Bienvenido/a, {nombre.split(" ")[0]}!</h1>
-        <p className="text-sm mb-2" style={{ color: "#6b7280" }}>
-          Enviamos un enlace de confirmación a
+        {/* Avatar animado */}
+        <div
+          className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-6"
+          style={{ backgroundColor: "#22c55e", boxShadow: "0 0 60px rgba(34,197,94,0.3)" }}
+        >
+          🐑
+        </div>
+
+        <h1 className="text-2xl font-black text-white mb-2">
+          ¡Ya somos equipo, {nombre.split(" ")[0]}!
+        </h1>
+        <p className="text-sm leading-relaxed mb-2 max-w-xs" style={{ color: "#6b7280" }}>
+          Revisé tu correo — te mandé un link de confirmación a
         </p>
-        <p className="text-white font-semibold text-sm mb-8">{correo}</p>
+        <p className="font-bold text-white text-sm mb-8">{correo}</p>
+
+        {/* Pasos rápidos */}
+        <div className="w-full max-w-xs space-y-3 mb-8">
+          {[
+            { num: "1", texto: "Confirma tu correo" },
+            { num: "2", texto: "Entra a la app" },
+            { num: "3", texto: "Dime tu primer gasto" },
+          ].map((item) => (
+            <div key={item.num} className="flex items-center gap-3 text-left">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0"
+                style={{ backgroundColor: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.3)" }}
+              >
+                {item.num}
+              </div>
+              <p className="text-sm font-semibold text-white">{item.texto}</p>
+            </div>
+          ))}
+        </div>
+
         <Link
           href="/login"
-          className="font-bold py-4 px-10 rounded-2xl text-sm"
+          className="w-full max-w-xs font-bold py-4 rounded-2xl text-sm text-center block transition-all active:scale-[0.98]"
           style={{ backgroundColor: "#22c55e", color: "#000" }}
         >
-          Ir al login
+          Entrar a Lani
         </Link>
       </main>
     );
@@ -208,8 +237,8 @@ export default function RegistroPage() {
     <main className="min-h-screen flex flex-col px-6 pt-14 pb-12" style={{ backgroundColor: "#111" }}>
 
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        {paso > 1 && (
+      <div className="flex items-center gap-3 mb-5">
+        {paso > 1 ? (
           <button
             onClick={() => { setError(""); setPaso((p) => p - 1); }}
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
@@ -219,18 +248,33 @@ export default function RegistroPage() {
               <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
             </svg>
           </button>
+        ) : (
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#22c55e" }}>🐑</div>
         )}
         <div>
           <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "#6b7280" }}>
-            Paso {paso} de 3
+            {paso} de 3
           </p>
           <h1 className="text-xl font-black text-white">
-            {paso === 1 ? "Crea tu cuenta" : paso === 2 ? "Cuéntanos de ti" : "Tu situación financiera"}
+            {paso === 1 ? "Hola, soy Lani" : paso === 2 ? "Cuéntame de ti" : "Tu situación financiera"}
           </h1>
         </div>
       </div>
 
       <Barra paso={paso} />
+
+      {/* Mensaje de Lani por paso */}
+      <div
+        className="rounded-2xl px-4 py-3 mb-5 flex items-start gap-3"
+        style={{ backgroundColor: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)" }}
+      >
+        <span className="text-base shrink-0 mt-0.5">🐑</span>
+        <p className="text-xs leading-relaxed" style={{ color: "#9ca3af" }}>
+          {paso === 1 && "¡Qué bueno que estás aquí! Crea tu cuenta y en 2 minutos empezamos a controlar tu lana juntos."}
+          {paso === 2 && `Mucho gusto, ${nombre.split(" ")[0] || ""}! Mientras más me cuentes, mejor puedo ayudarte. Esto es solo entre tú y yo.`}
+          {paso === 3 && "Último paso. Con esto puedo darte consejos que sí tienen sentido para tu bolsillo, no genéricos."}
+        </p>
+      </div>
 
       <div className="flex-1 space-y-4">
 
