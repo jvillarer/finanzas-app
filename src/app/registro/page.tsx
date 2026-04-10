@@ -154,7 +154,18 @@ export default function RegistroPage() {
       options: { data: { nombre_completo: nombre } },
     });
     setCargando(false);
-    if (authError) { setError("Error al crear cuenta. Intenta de nuevo."); return; }
+    if (authError) {
+      // Mostrar error real para debugging
+      if (authError.message.toLowerCase().includes("rate limit") || authError.message.toLowerCase().includes("email rate")) {
+        setError("Demasiados intentos. Espera unos minutos e intenta de nuevo.");
+      } else if (authError.message.toLowerCase().includes("already registered") || authError.message.toLowerCase().includes("already exists")) {
+        setError("Este correo ya tiene una cuenta.");
+        setCorreoExiste(true);
+      } else {
+        setError(authError.message);
+      }
+      return;
+    }
     if (data?.user && data.user.identities?.length === 0) {
       setError("Este correo ya tiene una cuenta.");
       setCorreoExiste(true);
