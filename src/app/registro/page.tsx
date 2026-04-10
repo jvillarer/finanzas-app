@@ -133,48 +133,40 @@ export default function RegistroPage() {
     return true;
   };
 
+  // Crea la cuenta en paso 1 para detectar duplicados inmediatamente
+  const siguientePaso1 = async () => {
+    if (!validarPaso1()) return;
+    setCargando(true);
+    setError("");
+    const supabase = createClient();
+    const { data, error: authError } = await supabase.auth.signUp({
+      email: correo,
+      password: contrasena,
+      options: { data: { nombre_completo: nombre } },
+    });
+    setCargando(false);
+    if (authError) {
+      setError("Error al crear cuenta. Intenta de nuevo.");
+      return;
+    }
+    if (data?.user && data.user.identities?.length === 0) {
+      setError("Este correo ya tiene una cuenta. ¿Quieres iniciar sesión?");
+      return;
+    }
+    setPaso(2);
+  };
+
   const siguiente = () => {
     setError("");
-    if (paso === 1 && !validarPaso1()) return;
     if (paso === 2 && !validarPaso2()) return;
     setPaso((p) => p + 1);
   };
 
+  // En paso 3 solo guarda el perfil (cuenta ya creada en paso 1)
   const handleRegistro = async () => {
     setCargando(true);
     setError("");
     const supabase = createClient();
-
-    const metadata = {
-      nombre_completo: nombre,
-      edad: Number(edad),
-      sexo,
-      ciudad,
-      ocupacion,
-      ingreso_mensual: ingresoMensual,
-      objetivo_financiero: objetivo,
-    };
-
-    const { data: signUpData, error: authError } = await supabase.auth.signUp({
-      email: correo,
-      password: contrasena,
-      options: { data: metadata },
-    });
-
-    if (authError) {
-      setError(authError.message === "User already registered" ? "Este correo ya tiene una cuenta" : "Error al crear cuenta");
-      setCargando(false);
-      return;
-    }
-
-    // Supabase no devuelve error si el correo ya existe — lo detectamos por identities vacío
-    if (signUpData?.user && signUpData.user.identities?.length === 0) {
-      setError("Este correo ya tiene una cuenta. ¿Quieres iniciar sesión?");
-      setCargando(false);
-      return;
-    }
-
-    // Guardar perfil extendido en tabla perfiles
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase.from("perfiles").upsert({
@@ -187,8 +179,11 @@ export default function RegistroPage() {
         ingreso_mensual_rango: ingresoMensual,
         objetivo_financiero: objetivo,
       });
+      // Actualizar metadata con perfil completo
+      await supabase.auth.updateUser({
+        data: { nombre_completo: nombre, edad: Number(edad), sexo, ciudad, ocupacion, ingreso_mensual: ingresoMensual, objetivo_financiero: objetivo },
+      });
     }
-
     setExito(true);
     setCargando(false);
   };
@@ -365,11 +360,17 @@ export default function RegistroPage() {
       <div className="mt-8">
         {paso < 3 ? (
           <button
-            onClick={siguiente}
-            className="w-full font-bold py-4 rounded-2xl text-sm tracking-wide transition-all active:scale-[0.98]"
+            onClick={paso === 1 ? siguientePaso1 : siguiente}
+            disabled={cargando}
+            className="w-full font-bold py-4 rounded-2xl text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50"
             style={{ backgroundColor: "#22c55e", color: "#000" }}
           >
-            Continuar →
+            {cargando && paso === 1 ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                Verificando...
+              </span>
+            ) : "Continuar →"}
           </button>
         ) : (
           <button
