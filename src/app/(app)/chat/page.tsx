@@ -36,12 +36,10 @@ function limpiarMarkdown(texto: string) {
     .replace(/\*(.+?)\*/g, "$1")
     .replace(/`(.+?)`/g, "$1")
     .replace(/#{1,6}\s/g, "")
-    // Eliminar emojis para que no se lean como "cara sonriente"
-    .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
-    .replace(/[\u{2600}-\u{27BF}]/gu, "")
-    .replace(/[\u{FE00}-\u{FE0F}]/gu, "")
-    .replace(/[\u{1F900}-\u{1F9FF}]/gu, "")
-    .replace(/[\u{1FA00}-\u{1FAFF}]/gu, "")
+    // Eliminar emojis (surrogate pairs + símbolos misceláneos)
+    .replace(/[\uD800-\uDFFF]/g, "")
+    .replace(/[\u2600-\u27BF]/g, "")
+    .replace(/[\uFE00-\uFE0F]/g, "")
     // Limpiar puntuación duplicada tras quitar emojis
     .replace(/\s{2,}/g, " ")
     .replace(/\n+/g, ". ")
