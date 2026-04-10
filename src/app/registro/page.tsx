@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
 // ── Paso 1: cuenta
@@ -96,6 +97,7 @@ function ChipSelect({
 }
 
 export default function RegistroPage() {
+  const router = useRouter();
   const [paso, setPaso] = useState(1);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
@@ -222,13 +224,13 @@ export default function RegistroPage() {
           ))}
         </div>
 
-        <Link
-          href="/login"
+        <button
+          onClick={() => router.push("/bienvenida")}
           className="w-full max-w-xs font-bold py-4 rounded-2xl text-sm text-center block transition-all active:scale-[0.98]"
           style={{ backgroundColor: "#22c55e", color: "#000" }}
         >
           Entrar a Lani
-        </Link>
+        </button>
       </main>
     );
   }
