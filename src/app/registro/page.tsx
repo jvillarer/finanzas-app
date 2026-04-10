@@ -5,56 +5,47 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
-// ── Paso 1: cuenta
-// ── Paso 2: perfil personal
-// ── Paso 3: contexto financiero
+const OCUPACIONES = ["Empleado", "Independiente / Freelance", "Empresario", "Estudiante", "Ama/o de casa", "Otro"];
 
-const OCUPACIONES = [
-  "Empleado",
-  "Independiente / Freelance",
-  "Empresario",
-  "Estudiante",
-  "Ama/o de casa",
-  "Otro",
+const OBJETIVOS = ["Ahorrar más", "Salir de deudas", "Controlar mis gastos", "Planear un proyecto", "Invertir", "Solo quiero ver mis finanzas"];
+
+const PAISES = [
+  "México", "Estados Unidos", "Argentina", "Colombia", "Chile", "España",
+  "Perú", "Venezuela", "Ecuador", "Guatemala", "Cuba", "Bolivia",
+  "República Dominicana", "Honduras", "Paraguay", "El Salvador",
+  "Nicaragua", "Costa Rica", "Panamá", "Uruguay", "Otro",
 ];
 
-const OBJETIVOS = [
-  "Ahorrar más",
-  "Salir de deudas",
-  "Controlar mis gastos",
-  "Planear un proyecto",
-  "Invertir",
-  "Solo quiero ver mis finanzas",
+const ESTADOS_MX = [
+  "Aguascalientes", "Baja California", "Baja California Sur", "Campeche",
+  "Chiapas", "Chihuahua", "Ciudad de México", "Coahuila", "Colima",
+  "Durango", "Guanajuato", "Guerrero", "Hidalgo", "Jalisco",
+  "Estado de México", "Michoacán", "Morelos", "Nayarit", "Nuevo León",
+  "Oaxaca", "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí",
+  "Sinaloa", "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala",
+  "Veracruz", "Yucatán", "Zacatecas",
 ];
 
 function Barra({ paso }: { paso: number }) {
   return (
     <div className="flex gap-2 justify-center mb-8">
       {[1, 2, 3].map((n) => (
-        <div
-          key={n}
-          className="h-1 rounded-full transition-all"
-          style={{
-            width: paso === n ? 32 : 16,
-            backgroundColor: n <= paso ? "#22c55e" : "rgba(255,255,255,0.1)",
-          }}
-        />
+        <div key={n} className="h-1 rounded-full transition-all" style={{
+          width: paso === n ? 32 : 16,
+          backgroundColor: n <= paso ? "#22c55e" : "rgba(255,255,255,0.1)",
+        }} />
       ))}
     </div>
   );
 }
 
-function Campo({
-  label, type = "text", placeholder, value, onChange, autoComplete, required = true,
-}: {
+function Campo({ label, type = "text", placeholder, value, onChange, autoComplete, required = true }: {
   label: string; type?: string; placeholder?: string; value: string;
   onChange: (v: string) => void; autoComplete?: string; required?: boolean;
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#6b7280" }}>
-        {label}
-      </label>
+      <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#6b7280" }}>{label}</label>
       <input
         type={type} placeholder={placeholder} value={value} autoComplete={autoComplete}
         onChange={(e) => onChange(e.target.value)} required={required}
@@ -65,31 +56,45 @@ function Campo({
   );
 }
 
-function ChipSelect({
-  label, opciones, valor, onSelect,
-}: {
+function Dropdown({ label, opciones, valor, onSelect, placeholder = "Selecciona..." }: {
+  label: string; opciones: string[]; valor: string;
+  onSelect: (v: string) => void; placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#6b7280" }}>{label}</label>
+      <select
+        value={valor}
+        onChange={(e) => onSelect(e.target.value)}
+        className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none appearance-none"
+        style={{
+          backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)",
+          color: valor ? "#fff" : "#6b7280",
+        }}
+      >
+        <option value="" disabled>{placeholder}</option>
+        {opciones.map((op) => <option key={op} value={op} style={{ backgroundColor: "#1c1c1c" }}>{op}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function ChipSelect({ label, opciones, valor, onSelect }: {
   label: string; opciones: string[]; valor: string; onSelect: (v: string) => void;
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "#6b7280" }}>
-        {label}
-      </label>
+      <label className="block text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "#6b7280" }}>{label}</label>
       <div className="flex flex-wrap gap-2">
         {opciones.map((op) => (
-          <button
-            key={op}
-            type="button"
-            onClick={() => onSelect(op)}
+          <button key={op} type="button" onClick={() => onSelect(op)}
             className="px-3 py-2 rounded-2xl text-xs font-semibold transition-all active:scale-95"
             style={{
               backgroundColor: valor === op ? "rgba(34,197,94,0.15)" : "#1c1c1c",
               border: valor === op ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.07)",
               color: valor === op ? "#22c55e" : "#9ca3af",
             }}
-          >
-            {op}
-          </button>
+          >{op}</button>
         ))}
       </div>
     </div>
@@ -101,17 +106,20 @@ export default function RegistroPage() {
   const [paso, setPaso] = useState(1);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+  const [correoExiste, setCorreoExiste] = useState(false);
   const [exito, setExito] = useState(false);
 
   // Paso 1
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
+  const [confirmarContrasena, setConfirmarContrasena] = useState("");
 
   // Paso 2
   const [edad, setEdad] = useState("");
   const [sexo, setSexo] = useState("");
-  const [ciudad, setCiudad] = useState("");
+  const [pais, setPais] = useState("");
+  const [estado, setEstado] = useState("");
   const [ocupacion, setOcupacion] = useState("");
 
   // Paso 3
@@ -121,7 +129,8 @@ export default function RegistroPage() {
   const validarPaso1 = () => {
     if (!nombre.trim()) { setError("Ingresa tu nombre"); return false; }
     if (!correo.includes("@")) { setError("Correo inválido"); return false; }
-    if (contrasena.length < 6) { setError("Contraseña mínimo 6 caracteres"); return false; }
+    if (contrasena.length < 6) { setError("La contraseña debe tener mínimo 6 caracteres"); return false; }
+    if (contrasena !== confirmarContrasena) { setError("Las contraseñas no coinciden"); return false; }
     return true;
   };
 
@@ -129,15 +138,15 @@ export default function RegistroPage() {
     if (!edad || isNaN(Number(edad)) || Number(edad) < 13 || Number(edad) > 99) {
       setError("Ingresa una edad válida"); return false;
     }
-    if (!sexo) { setError("Selecciona una opción"); return false; }
+    if (!sexo) { setError("Selecciona tu sexo"); return false; }
     return true;
   };
 
-  // Crea la cuenta en paso 1 para detectar duplicados inmediatamente
   const siguientePaso1 = async () => {
     if (!validarPaso1()) return;
     setCargando(true);
     setError("");
+    setCorreoExiste(false);
     const supabase = createClient();
     const { data, error: authError } = await supabase.auth.signUp({
       email: correo,
@@ -145,12 +154,10 @@ export default function RegistroPage() {
       options: { data: { nombre_completo: nombre } },
     });
     setCargando(false);
-    if (authError) {
-      setError("Error al crear cuenta. Intenta de nuevo.");
-      return;
-    }
+    if (authError) { setError("Error al crear cuenta. Intenta de nuevo."); return; }
     if (data?.user && data.user.identities?.length === 0) {
-      setError("Este correo ya tiene una cuenta. ¿Quieres iniciar sesión?");
+      setError("Este correo ya tiene una cuenta.");
+      setCorreoExiste(true);
       return;
     }
     setPaso(2);
@@ -162,26 +169,25 @@ export default function RegistroPage() {
     setPaso((p) => p + 1);
   };
 
-  // En paso 3 solo guarda el perfil (cuenta ya creada en paso 1)
   const handleRegistro = async () => {
     setCargando(true);
     setError("");
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    const ubicacion = pais === "México" && estado ? `${estado}, México` : pais;
     if (user) {
       await supabase.from("perfiles").upsert({
         id: user.id,
         nombre_completo: nombre,
         edad: Number(edad),
         sexo,
-        ciudad,
+        ciudad: ubicacion,
         ocupacion,
         ingreso_mensual_rango: ingresoMensual,
         objetivo_financiero: objetivo,
       });
-      // Actualizar metadata con perfil completo
       await supabase.auth.updateUser({
-        data: { nombre_completo: nombre, edad: Number(edad), sexo, ciudad, ocupacion, ingreso_mensual: ingresoMensual, objetivo_financiero: objetivo },
+        data: { nombre_completo: nombre, edad: Number(edad), sexo, ciudad: ubicacion, ocupacion, ingreso_mensual: ingresoMensual, objetivo_financiero: objetivo },
       });
     }
     setExito(true);
@@ -191,46 +197,27 @@ export default function RegistroPage() {
   if (exito) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#111" }}>
-        {/* Avatar animado */}
-        <div
-          className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-6"
-          style={{ backgroundColor: "#22c55e", boxShadow: "0 0 60px rgba(34,197,94,0.3)" }}
-        >
-          🐑
-        </div>
-
-        <h1 className="text-2xl font-black text-white mb-2">
-          ¡Ya somos equipo, {nombre.split(" ")[0]}!
-        </h1>
+        <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-6"
+          style={{ backgroundColor: "#22c55e", boxShadow: "0 0 60px rgba(34,197,94,0.3)" }}>🐑</div>
+        <h1 className="text-2xl font-black text-white mb-2">¡Ya somos equipo, {nombre.split(" ")[0]}!</h1>
         <p className="text-sm leading-relaxed mb-2 max-w-xs" style={{ color: "#6b7280" }}>
           Revisé tu correo — te mandé un link de confirmación a
         </p>
         <p className="font-bold text-white text-sm mb-8">{correo}</p>
-
-        {/* Pasos rápidos */}
         <div className="w-full max-w-xs space-y-3 mb-8">
-          {[
-            { num: "1", texto: "Confirma tu correo" },
-            { num: "2", texto: "Entra a la app" },
-            { num: "3", texto: "Dime tu primer gasto" },
-          ].map((item) => (
+          {[{ num: "1", texto: "Confirma tu correo" }, { num: "2", texto: "Entra a la app" }, { num: "3", texto: "Dime tu primer gasto" }].map((item) => (
             <div key={item.num} className="flex items-center gap-3 text-left">
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0"
-                style={{ backgroundColor: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.3)" }}
-              >
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0"
+                style={{ backgroundColor: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.3)" }}>
                 {item.num}
               </div>
               <p className="text-sm font-semibold text-white">{item.texto}</p>
             </div>
           ))}
         </div>
-
-        <button
-          onClick={() => router.push("/bienvenida")}
+        <button onClick={() => router.push("/bienvenida")}
           className="w-full max-w-xs font-bold py-4 rounded-2xl text-sm text-center block transition-all active:scale-[0.98]"
-          style={{ backgroundColor: "#22c55e", color: "#000" }}
-        >
+          style={{ backgroundColor: "#22c55e", color: "#000" }}>
           Entrar a Lani
         </button>
       </main>
@@ -243,11 +230,9 @@ export default function RegistroPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         {paso > 1 ? (
-          <button
-            onClick={() => { setError(""); setPaso((p) => p - 1); }}
+          <button onClick={() => { setError(""); setCorreoExiste(false); setPaso((p) => p - 1); }}
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: "#1c1c1c" }}
-          >
+            style={{ backgroundColor: "#1c1c1c" }}>
             <svg viewBox="0 0 20 20" fill="#6b7280" className="w-4 h-4">
               <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
             </svg>
@@ -256,9 +241,7 @@ export default function RegistroPage() {
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#22c55e" }}>🐑</div>
         )}
         <div>
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "#6b7280" }}>
-            {paso} de 3
-          </p>
+          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "#6b7280" }}>{paso} de 3</p>
           <h1 className="text-xl font-black text-white">
             {paso === 1 ? "Hola, soy Lani" : paso === 2 ? "Cuéntame de ti" : "Tu situación financiera"}
           </h1>
@@ -267,82 +250,66 @@ export default function RegistroPage() {
 
       <Barra paso={paso} />
 
-      {/* Mensaje de Lani por paso */}
-      <div
-        className="rounded-2xl px-4 py-3 mb-5 flex items-start gap-3"
-        style={{ backgroundColor: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)" }}
-      >
+      {/* Mensaje de Lani */}
+      <div className="rounded-2xl px-4 py-3 mb-5 flex items-start gap-3"
+        style={{ backgroundColor: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)" }}>
         <span className="text-base shrink-0 mt-0.5">🐑</span>
         <p className="text-xs leading-relaxed" style={{ color: "#9ca3af" }}>
           {paso === 1 && "¡Qué bueno que estás aquí! Crea tu cuenta y en 2 minutos empezamos a controlar tu lana juntos."}
-          {paso === 2 && `Mucho gusto, ${nombre.split(" ")[0] || ""}! Mientras más me cuentes, mejor puedo ayudarte. Esto es solo entre tú y yo.`}
+          {paso === 2 && `Mucho gusto, ${nombre.split(" ")[0]}! Mientras más me cuentes, mejor puedo ayudarte. Esto es solo entre tú y yo.`}
           {paso === 3 && "Último paso. Con esto puedo darte consejos que sí tienen sentido para tu bolsillo, no genéricos."}
         </p>
       </div>
 
       <div className="space-y-4">
 
-        {/* ── PASO 1: Cuenta ── */}
+        {/* ── PASO 1 ── */}
         {paso === 1 && (
           <>
             <Campo label="Nombre completo" placeholder="Tu nombre completo" value={nombre} onChange={setNombre} autoComplete="name" />
-            <Campo label="Correo" type="email" placeholder="tucorreo@ejemplo.com" value={correo} onChange={setCorreo} autoComplete="email" />
+            <Campo label="Correo" type="email" placeholder="tucorreo@ejemplo.com" value={correo} onChange={(v) => { setCorreo(v); setCorreoExiste(false); setError(""); }} autoComplete="email" />
             <Campo label="Contraseña" type="password" placeholder="Mínimo 6 caracteres" value={contrasena} onChange={setContrasena} autoComplete="new-password" />
+            <Campo label="Confirmar contraseña" type="password" placeholder="Repite tu contraseña" value={confirmarContrasena} onChange={setConfirmarContrasena} autoComplete="new-password" />
           </>
         )}
 
-        {/* ── PASO 2: Perfil personal ── */}
+        {/* ── PASO 2 ── */}
         {paso === 2 && (
           <>
             <div>
               <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#6b7280" }}>Edad</label>
-              <input
-                type="number" inputMode="numeric" placeholder="Ej. 28"
+              <input type="number" inputMode="numeric" placeholder="Ej. 28"
                 value={edad} onChange={(e) => setEdad(e.target.value)} min={13} max={99}
                 className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none text-white placeholder-gray-600"
-                style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)" }}
-              />
+                style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)" }} />
             </div>
 
-            <ChipSelect
-              label="Sexo"
-              opciones={["Masculino", "Femenino", "Prefiero no decir"]}
-              valor={sexo}
-              onSelect={setSexo}
-            />
+            <ChipSelect label="Sexo" opciones={["Hombre", "Mujer"]} valor={sexo} onSelect={setSexo} />
 
-            <Campo label="Ciudad (opcional)" placeholder="Ej. CDMX, Monterrey..." value={ciudad} onChange={setCiudad} required={false} />
+            <Dropdown label="País" opciones={PAISES} valor={pais} onSelect={(v) => { setPais(v); setEstado(""); }} placeholder="Selecciona tu país" />
 
-            <ChipSelect
-              label="Ocupación"
-              opciones={OCUPACIONES}
-              valor={ocupacion}
-              onSelect={setOcupacion}
-            />
+            {pais === "México" && (
+              <Dropdown label="Estado" opciones={ESTADOS_MX} valor={estado} onSelect={setEstado} placeholder="Selecciona tu estado" />
+            )}
+
+            <ChipSelect label="Ocupación" opciones={OCUPACIONES} valor={ocupacion} onSelect={setOcupacion} />
           </>
         )}
 
-        {/* ── PASO 3: Situación financiera ── */}
+        {/* ── PASO 3 ── */}
         {paso === 3 && (
           <>
             <ChipSelect
               label="Ingreso mensual aproximado"
               opciones={["Menos de $10k", "$10k–$20k", "$20k–$40k", "$40k–$80k", "Más de $80k"]}
-              valor={ingresoMensual}
-              onSelect={setIngresoMensual}
+              valor={ingresoMensual} onSelect={setIngresoMensual}
             />
-
             <ChipSelect
               label="¿Cuál es tu objetivo principal?"
-              opciones={OBJETIVOS}
-              valor={objetivo}
-              onSelect={setObjetivo}
+              opciones={OBJETIVOS} valor={objetivo} onSelect={setObjetivo}
             />
-
-            <div
-              className="rounded-2xl px-4 py-3 flex items-start gap-3"
-              style={{ backgroundColor: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)" }}
-            >
+            <div className="rounded-2xl px-4 py-3 flex items-start gap-3"
+              style={{ backgroundColor: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)" }}>
               <span className="text-xl shrink-0 mt-0.5">🐑</span>
               <p className="text-xs leading-relaxed" style={{ color: "#9ca3af" }}>
                 Esta info ayuda a Lani a darte mejores consejos financieros personalizados para ti.
@@ -352,12 +319,24 @@ export default function RegistroPage() {
         )}
       </div>
 
+      {/* Error + botón de login si correo duplicado */}
       {error && (
-        <p className="text-xs font-semibold mt-4" style={{ color: "#ef4444" }}>⚠ {error}</p>
+        <div className="mt-4">
+          <p className="text-xs font-semibold" style={{ color: "#ef4444" }}>⚠ {error}</p>
+          {correoExiste && (
+            <button
+              onClick={() => router.push("/login")}
+              className="mt-3 w-full font-bold py-4 rounded-2xl text-sm tracking-wide transition-all active:scale-[0.98]"
+              style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}
+            >
+              Iniciar sesión →
+            </button>
+          )}
+        </div>
       )}
 
-      {/* Botón */}
-      <div className="mt-8">
+      {/* Botón principal */}
+      <div className="mt-6">
         {paso < 3 ? (
           <button
             onClick={paso === 1 ? siguientePaso1 : siguiente}
@@ -373,30 +352,23 @@ export default function RegistroPage() {
             ) : "Continuar →"}
           </button>
         ) : (
-          <button
-            onClick={handleRegistro}
-            disabled={cargando}
-            className="w-full font-bold py-4 rounded-2xl text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50"
-            style={{ backgroundColor: "#22c55e", color: "#000" }}
-          >
-            {cargando ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                Creando cuenta...
-              </span>
-            ) : "Crear mi cuenta"}
-          </button>
-        )}
-
-        {paso === 3 && (
-          <button
-            onClick={handleRegistro}
-            disabled={cargando}
-            className="w-full py-3 mt-2 text-sm font-semibold transition-all"
-            style={{ color: "#6b7280" }}
-          >
-            Omitir este paso
-          </button>
+          <>
+            <button onClick={handleRegistro} disabled={cargando}
+              className="w-full font-bold py-4 rounded-2xl text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50"
+              style={{ backgroundColor: "#22c55e", color: "#000" }}>
+              {cargando ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  Guardando...
+                </span>
+              ) : "Crear mi cuenta"}
+            </button>
+            <button onClick={handleRegistro} disabled={cargando}
+              className="w-full py-3 mt-2 text-sm font-semibold transition-all"
+              style={{ color: "#6b7280" }}>
+              Omitir este paso
+            </button>
+          </>
         )}
       </div>
 
