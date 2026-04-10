@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { obtenerTransacciones, calcularResumen, formatearMonto } from "@/lib/transacciones";
 import type { Transaccion } from "@/lib/supabase";
 import NuevaTransaccion from "@/components/NuevaTransaccion";
+import EditarTransaccion from "@/components/EditarTransaccion";
 import { createClient } from "@/lib/supabase";
+import { registrarServiceWorker, pedirPermisoNotificaciones } from "@/lib/notificaciones";
 
 const CAT_ICON: Record<string, string> = {
   Comida: "🍽",
@@ -36,6 +38,8 @@ export default function DashboardPage() {
   const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [transaccionEditar, setTransaccionEditar] = useState<Transaccion | null>(null);
+  const [mostrarBannerNotif, setMostrarBannerNotif] = useState(false);
   const [nombre, setNombre] = useState("");
   const [iniciales, setIniciales] = useState("??");
   const [filtro, setFiltro] = useState<Filtro>("todos");
@@ -58,7 +62,14 @@ export default function DashboardPage() {
     }
   };
 
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => {
+    cargar();
+    // Registrar SW y ver si ya dimos permiso
+    registrarServiceWorker();
+    if ("Notification" in window && Notification.permission === "default") {
+      setTimeout(() => setMostrarBannerNotif(true), 3000);
+    }
+  }, []);
 
   const { ingresos, gastos, balance } = calcularResumen(transacciones);
 
@@ -128,6 +139,37 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Banner notificaciones */}
+      {mostrarBannerNotif && (
+        <div
+          className="mx-4 mt-4 px-4 py-3 rounded-2xl flex items-center gap-3 fade-in"
+          style={{ backgroundColor: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.15)" }}
+        >
+          <span className="text-xl shrink-0">🐑</span>
+          <p className="text-xs font-semibold flex-1" style={{ color: "#9ca3af" }}>
+            Activa las notificaciones y Lani te avisa cuando te pasas del presupuesto
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => setMostrarBannerNotif(false)}
+              className="text-xs font-bold px-2 py-1.5 rounded-xl" style={{ color: "#6b7280" }}
+            >
+              No
+            </button>
+            <button
+              onClick={async () => {
+                await pedirPermisoNotificaciones();
+                setMostrarBannerNotif(false);
+              }}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl"
+              style={{ backgroundColor: "#22c55e", color: "#000" }}
+            >
+              Activar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── FILTER TABS ── */}
       <div className="px-4 mt-5 mb-3 flex gap-2">
         {(["todos", "gastos", "ingresos"] as Filtro[]).map((f) => (
@@ -172,7 +214,7 @@ export default function DashboardPage() {
                 day: "numeric", month: "short",
               });
               return (
-                <div key={t.id} className="flex items-center gap-3 rounded-2xl px-1 py-3.5">
+                <div key={t.id} onClick={() => setTransaccionEditar(t)} className="flex items-center gap-3 rounded-2xl px-1 py-3.5 active:opacity-70 cursor-pointer transition-opacity">
                   <div
                     className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0"
                     style={{ backgroundColor: "#1c1c1c" }}
@@ -212,6 +254,15 @@ export default function DashboardPage() {
         <NuevaTransaccion
           onCerrar={() => setMostrarFormulario(false)}
           onGuardado={() => { setMostrarFormulario(false); cargar(); }}
+        />
+      )}
+
+      {transaccionEditar && (
+        <EditarTransaccion
+          transaccion={transaccionEditar}
+          onCerrar={() => setTransaccionEditar(null)}
+          onGuardado={() => { setTransaccionEditar(null); cargar(); }}
+          onEliminado={() => { setTransaccionEditar(null); cargar(); }}
         />
       )}
     </main>
