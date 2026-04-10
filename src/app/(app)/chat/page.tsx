@@ -21,6 +21,15 @@ const SUGERENCIAS = [
   "Me depositaron $15,000 de nómina",
 ];
 
+// Corrige variantes con que el STT confunde "Lani"
+function corregirSTT(texto: string) {
+  return texto
+    .replace(/\b(nani|leni|leny|laní|lahni|lonni|lonny|lanny|lanie|laney|lane|lari|lany|lain|laani|lanne|lhani|llani|lhany|lhane)\b/gi, "Lani")
+    .replace(/\b(el lani|a lani|de lani|con lani|para lani|el nani|a nani|de nani|con nani|para nani)\b/gi, (m) =>
+      m.replace(/nani|lani/i, "Lani"))
+    .trim();
+}
+
 function limpiarMarkdown(texto: string) {
   return texto
     .replace(/\*\*(.+?)\*\*/g, "$1")
@@ -182,6 +191,7 @@ export default function ChatPage() {
   const listaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputImagenRef = useRef<HTMLInputElement>(null);
+  const audioDesbloqueadoRef = useRef(false);
 
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -199,32 +209,53 @@ export default function ChatPage() {
     }
   }, [notificacion]);
 
+  // ── Desbloquear audio en iOS (llamar desde gesto directo del usuario) ──
+  const desbloquearAudio = useCallback(() => {
+    if (audioDesbloqueadoRef.current || !window.speechSynthesis) return;
+    // iOS necesita un utterance con texto real (aunque sea espacio) para desbloquear
+    const utt = new SpeechSynthesisUtterance(" ");
+    utt.volume = 0;
+    utt.rate = 10; // rapidísimo para que no se escuche
+    window.speechSynthesis.speak(utt);
+    audioDesbloqueadoRef.current = true;
+  }, []);
+
   // ── Hablar ──
   const hablarLani = useCallback((texto: string, onEnd?: () => void) => {
     if (!vozActiva && !modoVoz) { onEnd?.(); return; }
     if (!window.speechSynthesis) { onEnd?.(); return; }
 
     window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(limpiarMarkdown(texto));
-    utt.lang = "es-MX";
-    utt.rate = 1.05;
-    utt.pitch = 1.1;
 
-    utt.onstart = () => setHablando(true);
-    utt.onend = () => { setHablando(false); onEnd?.(); };
-    utt.onerror = () => { setHablando(false); onEnd?.(); };
+    // iOS bug: necesita ~100ms después de cancel() antes de speak()
+    setTimeout(() => {
+      const utt = new SpeechSynthesisUtterance(limpiarMarkdown(texto));
+      utt.lang = "es-MX";
+      utt.rate = 1.05;
+      utt.pitch = 1.1;
 
-    synthRef.current = utt;
+      utt.onstart = () => setHablando(true);
+      utt.onend = () => { setHablando(false); onEnd?.(); };
+      utt.onerror = () => { setHablando(false); onEnd?.(); };
 
-    const hablar = () => {
+      synthRef.current = utt;
+
+      const elegirVozYHablar = () => {
+        const voces = window.speechSynthesis.getVoices();
+        const voz = voces.find((v) => v.lang === "es-MX") || voces.find((v) => v.lang.startsWith("es")) || null;
+        if (voz) utt.voice = voz;
+        window.speechSynthesis.speak(utt);
+      };
+
       const voces = window.speechSynthesis.getVoices();
-      const voz = voces.find((v) => v.lang === "es-MX") || voces.find((v) => v.lang.startsWith("es")) || null;
-      if (voz) utt.voice = voz;
-      window.speechSynthesis.speak(utt);
-    };
-
-    if (window.speechSynthesis.getVoices().length > 0) hablar();
-    else window.speechSynthesis.onvoiceschanged = hablar;
+      if (voces.length > 0) {
+        elegirVozYHablar();
+      } else {
+        // iOS a veces no dispara onvoiceschanged — fallback con timeout
+        window.speechSynthesis.onvoiceschanged = () => elegirVozYHablar();
+        setTimeout(elegirVozYHablar, 600);
+      }
+    }, 100);
   }, [vozActiva, modoVoz]);
 
   // ── Grabar ──
@@ -241,7 +272,7 @@ export default function ChatPage() {
     rec.maxAlternatives = 1;
 
     rec.onresult = (e: any) => {
-      const texto = e.results[0][0].transcript;
+      const texto = corregirSTT(e.results[0][0].transcript);
       setGrabando(false);
       enviar(texto);
     };
@@ -259,9 +290,10 @@ export default function ChatPage() {
   }, []);
 
   const toggleGrabacion = useCallback(() => {
+    desbloquearAudio();
     if (grabando) detenerGrabacion();
     else iniciarGrabacion();
-  }, [grabando, iniciarGrabacion, detenerGrabacion]);
+  }, [grabando, iniciarGrabacion, detenerGrabacion, desbloquearAudio]);
 
   // ── Imagen ──
   const comprimirImagen = (archivo: File): Promise<{ base64: string; previewUrl: string }> =>
@@ -292,6 +324,7 @@ export default function ChatPage() {
 
   // ── Enviar ──
   const enviar = async (texto?: string) => {
+    desbloquearAudio();
     const pregunta = (texto ?? input).trim();
     if (!pregunta && !imagenPendiente) return;
     if (cargando) return;
@@ -367,6 +400,7 @@ export default function ChatPage() {
 
   // Abrir modo voz
   const abrirModoVoz = () => {
+    desbloquearAudio();
     setModoVoz(true);
     setTimeout(() => iniciarGrabacion(), 300);
   };
