@@ -148,11 +148,11 @@ export default function PresupuestosPage() {
   };
 
   const conDatos: PresupuestoConGasto[] = CATEGORIAS.map((cat) => {
-    const p = presupuestos.find((x) => x.categoria === cat.nombre);
-    const gastado = gastosPorCat[cat.nombre] || 0;
+    const p = presupuestos.find((x) => x.categoria === cat.categoria);
+    const gastado = gastosPorCat[cat.categoria] || 0;
     const limite = p?.limite || 0;
     const pct = limite > 0 ? Math.min((gastado / limite) * 100, 100) : 0;
-    return { id: p?.id, categoria: cat.nombre, emoji: cat.emoji, limite, gastado, pct };
+    return { id: p?.id, categoria: cat.categoria, emoji: cat.emoji, limite, gastado, pct };
   });
 
   const conPresupuesto = conDatos.filter((c) => c.limite > 0);
@@ -186,8 +186,8 @@ export default function PresupuestosPage() {
 
                 return (
                   <button
-                    key={cat.nombre}
-                    onClick={() => setModal({ categoria: cat.nombre, emoji: cat.emoji, limiteActual: cat.limite, id: cat.id })}
+                    key={cat.categoria}
+                    onClick={() => setModal({ categoria: cat.categoria, emoji: cat.emoji, limiteActual: cat.limite, id: cat.id })}
                     className="w-full rounded-3xl p-4 text-left transition-all active:scale-[0.98]"
                     style={{ backgroundColor: "#1c1c1c" }}
                   >
@@ -196,7 +196,7 @@ export default function PresupuestosPage() {
                         {cat.emoji}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-white">{cat.nombre}</p>
+                        <p className="text-sm font-bold text-white">{cat.categoria}</p>
                         <p className="text-xs" style={{ color: "#6b7280" }}>
                           {formatearMonto(cat.gastado)} de {formatearMonto(cat.limite)}
                         </p>
@@ -230,14 +230,14 @@ export default function PresupuestosPage() {
           <div className="grid grid-cols-2 gap-2">
             {sinPresupuesto.map((cat) => (
               <button
-                key={cat.nombre}
-                onClick={() => setModal({ categoria: cat.nombre, emoji: cat.emoji })}
+                key={cat.categoria}
+                onClick={() => setModal({ categoria: cat.categoria, emoji: cat.emoji })}
                 className="flex items-center gap-3 p-4 rounded-2xl text-left transition-all active:scale-[0.97]"
                 style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.04)" }}
               >
                 <span className="text-xl">{cat.emoji}</span>
                 <div>
-                  <p className="text-sm font-bold text-white">{cat.nombre}</p>
+                  <p className="text-sm font-bold text-white">{cat.categoria}</p>
                   <p className="text-[10px] font-semibold" style={{ color: "#4b5563" }}>Sin límite</p>
                 </div>
               </button>
