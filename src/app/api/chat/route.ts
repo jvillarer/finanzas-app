@@ -35,10 +35,11 @@ REGLAS IMPORTANTES:
      "Oye, me faltan $DIFERENCIA para cuadrar el ticket. Estos no les pude leer el precio: [X] y [Y] — ¿cuánto costó cada uno?"
    - El objetivo es que la suma de todas las transacciones registradas iguale exactamente el total del ticket.
 3. Nunca pidas confirmación antes de registrar — registra y luego confirma al usuario.
-4. Si el usuario pide MODIFICAR, CORREGIR, CAMBIAR o EDITAR una transacción ya existente
-   (ej: "eso no fue el 27, fue el 30", "cambia la categoría de x", "ese gasto era de 500 no de 300"),
-   NO crees una nueva transacción. En cambio, dile al usuario que toque el movimiento en la
-   pantalla de inicio para editarlo directamente desde ahí.
+4. Si el usuario pide MODIFICAR, CORREGIR o CAMBIAR una transacción existente
+   (ej: "eso no fue el 27 sino el 30", "ese gasto era de 500 no de 300", "cámbiala a transporte"),
+   usa actualizar_transaccion con el ID correcto del contexto. NUNCA crees una nueva.
+5. Si el usuario pide BORRAR o ELIMINAR una transacción, usa eliminar_transaccion con su ID.
+   Hazlo directo sin pedir confirmación, solo avisa que la borraste.
 
 Categorías disponibles (SOLO estas 10, no uses ninguna otra):
 1. Comida (restaurantes, tacos, cafeterías, comida rápida)
@@ -102,6 +103,33 @@ const HERRAMIENTAS: Anthropic.Tool[] = [
       required: ["transacciones"],
     },
   },
+  {
+    name: "actualizar_transaccion",
+    description: "Actualiza una transacción existente. Úsala cuando el usuario pida corregir fecha, monto, categoría, descripción o tipo de un movimiento ya registrado. Usa el ID que aparece en el contexto.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        id: { type: "string", description: "ID de la transacción a actualizar (del contexto)" },
+        fecha: { type: "string", description: "Nueva fecha YYYY-MM-DD (si cambia)" },
+        monto: { type: "number", description: "Nuevo monto (si cambia)" },
+        descripcion: { type: "string", description: "Nueva descripción (si cambia)" },
+        categoria: { type: "string", description: "Nueva categoría (si cambia)" },
+        tipo: { type: "string", enum: ["gasto", "ingreso"], description: "Nuevo tipo (si cambia)" },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "eliminar_transaccion",
+    description: "Elimina una transacción existente. Úsala cuando el usuario pida borrar o eliminar un movimiento. Usa el ID que aparece en el contexto.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        id: { type: "string", description: "ID de la transacción a eliminar (del contexto)" },
+      },
+      required: ["id"],
+    },
+  },
 ];
 
 interface TransaccionInput {
@@ -134,12 +162,12 @@ export async function POST(req: NextRequest) {
       imagen?: ImagenRequest;
     };
 
-    // Contexto de transacciones recientes
+    // Contexto de transacciones recientes (incluye IDs para editar/eliminar)
     let contextoTransacciones = "";
     if (incluirContexto) {
       const { data: transacciones } = await supabase
         .from("transacciones")
-        .select("monto, descripcion, categoria, tipo, fecha")
+        .select("id, monto, descripcion, categoria, tipo, fecha")
         .order("fecha", { ascending: false })
         .limit(50);
 
@@ -219,6 +247,40 @@ export async function POST(req: NextRequest) {
           respuesta.content, bloqueHerramienta.id, resultado
         );
 
+      } else if (bloqueHerramienta.name === "actualizar_transaccion") {
+        // --- Actualizar transacción existente ---
+        const datos = bloqueHerramienta.input as {
+          id: string; fecha?: string; monto?: number;
+          descripcion?: string; categoria?: string; tipo?: string;
+        };
+        const cambios: Record<string, unknown> = {};
+        if (datos.fecha) cambios.fecha = datos.fecha;
+        if (datos.monto) cambios.monto = datos.monto;
+        if (datos.descripcion) cambios.descripcion = datos.descripcion;
+        if (datos.categoria) cambios.categoria = datos.categoria;
+        if (datos.tipo) cambios.tipo = datos.tipo;
+
+        const { error } = await supabase
+          .from("transacciones").update(cambios).eq("id", datos.id).eq("usuario_id", user.id);
+
+        const resultado = error ? `Error: ${error.message}` : "Transacción actualizada correctamente.";
+        textoFinal = await llamarClaudeConResultado(
+          anthropic, sistemaFinal, HERRAMIENTAS, mensajesAPI as Anthropic.MessageParam[],
+          respuesta.content, bloqueHerramienta.id, resultado
+        );
+
+      } else if (bloqueHerramienta.name === "eliminar_transaccion") {
+        // --- Eliminar transacción existente ---
+        const datos = bloqueHerramienta.input as { id: string };
+        const { error } = await supabase
+          .from("transacciones").delete().eq("id", datos.id).eq("usuario_id", user.id);
+
+        const resultado = error ? `Error: ${error.message}` : "Transacción eliminada correctamente.";
+        textoFinal = await llamarClaudeConResultado(
+          anthropic, sistemaFinal, HERRAMIENTAS, mensajesAPI as Anthropic.MessageParam[],
+          respuesta.content, bloqueHerramienta.id, resultado
+        );
+
       } else if (bloqueHerramienta.name === "crear_multiples_transacciones") {
         // --- Múltiples transacciones (ticket) ---
         const datos = bloqueHerramienta.input as MultipleTransaccionesInput;
@@ -290,6 +352,7 @@ async function llamarClaudeConResultado(
 }
 
 interface Transaccion {
+  id: string;
   monto: number;
   descripcion: string;
   categoria: string;
@@ -313,8 +376,8 @@ function construirResumen(transacciones: Transaccion[]): string {
     .map(([cat, monto]) => `  - ${cat}: $${monto.toFixed(2)}`)
     .join("\n");
 
-  const ultimas = transacciones.slice(0, 10).map((t) =>
-    `  - [${t.fecha}] ${t.tipo === "ingreso" ? "+" : "-"}$${Number(t.monto).toFixed(2)} | ${t.descripcion || t.categoria}`
+  const ultimas = transacciones.slice(0, 50).map((t) =>
+    `  - [ID:${t.id}] [${t.fecha}] ${t.tipo === "ingreso" ? "+" : "-"}$${Number(t.monto).toFixed(2)} | ${t.descripcion || t.categoria} | ${t.categoria}`
   ).join("\n");
 
   return `Resumen (últimas ${transacciones.length} transacciones):
