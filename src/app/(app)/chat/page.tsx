@@ -599,10 +599,17 @@ export default function ChatPage() {
                 ) : (
                   <ReactMarkdown
                     components={{
-                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
                       strong: ({ children }) => <strong style={{ color: "#22c55e" }}>{children}</strong>,
-                      ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
-                      li: ({ children }) => <li>{children}</li>,
+                      em: ({ children }) => <em style={{ color: "#9ca3af" }}>{children}</em>,
+                      ul: ({ children }) => <ul className="space-y-1.5 mb-2 mt-1">{children}</ul>,
+                      ol: ({ children }) => <ol className="space-y-1.5 mb-2 mt-1 list-decimal list-inside">{children}</ol>,
+                      li: ({ children }) => (
+                        <li className="flex items-start gap-2 leading-snug">
+                          <span style={{ color: "#22c55e", flexShrink: 0, marginTop: 2 }}>•</span>
+                          <span>{children}</span>
+                        </li>
+                      ),
                     }}
                   >
                     {msg.contenido}
