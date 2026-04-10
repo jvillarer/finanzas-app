@@ -148,11 +148,11 @@ export default function PresupuestosPage() {
   };
 
   const conDatos: PresupuestoConGasto[] = CATEGORIAS.map((cat) => {
-    const p = presupuestos.find((x) => x.categoria === cat.categoria);
-    const gastado = gastosPorCat[cat.categoria] || 0;
+    const p = presupuestos.find((x) => x.categoria === cat.nombre);
+    const gastado = gastosPorCat[cat.nombre] || 0;
     const limite = p?.limite || 0;
     const pct = limite > 0 ? Math.min((gastado / limite) * 100, 100) : 0;
-    return { id: p?.id, categoria: cat.categoria, emoji: cat.emoji, limite, gastado, pct };
+    return { id: p?.id, categoria: cat.nombre, emoji: cat.emoji, limite, gastado, pct };
   });
 
   const conPresupuesto = conDatos.filter((c) => c.limite > 0);
