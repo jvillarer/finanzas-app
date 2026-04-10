@@ -234,7 +234,7 @@ export default function RegistroPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col px-6 pt-14 pb-12" style={{ backgroundColor: "#111" }}>
+    <main className="min-h-screen px-6 pt-14 pb-12" style={{ backgroundColor: "#111" }}>
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
@@ -276,7 +276,7 @@ export default function RegistroPage() {
         </p>
       </div>
 
-      <div className="flex-1 space-y-4">
+      <div className="space-y-4">
 
         {/* ── PASO 1: Cuenta ── */}
         {paso === 1 && (
@@ -353,7 +353,7 @@ export default function RegistroPage() {
       )}
 
       {/* Botón */}
-      <div className="mt-6">
+      <div className="mt-8">
         {paso < 3 ? (
           <button
             onClick={siguiente}
