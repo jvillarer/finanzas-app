@@ -106,16 +106,16 @@ export default function SubirArchivoPage() {
   // Leyendo PDF
   if (estado === "leyendo-pdf") {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#111" }}>
-        <div className="text-6xl mb-6 animate-pulse">🐑</div>
-        <h2 className="text-lg font-black text-white mb-2">Lani está leyendo tu estado de cuenta</h2>
-        <p className="text-sm mb-6" style={{ color: "#6b7280" }}>Extrayendo y categorizando todas las transacciones...</p>
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#f2f2f7" }}>
+        <div className="w-20 h-20 bg-black rounded-2xl flex items-center justify-center text-4xl mb-6 animate-pulse shadow-lg">🐑</div>
+        <h2 className="text-lg font-black text-gray-900 mb-2">Lani está leyendo tu estado de cuenta</h2>
+        <p className="text-sm text-gray-400 mb-6">Extrayendo y categorizando todas las transacciones...</p>
         <div className="flex gap-2 justify-center">
           {[0, 1, 2].map((i) => (
-            <span key={i} className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: "#22c55e", animationDelay: `${i * 150}ms` }} />
+            <span key={i} className="w-2 h-2 rounded-full animate-bounce bg-gray-800" style={{ animationDelay: `${i * 150}ms` }} />
           ))}
         </div>
-        <p className="text-xs mt-6" style={{ color: "#4b5563" }}>{nombreArchivo}</p>
+        <p className="text-xs mt-6 text-gray-400">{nombreArchivo}</p>
       </main>
     );
   }
@@ -123,12 +123,12 @@ export default function SubirArchivoPage() {
   // Vista previa
   if (estado === "preview") {
     return (
-      <div style={{ backgroundColor: "#111", minHeight: "100vh" }}>
+      <div style={{ backgroundColor: "#f2f2f7", minHeight: "100vh" }}>
         {metadatosPDF && (
-          <div className="px-5 pt-14 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <p className="text-xs font-bold tracking-widest uppercase mb-1" style={{ color: "#6b7280" }}>Estado de cuenta detectado</p>
-            <h2 className="text-lg font-black text-white">{metadatosPDF.banco}</h2>
-            <p className="text-sm" style={{ color: "#6b7280" }}>{metadatosPDF.periodo}</p>
+          <div className="px-5 pt-14 pb-4 bg-white" style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+            <p className="text-xs font-bold tracking-widest uppercase mb-1 text-gray-400">Estado de cuenta detectado</p>
+            <h2 className="text-lg font-black text-gray-900">{metadatosPDF.banco}</h2>
+            <p className="text-sm text-gray-500">{metadatosPDF.periodo}</p>
           </div>
         )}
         <VistaPrevia
@@ -145,13 +145,13 @@ export default function SubirArchivoPage() {
   // Éxito
   if (estado === "exito") {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#111" }}>
-        <div className="text-6xl mb-5">🐑</div>
-        <h1 className="text-xl font-black text-white mb-2">¡Listo!</h1>
-        <p className="text-sm mb-8" style={{ color: "#6b7280" }}>
-          Importé <strong className="text-white">{totalImportadas}</strong> transacciones correctamente.
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#f2f2f7" }}>
+        <div className="w-20 h-20 bg-black rounded-2xl flex items-center justify-center text-4xl mb-6 shadow-lg">🐑</div>
+        <h1 className="text-xl font-black text-gray-900 mb-2">¡Listo!</h1>
+        <p className="text-sm text-gray-400 mb-8">
+          Importé <strong className="text-gray-900">{totalImportadas}</strong> transacciones correctamente.
         </p>
-        <button onClick={reiniciar} className="font-bold px-8 py-4 rounded-2xl text-sm" style={{ backgroundColor: "#22c55e", color: "#000" }}>
+        <button onClick={reiniciar} className="font-bold px-8 py-4 rounded-full text-sm bg-black text-white">
           Subir otro archivo
         </button>
       </main>
@@ -161,11 +161,11 @@ export default function SubirArchivoPage() {
   // Error
   if (estado === "error") {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#111" }}>
-        <div className="text-6xl mb-5">😕</div>
-        <h1 className="text-xl font-black text-white mb-2">Algo salió mal</h1>
-        <p className="text-sm mb-8" style={{ color: "#ef4444" }}>{mensajeError}</p>
-        <button onClick={reiniciar} className="font-bold px-8 py-4 rounded-2xl text-sm" style={{ backgroundColor: "#22c55e", color: "#000" }}>
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#f2f2f7" }}>
+        <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center text-4xl mb-6">😕</div>
+        <h1 className="text-xl font-black text-gray-900 mb-2">Algo salió mal</h1>
+        <p className="text-sm text-red-500 mb-8">{mensajeError}</p>
+        <button onClick={reiniciar} className="font-bold px-8 py-4 rounded-full text-sm bg-black text-white">
           Intentar de nuevo
         </button>
       </main>
@@ -174,45 +174,42 @@ export default function SubirArchivoPage() {
 
   // Pantalla principal
   return (
-    <main className="min-h-screen px-5 pt-14" style={{ backgroundColor: "#111" }}>
+    <main className="min-h-screen px-5 pt-14" style={{ backgroundColor: "#f2f2f7" }}>
       <div className="mb-8">
-        <h1 className="text-2xl font-black text-white tracking-tight">Subir archivo</h1>
-        <p className="text-sm mt-1" style={{ color: "#6b7280" }}>Lani categoriza todo automáticamente</p>
+        <h1 className="text-2xl font-black text-gray-900 tracking-tight">Subir archivo</h1>
+        <p className="text-sm mt-1 text-gray-400">Lani categoriza todo automáticamente</p>
       </div>
 
       {/* Drop zone */}
       <div
         onClick={() => inputRef.current?.click()}
-        className="rounded-3xl p-10 flex flex-col items-center justify-center cursor-pointer mb-4 transition-all active:scale-[0.98]"
-        style={{ backgroundColor: "#1c1c1c", border: "2px dashed rgba(255,255,255,0.1)" }}
+        className="rounded-3xl p-10 flex flex-col items-center justify-center cursor-pointer mb-4 transition-all active:scale-[0.98] bg-white"
+        style={{ border: "2px dashed rgba(0,0,0,0.12)", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
       >
-        <span className="text-4xl mb-4">📄</span>
-        <p className="text-sm font-bold text-white mb-1">Toca para seleccionar</p>
-        <p className="text-xs" style={{ color: "#6b7280" }}>PDF · CSV</p>
+        <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center text-3xl mb-4">📄</div>
+        <p className="text-sm font-bold text-gray-900 mb-1">Toca para seleccionar</p>
+        <p className="text-xs text-gray-400">PDF · CSV</p>
         <input ref={inputRef} type="file" accept=".csv,.pdf" onChange={handleSeleccion} className="hidden" />
       </div>
 
       {/* Lani badge */}
-      <div
-        className="rounded-2xl px-4 py-4 flex items-center gap-3 mb-4"
-        style={{ backgroundColor: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.15)" }}
-      >
-        <span className="text-2xl">🐑</span>
+      <div className="rounded-2xl px-4 py-4 flex items-center gap-3 mb-4 bg-white" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+        <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-xl shrink-0">🐑</div>
         <div>
-          <p className="text-sm font-bold text-white">Lani lo lee sola</p>
-          <p className="text-xs mt-0.5" style={{ color: "#6b7280" }}>Sube tu estado de cuenta en PDF y Lani extrae y categoriza todas las transacciones</p>
+          <p className="text-sm font-bold text-gray-900">Lani lo lee sola</p>
+          <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">Sube tu estado de cuenta en PDF y Lani extrae y categoriza todas las transacciones</p>
         </div>
       </div>
 
       {mensajeError && (
-        <div className="rounded-2xl px-4 py-3 mb-4" style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
-          <p className="text-sm font-semibold" style={{ color: "#ef4444" }}>{mensajeError}</p>
+        <div className="rounded-2xl px-4 py-3 mb-4 bg-red-50 border border-red-100">
+          <p className="text-sm font-semibold text-red-600">{mensajeError}</p>
         </div>
       )}
 
       {/* Instrucciones */}
-      <div className="rounded-3xl p-5" style={{ backgroundColor: "#1c1c1c" }}>
-        <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: "#6b7280" }}>Cómo exportar tu edo. de cuenta</p>
+      <div className="rounded-3xl p-5 bg-white" style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+        <p className="text-xs font-bold tracking-widest uppercase mb-4 text-gray-400">Cómo exportar tu edo. de cuenta</p>
         <ul className="space-y-3">
           {[
             { banco: "Santander", pasos: "App → Cuentas → Estado de cuenta → PDF" },
@@ -220,10 +217,10 @@ export default function SubirArchivoPage() {
             { banco: "Amex", pasos: "App → Cuenta → Estado de cuenta → PDF" },
             { banco: "Banamex", pasos: "Banca en línea → Estado de cuenta → Descargar" },
           ].map(({ banco, pasos }) => (
-            <li key={banco} className="flex gap-3">
-              <span className="text-sm">🏦</span>
-              <p className="text-xs" style={{ color: "#9ca3af" }}>
-                <strong className="text-white">{banco}:</strong> {pasos}
+            <li key={banco} className="flex gap-3 items-start">
+              <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center text-sm shrink-0">🏦</div>
+              <p className="text-xs text-gray-500 pt-1">
+                <strong className="text-gray-900 font-bold">{banco}:</strong> {pasos}
               </p>
             </li>
           ))}

@@ -480,7 +480,7 @@ export default function ChatPage() {
         {notificacion && (
           <div
             className="fixed bottom-8 left-4 right-4 z-[60] rounded-2xl px-4 py-3 text-sm font-semibold text-center fade-in"
-            style={{ backgroundColor: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", color: "#22c55e" }}
+            style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", color: "#16a34a" }}
           >
             {notificacion}
           </div>
@@ -490,22 +490,22 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="flex flex-col h-screen" style={{ backgroundColor: "#111" }}>
+    <main className="flex flex-col h-screen" style={{ backgroundColor: "#f2f2f7" }}>
 
       {/* ── HEADER ── */}
       <div
         className="flex items-center gap-3 px-5 pt-14 pb-4 shrink-0"
-        style={{ backgroundColor: "#111", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ backgroundColor: "#fff", borderBottom: "1px solid rgba(0,0,0,0.06)" }}
       >
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#22c55e" }}>
+        <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#000" }}>
           🐑
         </div>
         <div className="flex-1">
-          <p className="text-base font-black text-white">Lani</p>
-          <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "#22c55e" }}>
+          <p className="text-base font-black text-gray-900">Lani</p>
+          <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "#16a34a" }}>
             {hablando
-              ? <><WaveAnimation color="#22c55e" size={14} /> hablando</>
-              : <><span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: "#22c55e" }} />en línea</>
+              ? <><WaveAnimation color="#16a34a" size={14} /> hablando</>
+              : <><span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: "#16a34a" }} />en línea</>
             }
           </p>
         </div>
@@ -517,13 +517,13 @@ export default function ChatPage() {
             setMensajes([MENSAJE_BIENVENIDA]);
           }}
           className="flex items-center gap-1.5 px-3 h-9 rounded-2xl transition-all active:scale-95"
-          style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.12)" }}
+          style={{ backgroundColor: "#f3f4f6", border: "1px solid rgba(0,0,0,0.06)" }}
           title="Nueva conversación"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth={2} className="w-3.5 h-3.5">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth={2} className="w-3.5 h-3.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
-          <span className="text-xs font-semibold" style={{ color: "#9ca3af" }}>Reiniciar conversación</span>
+          <span className="text-xs font-semibold" style={{ color: "#6b7280" }}>Reiniciar conversación</span>
         </button>
 
         {/* Toggle speaker */}
@@ -535,12 +535,12 @@ export default function ChatPage() {
             }}
             className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-95"
             style={{
-              backgroundColor: vozActiva ? "rgba(34,197,94,0.12)" : "#1c1c1c",
-              border: vozActiva ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(255,255,255,0.07)",
+              backgroundColor: vozActiva ? "#f0f9ff" : "#f3f4f6",
+              border: vozActiva ? "1px solid rgba(59,130,246,0.3)" : "1px solid rgba(0,0,0,0.06)",
             }}
             title={vozActiva ? "Silenciar" : "Activar voz"}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke={vozActiva ? "#22c55e" : "#4b5563"} strokeWidth={2} className="w-4 h-4">
+            <svg viewBox="0 0 24 24" fill="none" stroke={vozActiva ? "#3b82f6" : "#6b7280"} strokeWidth={2} className="w-4 h-4">
               {vozActiva ? (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
               ) : (
@@ -555,7 +555,7 @@ export default function ChatPage() {
       {notificacion && (
         <div
           className="mx-4 mt-3 shrink-0 rounded-2xl px-4 py-3 text-sm font-semibold fade-in"
-          style={{ backgroundColor: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.25)", color: "#22c55e" }}
+          style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", color: "#16a34a" }}
         >
           {notificacion}
         </div>
@@ -565,10 +565,10 @@ export default function ChatPage() {
       {grabando && (
         <div
           className="mx-4 mt-3 shrink-0 rounded-2xl px-4 py-3 flex items-center gap-3 fade-in"
-          style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}
+          style={{ backgroundColor: "#fff5f5", border: "1px solid #fecaca" }}
         >
-          <span className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ backgroundColor: "#ef4444" }} />
-          <p className="text-sm font-semibold" style={{ color: "#ef4444" }}>Escuchando... habla ahora</p>
+          <span className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ backgroundColor: "#dc2626" }} />
+          <p className="text-sm font-semibold" style={{ color: "#dc2626" }}>Escuchando... habla ahora</p>
         </div>
       )}
 
@@ -577,16 +577,17 @@ export default function ChatPage() {
         {mensajes.map((msg, i) => (
           <div key={i} className={`flex ${msg.rol === "user" ? "justify-end" : "justify-start"}`}>
             {msg.rol === "assistant" && (
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-base shrink-0 mr-2 mt-1" style={{ backgroundColor: "#22c55e" }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-base shrink-0 mr-2 mt-1" style={{ backgroundColor: "#000" }}>
                 🐑
               </div>
             )}
             <div
               className="max-w-[80%] rounded-3xl px-4 py-3 text-sm leading-relaxed"
               style={{
-                backgroundColor: msg.rol === "user" ? "rgba(34,197,94,0.12)" : "#1c1c1c",
-                border: msg.rol === "user" ? "1px solid rgba(34,197,94,0.25)" : "1px solid rgba(255,255,255,0.06)",
-                color: "#ffffff",
+                backgroundColor: msg.rol === "user" ? "#000" : "#fff",
+                border: msg.rol === "user" ? "none" : "1px solid rgba(0,0,0,0.06)",
+                color: msg.rol === "user" ? "#fff" : "#111827",
+                boxShadow: msg.rol === "assistant" ? "0 1px 3px rgba(0,0,0,0.07)" : "none",
                 borderTopRightRadius: msg.rol === "user" ? "4px" : undefined,
                 borderTopLeftRadius: msg.rol === "assistant" ? "4px" : undefined,
               }}
@@ -601,13 +602,13 @@ export default function ChatPage() {
                   <ReactMarkdown
                     components={{
                       p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-                      strong: ({ children }) => <strong style={{ color: "#22c55e" }}>{children}</strong>,
+                      strong: ({ children }) => <strong style={{ color: "#16a34a" }}>{children}</strong>,
                       em: ({ children }) => <em style={{ color: "#9ca3af" }}>{children}</em>,
                       ul: ({ children }) => <ul className="space-y-1.5 mb-2 mt-1">{children}</ul>,
                       ol: ({ children }) => <ol className="space-y-1.5 mb-2 mt-1 list-decimal list-inside">{children}</ol>,
                       li: ({ children }) => (
                         <li className="flex items-start gap-2 leading-snug">
-                          <span style={{ color: "#22c55e", flexShrink: 0, marginTop: 2 }}>•</span>
+                          <span style={{ color: "#6b7280", flexShrink: 0, marginTop: 2 }}>•</span>
                           <span>{children}</span>
                         </li>
                       ),
@@ -636,7 +637,7 @@ export default function ChatPage() {
                   key={s}
                   onClick={() => enviar(s)}
                   className="text-xs px-3 py-2 rounded-2xl font-semibold transition-all active:scale-95"
-                  style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.08)", color: "#9ca3af" }}
+                  style={{ backgroundColor: "#fff", border: "1px solid rgba(0,0,0,0.08)", color: "#374151", boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}
                 >
                   {s}
                 </button>
@@ -648,9 +649,9 @@ export default function ChatPage() {
               <button
                 onClick={abrirModoVoz}
                 className="mt-4 w-full py-3 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm transition-all active:scale-[0.98]"
-                style={{ backgroundColor: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.25)", color: "#22c55e" }}
+                style={{ backgroundColor: "#000", color: "#fff" }}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth={2} className="w-5 h-5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
                 </svg>
                 Hablar con Lani
@@ -664,7 +665,7 @@ export default function ChatPage() {
 
       {/* Preview imagen */}
       {imagenPendiente && (
-        <div className="px-4 pt-3 shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="px-4 pt-3 shrink-0" style={{ borderTop: "1px solid rgba(0,0,0,0.06)" }}>
           <div className="relative inline-block">
             <img src={imagenPendiente.previewUrl} alt="Preview" className="h-20 rounded-xl object-cover" />
             <button
@@ -680,8 +681,8 @@ export default function ChatPage() {
       <div
         className="px-4 py-3 shrink-0"
         style={{
-          backgroundColor: "#111",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          backgroundColor: "#fff",
+          borderTop: "1px solid rgba(0,0,0,0.06)",
           paddingBottom: "calc(72px + env(safe-area-inset-bottom) + 12px)",
         }}
       >
@@ -692,9 +693,9 @@ export default function ChatPage() {
             onClick={() => inputImagenRef.current?.click()}
             disabled={cargando || grabando}
             className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-opacity active:opacity-70 disabled:opacity-40"
-            style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)" }}
+            style={{ backgroundColor: "#f3f4f6", border: "1px solid rgba(0,0,0,0.06)" }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth={1.8} className="w-5 h-5">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth={1.8} className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.776 48.776 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
             </svg>
@@ -710,10 +711,10 @@ export default function ChatPage() {
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && enviar()}
             placeholder={grabando ? "Escuchando..." : imagenPendiente ? "Mensaje opcional..." : "Dile algo a Lani..."}
             disabled={cargando || grabando}
-            className="flex-1 rounded-2xl px-4 py-3 text-sm font-medium outline-none text-white placeholder-gray-600 disabled:opacity-50"
+            className="flex-1 rounded-2xl px-4 py-3 text-sm font-medium outline-none text-gray-900 placeholder-gray-400 disabled:opacity-50"
             style={{
-              backgroundColor: "#1c1c1c",
-              border: `1px solid ${grabando ? "rgba(239,68,68,0.4)" : "rgba(255,255,255,0.07)"}`,
+              backgroundColor: "#f5f5f5",
+              border: `1.5px solid ${grabando ? "rgba(220,38,38,0.4)" : "rgba(0,0,0,0.08)"}`,
             }}
           />
 
@@ -724,14 +725,14 @@ export default function ChatPage() {
               disabled={cargando || hablando}
               className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-95 disabled:opacity-30"
               style={{
-                backgroundColor: grabando ? "rgba(239,68,68,0.12)" : "#1c1c1c",
-                border: grabando ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(255,255,255,0.07)",
+                backgroundColor: grabando ? "#fff5f5" : "#f3f4f6",
+                border: grabando ? "1.5px solid rgba(220,38,38,0.4)" : "1.5px solid rgba(0,0,0,0.06)",
               }}
             >
               {grabando ? (
-                <span className="w-3 h-3 rounded-sm animate-pulse" style={{ backgroundColor: "#ef4444" }} />
+                <span className="w-3 h-3 rounded-sm animate-pulse" style={{ backgroundColor: "#dc2626" }} />
               ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth={1.8} className="w-5 h-5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth={1.8} className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
                 </svg>
               )}
@@ -743,12 +744,12 @@ export default function ChatPage() {
             onClick={() => enviar()}
             disabled={(!input.trim() && !imagenPendiente) || cargando || grabando}
             className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-95 disabled:opacity-30"
-            style={{ backgroundColor: "#22c55e" }}
+            style={{ backgroundColor: "#000" }}
           >
             {cargando ? (
-              <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+              <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
             ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth={2.2} className="w-5 h-5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
               </svg>
             )}
