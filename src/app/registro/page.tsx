@@ -181,6 +181,8 @@ export default function RegistroPage() {
   };
 
   const handleRegistro = async () => {
+    if (!ingresoMensual) { setError("Selecciona tu ingreso mensual"); return; }
+    if (!objetivo) { setError("Selecciona tu objetivo principal"); return; }
     setCargando(true);
     setError("");
     const supabase = createClient();
@@ -373,11 +375,6 @@ export default function RegistroPage() {
                   Guardando...
                 </span>
               ) : "Crear mi cuenta"}
-            </button>
-            <button onClick={handleRegistro} disabled={cargando}
-              className="w-full py-3 mt-2 text-sm font-semibold transition-all"
-              style={{ color: "#6b7280" }}>
-              Omitir este paso
             </button>
           </>
         )}
