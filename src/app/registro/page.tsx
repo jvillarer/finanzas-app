@@ -108,6 +108,7 @@ export default function RegistroPage() {
   const [error, setError] = useState("");
   const [correoExiste, setCorreoExiste] = useState(false);
   const [exito, setExito] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Paso 1
   const [nombre, setNombre] = useState("");
@@ -171,6 +172,8 @@ export default function RegistroPage() {
       setCorreoExiste(true);
       return;
     }
+    // Guardar el ID para usarlo en paso 3 (sesión puede ser null si requiere confirmación)
+    if (data?.user?.id) setUserId(data.user.id);
     setPaso(2);
   };
 
@@ -186,11 +189,13 @@ export default function RegistroPage() {
     setCargando(true);
     setError("");
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
     const ubicacion = pais === "México" && estado ? `${estado}, México` : pais;
-    if (user) {
+
+    // Usar el ID guardado del signUp (la sesión puede ser null si requiere confirmación de correo)
+    const uid = userId || (await supabase.auth.getUser()).data.user?.id;
+    if (uid) {
       await supabase.from("perfiles").upsert({
-        id: user.id,
+        id: uid,
         nombre_completo: nombre,
         edad: Number(edad),
         sexo,
@@ -198,9 +203,6 @@ export default function RegistroPage() {
         ocupacion,
         ingreso_mensual_rango: ingresoMensual,
         objetivo_financiero: objetivo,
-      });
-      await supabase.auth.updateUser({
-        data: { nombre_completo: nombre, edad: Number(edad), sexo, ciudad: ubicacion, ocupacion, ingreso_mensual: ingresoMensual, objetivo_financiero: objetivo },
       });
     }
     setExito(true);
