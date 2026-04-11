@@ -23,7 +23,6 @@ export default function LoginPage() {
       setCargando(false);
       return;
     }
-    // Primer login → onboarding, regreso → dashboard
     const yaVioOnboarding = localStorage.getItem("lani_onboarding_done");
     if (yaVioOnboarding) {
       router.push("/dashboard");
@@ -34,25 +33,24 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col justify-between px-6 pt-20 pb-12" style={{ backgroundColor: "#111" }}>
+    <main className="min-h-screen flex flex-col px-6" style={{ backgroundColor: "#f2f2f7" }}>
 
-      {/* Branding */}
-      <div className="flex flex-col items-center">
-        <div
-          className="w-20 h-20 rounded-3xl flex items-center justify-center mb-6 text-4xl"
-          style={{ backgroundColor: "#22c55e", boxShadow: "0 0 40px rgba(34,197,94,0.25)" }}
-        >
-          🐑
+      {/* Top spacer */}
+      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full pt-10">
+
+        {/* Branding */}
+        <div className="flex flex-col items-center mb-10">
+          <div className="w-16 h-16 rounded-2xl bg-black flex items-center justify-center text-3xl mb-4 shadow-lg">
+            🐑
+          </div>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Bienvenido de vuelta</h1>
+          <p className="text-sm text-gray-400 mt-1">Entra a tu cuenta de Lani</p>
         </div>
-        <h1 className="text-3xl font-black text-white tracking-tight mb-1">Lani</h1>
-        <p className="text-sm" style={{ color: "#6b7280" }}>Tu asistente financiera</p>
-      </div>
 
-      {/* Form */}
-      <div className="w-full max-w-sm mx-auto">
+        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-3">
           <div>
-            <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#6b7280" }}>Correo</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 tracking-wide uppercase">Correo</label>
             <input
               type="email"
               autoComplete="email"
@@ -60,12 +58,12 @@ export default function LoginPage() {
               value={correo}
               onChange={(e) => setCorreo(e.target.value)}
               required
-              className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none text-white placeholder-gray-600"
-              style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)" }}
+              className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none bg-white text-gray-900 placeholder-gray-300 transition-all"
+              style={{ border: "1.5px solid rgba(0,0,0,0.08)", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}
             />
           </div>
           <div>
-            <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#6b7280" }}>Contraseña</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 tracking-wide uppercase">Contraseña</label>
             <input
               type="password"
               autoComplete="current-password"
@@ -73,35 +71,42 @@ export default function LoginPage() {
               value={contrasena}
               onChange={(e) => setContrasena(e.target.value)}
               required
-              className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none text-white placeholder-gray-600"
-              style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)" }}
+              className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none bg-white text-gray-900 placeholder-gray-300 transition-all"
+              style={{ border: "1.5px solid rgba(0,0,0,0.08)", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}
             />
           </div>
 
-          {error && <p className="text-xs font-semibold px-1" style={{ color: "#ef4444" }}>⚠ {error}</p>}
+          {error && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-red-50 border border-red-100">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-red-500 shrink-0">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+              <p className="text-xs font-semibold text-red-600">{error}</p>
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={cargando}
-            className="w-full font-bold py-4 rounded-2xl text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50 mt-2"
-            style={{ backgroundColor: "#22c55e", color: "#000" }}
+            className="w-full font-bold py-4 rounded-full text-sm text-white tracking-wide transition-all active:scale-[0.98] disabled:opacity-50 mt-2"
+            style={{ backgroundColor: "#000" }}
           >
             {cargando ? (
               <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 Entrando...
               </span>
             ) : "Entrar"}
           </button>
         </form>
 
-        <p className="text-center text-sm mt-8" style={{ color: "#6b7280" }}>
+        <p className="text-center text-sm mt-6 text-gray-400">
           ¿No tienes cuenta?{" "}
-          <Link href="/registro" className="font-bold text-white">Regístrate</Link>
+          <Link href="/registro" className="font-bold text-gray-900">Regístrate</Link>
         </p>
       </div>
 
-      <div />
+      <div className="pb-10" />
     </main>
   );
 }

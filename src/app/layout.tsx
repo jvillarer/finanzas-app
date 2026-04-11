@@ -9,18 +9,18 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Finanzas App",
-  description: "Gestiona tus finanzas personales",
+  title: "Lani — Tu asistente financiera",
+  description: "Controla tus finanzas hablando con Lani",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Finanzas App",
+    statusBarStyle: "default",
+    title: "Lani",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#534AB7",
+  themeColor: "#f2f2f7",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

@@ -6,16 +6,13 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
 const OCUPACIONES = ["Empleado", "Independiente / Freelance", "Empresario", "Estudiante", "Ama/o de casa", "Otro"];
-
 const OBJETIVOS = ["Ahorrar más", "Salir de deudas", "Controlar mis gastos", "Planear un proyecto", "Invertir", "Solo quiero ver mis finanzas"];
-
 const PAISES = [
   "México", "Estados Unidos", "Argentina", "Colombia", "Chile", "España",
   "Perú", "Venezuela", "Ecuador", "Guatemala", "Cuba", "Bolivia",
   "República Dominicana", "Honduras", "Paraguay", "El Salvador",
   "Nicaragua", "Costa Rica", "Panamá", "Uruguay", "Otro",
 ];
-
 const ESTADOS_MX = [
   "Aguascalientes", "Baja California", "Baja California Sur", "Campeche",
   "Chiapas", "Chihuahua", "Ciudad de México", "Coahuila", "Colima",
@@ -26,14 +23,15 @@ const ESTADOS_MX = [
   "Veracruz", "Yucatán", "Zacatecas",
 ];
 
-function Barra({ paso }: { paso: number }) {
+function Dots({ paso }: { paso: number }) {
   return (
-    <div className="flex gap-2 justify-center mb-8">
+    <div className="flex gap-1.5 justify-center mb-8">
       {[1, 2, 3].map((n) => (
-        <div key={n} className="h-1 rounded-full transition-all" style={{
-          width: paso === n ? 32 : 16,
-          backgroundColor: n <= paso ? "#22c55e" : "rgba(255,255,255,0.1)",
-        }} />
+        <div key={n} className="h-1.5 rounded-full transition-all duration-300"
+          style={{
+            width: n === paso ? 24 : 6,
+            backgroundColor: n <= paso ? "#000" : "#d1d5db",
+          }} />
       ))}
     </div>
   );
@@ -45,12 +43,12 @@ function Campo({ label, type = "text", placeholder, value, onChange, autoComplet
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#6b7280" }}>{label}</label>
+      <label className="block text-xs font-bold text-gray-500 mb-1.5 tracking-wide uppercase">{label}</label>
       <input
         type={type} placeholder={placeholder} value={value} autoComplete={autoComplete}
         onChange={(e) => onChange(e.target.value)} required={required}
-        className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none text-white placeholder-gray-600"
-        style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)" }}
+        className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none bg-white text-gray-900 placeholder-gray-300"
+        style={{ border: "1.5px solid rgba(0,0,0,0.08)", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}
       />
     </div>
   );
@@ -62,18 +60,19 @@ function Dropdown({ label, opciones, valor, onSelect, placeholder = "Selecciona.
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#6b7280" }}>{label}</label>
+      <label className="block text-xs font-bold text-gray-500 mb-1.5 tracking-wide uppercase">{label}</label>
       <select
         value={valor}
         onChange={(e) => onSelect(e.target.value)}
-        className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none appearance-none"
+        className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none appearance-none bg-white"
         style={{
-          backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)",
-          color: valor ? "#fff" : "#6b7280",
+          border: "1.5px solid rgba(0,0,0,0.08)",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+          color: valor ? "#111827" : "#9ca3af",
         }}
       >
         <option value="" disabled>{placeholder}</option>
-        {opciones.map((op) => <option key={op} value={op} style={{ backgroundColor: "#1c1c1c" }}>{op}</option>)}
+        {opciones.map((op) => <option key={op} value={op}>{op}</option>)}
       </select>
     </div>
   );
@@ -84,15 +83,16 @@ function ChipSelect({ label, opciones, valor, onSelect }: {
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "#6b7280" }}>{label}</label>
+      <label className="block text-xs font-bold text-gray-500 mb-2.5 tracking-wide uppercase">{label}</label>
       <div className="flex flex-wrap gap-2">
         {opciones.map((op) => (
           <button key={op} type="button" onClick={() => onSelect(op)}
-            className="px-3 py-2 rounded-2xl text-xs font-semibold transition-all active:scale-95"
+            className="px-3.5 py-2 rounded-full text-xs font-semibold transition-all active:scale-95"
             style={{
-              backgroundColor: valor === op ? "rgba(34,197,94,0.15)" : "#1c1c1c",
-              border: valor === op ? "1px solid rgba(34,197,94,0.5)" : "1px solid rgba(255,255,255,0.07)",
-              color: valor === op ? "#22c55e" : "#9ca3af",
+              backgroundColor: valor === op ? "#000" : "#fff",
+              border: valor === op ? "1.5px solid #000" : "1.5px solid rgba(0,0,0,0.1)",
+              color: valor === op ? "#fff" : "#4b5563",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
             }}
           >{op}</button>
         ))}
@@ -110,20 +110,17 @@ export default function RegistroPage() {
   const [exito, setExito] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Paso 1
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [confirmarContrasena, setConfirmarContrasena] = useState("");
 
-  // Paso 2
   const [edad, setEdad] = useState("");
   const [sexo, setSexo] = useState("");
   const [pais, setPais] = useState("");
   const [estado, setEstado] = useState("");
   const [ocupacion, setOcupacion] = useState("");
 
-  // Paso 3
   const [ingresoMensual, setIngresoMensual] = useState("");
   const [objetivo, setObjetivo] = useState("");
 
@@ -156,7 +153,6 @@ export default function RegistroPage() {
     });
     setCargando(false);
     if (authError) {
-      // Mostrar error real para debugging
       if (authError.message.toLowerCase().includes("rate limit") || authError.message.toLowerCase().includes("email rate")) {
         setError("Demasiados intentos. Espera unos minutos e intenta de nuevo.");
       } else if (authError.message.toLowerCase().includes("already registered") || authError.message.toLowerCase().includes("already exists")) {
@@ -172,7 +168,6 @@ export default function RegistroPage() {
       setCorreoExiste(true);
       return;
     }
-    // Guardar el ID para usarlo en paso 3 (sesión puede ser null si requiere confirmación)
     if (data?.user?.id) setUserId(data.user.id);
     setPaso(2);
   };
@@ -190,18 +185,11 @@ export default function RegistroPage() {
     setError("");
     const supabase = createClient();
     const ubicacion = pais === "México" && estado ? `${estado}, México` : pais;
-
-    // Usar el ID guardado del signUp (la sesión puede ser null si requiere confirmación de correo)
     const uid = userId || (await supabase.auth.getUser()).data.user?.id;
     if (uid) {
       await supabase.from("perfiles").upsert({
-        id: uid,
-        nombre_completo: nombre,
-        edad: Number(edad),
-        sexo,
-        ciudad: ubicacion,
-        ocupacion,
-        ingreso_mensual_rango: ingresoMensual,
+        id: uid, nombre_completo: nombre, edad: Number(edad), sexo,
+        ciudad: ubicacion, ocupacion, ingreso_mensual_rango: ingresoMensual,
         objetivo_financiero: objetivo,
       });
     }
@@ -211,74 +199,74 @@ export default function RegistroPage() {
 
   if (exito) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#111" }}>
-        <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-6"
-          style={{ backgroundColor: "#22c55e", boxShadow: "0 0 60px rgba(34,197,94,0.3)" }}>🐑</div>
-        <h1 className="text-2xl font-black text-white mb-2">¡Ya somos equipo, {nombre.split(" ")[0]}!</h1>
-        <p className="text-sm leading-relaxed mb-2 max-w-xs" style={{ color: "#6b7280" }}>
-          Revisé tu correo — te mandé un link de confirmación a
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#f2f2f7" }}>
+        <div className="w-20 h-20 rounded-2xl bg-black flex items-center justify-center text-4xl mb-6 shadow-lg">🐑</div>
+        <h1 className="text-2xl font-black text-gray-900 mb-2">¡Ya somos equipo, {nombre.split(" ")[0]}!</h1>
+        <p className="text-sm text-gray-500 leading-relaxed mb-1 max-w-xs">
+          Te mandé un link de confirmación a
         </p>
-        <p className="font-bold text-white text-sm mb-8">{correo}</p>
+        <p className="font-bold text-gray-900 text-sm mb-8">{correo}</p>
         <div className="w-full max-w-xs space-y-3 mb-8">
           {[{ num: "1", texto: "Confirma tu correo" }, { num: "2", texto: "Entra a la app" }, { num: "3", texto: "Dime tu primer gasto" }].map((item) => (
-            <div key={item.num} className="flex items-center gap-3 text-left">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0"
-                style={{ backgroundColor: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.3)" }}>
+            <div key={item.num} className="flex items-center gap-3 text-left bg-white rounded-2xl px-4 py-3.5" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center text-xs font-black text-white shrink-0">
                 {item.num}
               </div>
-              <p className="text-sm font-semibold text-white">{item.texto}</p>
+              <p className="text-sm font-semibold text-gray-800">{item.texto}</p>
             </div>
           ))}
         </div>
         <button onClick={() => router.push("/bienvenida")}
-          className="w-full max-w-xs font-bold py-4 rounded-2xl text-sm text-center block transition-all active:scale-[0.98]"
-          style={{ backgroundColor: "#22c55e", color: "#000" }}>
+          className="w-full max-w-xs font-bold py-4 rounded-full text-sm text-white tracking-wide transition-all active:scale-[0.98]"
+          style={{ backgroundColor: "#000" }}>
           Entrar a Lani
         </button>
       </main>
     );
   }
 
+  const titulos = ["Crea tu cuenta", "Cuéntame de ti", "Tu situación financiera"];
+  const subtitulos = [
+    "En 2 minutos empezamos a controlar tu lana.",
+    `Mucho gusto, ${nombre.split(" ")[0] || ""}! Esto me ayuda a personalizarme para ti.`,
+    "Con esto puedo darte consejos reales para tu bolsillo.",
+  ];
+
   return (
-    <main className="min-h-screen px-6 pt-14 pb-12" style={{ backgroundColor: "#111" }}>
+    <main className="min-h-screen px-5 pt-12 pb-10" style={{ backgroundColor: "#f2f2f7" }}>
 
       {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-6">
         {paso > 1 ? (
-          <button onClick={() => { setError(""); setCorreoExiste(false); setPaso((p) => p - 1); }}
-            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: "#1c1c1c" }}>
-            <svg viewBox="0 0 20 20" fill="#6b7280" className="w-4 h-4">
+          <button
+            onClick={() => { setError(""); setCorreoExiste(false); setPaso((p) => p - 1); }}
+            className="w-9 h-9 rounded-full bg-white flex items-center justify-center shrink-0"
+            style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}
+          >
+            <svg viewBox="0 0 20 20" fill="#374151" className="w-4 h-4">
               <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
             </svg>
           </button>
         ) : (
-          <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#22c55e" }}>🐑</div>
+          <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-lg shrink-0">🐑</div>
         )}
         <div>
-          <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "#6b7280" }}>{paso} de 3</p>
-          <h1 className="text-xl font-black text-white">
-            {paso === 1 ? "Hola, soy Lani" : paso === 2 ? "Cuéntame de ti" : "Tu situación financiera"}
-          </h1>
+          <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">Paso {paso} de 3</p>
+          <h1 className="text-xl font-black text-gray-900">{titulos[paso - 1]}</h1>
         </div>
       </div>
 
-      <Barra paso={paso} />
+      <Dots paso={paso} />
 
-      {/* Mensaje de Lani */}
-      <div className="rounded-2xl px-4 py-3 mb-5 flex items-start gap-3"
-        style={{ backgroundColor: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)" }}>
+      {/* Hint de Lani */}
+      <div className="bg-white rounded-2xl px-4 py-3.5 mb-5 flex items-start gap-3" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
         <span className="text-base shrink-0 mt-0.5">🐑</span>
-        <p className="text-xs leading-relaxed" style={{ color: "#9ca3af" }}>
-          {paso === 1 && "¡Qué bueno que estás aquí! Crea tu cuenta y en 2 minutos empezamos a controlar tu lana juntos."}
-          {paso === 2 && `Mucho gusto, ${nombre.split(" ")[0]}! Mientras más me cuentes, mejor puedo ayudarte. Esto es solo entre tú y yo.`}
-          {paso === 3 && "Último paso. Con esto puedo darte consejos que sí tienen sentido para tu bolsillo, no genéricos."}
-        </p>
+        <p className="text-xs text-gray-500 leading-relaxed">{subtitulos[paso - 1]}</p>
       </div>
 
       <div className="space-y-4">
 
-        {/* ── PASO 1 ── */}
+        {/* PASO 1 */}
         {paso === 1 && (
           <>
             <Campo label="Nombre completo" placeholder="Tu nombre completo" value={nombre} onChange={setNombre} autoComplete="name" />
@@ -288,30 +276,26 @@ export default function RegistroPage() {
           </>
         )}
 
-        {/* ── PASO 2 ── */}
+        {/* PASO 2 */}
         {paso === 2 && (
           <>
             <div>
-              <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "#6b7280" }}>Edad</label>
+              <label className="block text-xs font-bold text-gray-500 mb-1.5 tracking-wide uppercase">Edad</label>
               <input type="number" inputMode="numeric" placeholder="Ej. 28"
                 value={edad} onChange={(e) => setEdad(e.target.value)} min={13} max={99}
-                className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none text-white placeholder-gray-600"
-                style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.07)" }} />
+                className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none bg-white text-gray-900 placeholder-gray-300"
+                style={{ border: "1.5px solid rgba(0,0,0,0.08)", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }} />
             </div>
-
             <ChipSelect label="Sexo" opciones={["Hombre", "Mujer"]} valor={sexo} onSelect={setSexo} />
-
             <Dropdown label="País" opciones={PAISES} valor={pais} onSelect={(v) => { setPais(v); setEstado(""); }} placeholder="Selecciona tu país" />
-
             {pais === "México" && (
               <Dropdown label="Estado" opciones={ESTADOS_MX} valor={estado} onSelect={setEstado} placeholder="Selecciona tu estado" />
             )}
-
             <ChipSelect label="Ocupación" opciones={OCUPACIONES} valor={ocupacion} onSelect={setOcupacion} />
           </>
         )}
 
-        {/* ── PASO 3 ── */}
+        {/* PASO 3 */}
         {paso === 3 && (
           <>
             <ChipSelect
@@ -323,26 +307,24 @@ export default function RegistroPage() {
               label="¿Cuál es tu objetivo principal?"
               opciones={OBJETIVOS} valor={objetivo} onSelect={setObjetivo}
             />
-            <div className="rounded-2xl px-4 py-3 flex items-start gap-3"
-              style={{ backgroundColor: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)" }}>
-              <span className="text-xl shrink-0 mt-0.5">🐑</span>
-              <p className="text-xs leading-relaxed" style={{ color: "#9ca3af" }}>
-                Esta info ayuda a Lani a darte mejores consejos financieros personalizados para ti.
-              </p>
-            </div>
           </>
         )}
       </div>
 
-      {/* Error + botón de login si correo duplicado */}
+      {/* Error */}
       {error && (
         <div className="mt-4">
-          <p className="text-xs font-semibold" style={{ color: "#ef4444" }}>⚠ {error}</p>
+          <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-red-50 border border-red-100">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-red-500 shrink-0">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            <p className="text-xs font-semibold text-red-600">{error}</p>
+          </div>
           {correoExiste && (
             <button
               onClick={() => router.push("/login")}
-              className="mt-3 w-full font-bold py-4 rounded-2xl text-sm tracking-wide transition-all active:scale-[0.98]"
-              style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" }}
+              className="mt-3 w-full font-bold py-4 rounded-full text-sm tracking-wide transition-all active:scale-[0.98] bg-white text-gray-900"
+              style={{ border: "1.5px solid rgba(0,0,0,0.1)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
             >
               Iniciar sesión →
             </button>
@@ -356,35 +338,33 @@ export default function RegistroPage() {
           <button
             onClick={paso === 1 ? siguientePaso1 : siguiente}
             disabled={cargando}
-            className="w-full font-bold py-4 rounded-2xl text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50"
-            style={{ backgroundColor: "#22c55e", color: "#000" }}
+            className="w-full font-bold py-4 rounded-full text-sm text-white tracking-wide transition-all active:scale-[0.98] disabled:opacity-50"
+            style={{ backgroundColor: "#000" }}
           >
             {cargando && paso === 1 ? (
               <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 Verificando...
               </span>
-            ) : "Continuar →"}
+            ) : "Continuar"}
           </button>
         ) : (
-          <>
-            <button onClick={handleRegistro} disabled={cargando}
-              className="w-full font-bold py-4 rounded-2xl text-sm tracking-wide transition-all active:scale-[0.98] disabled:opacity-50"
-              style={{ backgroundColor: "#22c55e", color: "#000" }}>
-              {cargando ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                  Guardando...
-                </span>
-              ) : "Crear mi cuenta"}
-            </button>
-          </>
+          <button onClick={handleRegistro} disabled={cargando}
+            className="w-full font-bold py-4 rounded-full text-sm text-white tracking-wide transition-all active:scale-[0.98] disabled:opacity-50"
+            style={{ backgroundColor: "#000" }}>
+            {cargando ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                Guardando...
+              </span>
+            ) : "Crear mi cuenta"}
+          </button>
         )}
       </div>
 
-      <p className="text-center text-sm mt-6" style={{ color: "#6b7280" }}>
+      <p className="text-center text-sm mt-5 text-gray-400">
         ¿Ya tienes cuenta?{" "}
-        <Link href="/login" className="font-bold text-white">Iniciar sesión</Link>
+        <Link href="/login" className="font-bold text-gray-900">Iniciar sesión</Link>
       </p>
     </main>
   );
