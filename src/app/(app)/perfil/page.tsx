@@ -8,6 +8,7 @@ import { obtenerTransacciones, calcularResumen, formatearMonto } from "@/lib/tra
 const OCUPACIONES = ["Empleado", "Independiente / Freelance", "Empresario", "Estudiante", "Ama/o de casa", "Otro"];
 const INGRESOS = ["Menos de $10k", "$10k–$20k", "$20k–$40k", "$40k–$80k", "Más de $80k"];
 const OBJETIVOS = ["Ahorrar más", "Salir de deudas", "Controlar mis gastos", "Planear un proyecto", "Invertir", "Solo quiero ver mis finanzas"];
+const SEXOS = ["Hombre", "Mujer"];
 
 function ChipSelect({ opciones, valor, onSelect }: { opciones: string[]; valor: string; onSelect: (v: string) => void }) {
   return (
@@ -43,6 +44,8 @@ export default function PerfilPage() {
   const [editando, setEditando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [resumen, setResumen] = useState({ ingresos: 0, gastos: 0, balance: 0 });
+  const [eliminandoCuenta, setEliminandoCuenta] = useState(false);
+  const [confirmarEliminar, setConfirmarEliminar] = useState(false);
 
   // Datos del perfil
   const [nombre, setNombre] = useState("");
@@ -103,6 +106,30 @@ export default function PerfilPage() {
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  };
+
+  const eliminarCuenta = async () => {
+    setEliminandoCuenta(true);
+    try {
+      const res = await fetch("/api/eliminar-cuenta", { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Ocurrió un error al eliminar tu cuenta.");
+        setEliminandoCuenta(false);
+        setConfirmarEliminar(false);
+        return;
+      }
+      // Limpiar localStorage
+      localStorage.removeItem("lani_onboarding_done");
+      localStorage.removeItem("lani_chat_mensajes");
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push("/");
+      router.refresh();
+    } catch {
+      alert("Error de conexión. Intenta de nuevo.");
+      setEliminandoCuenta(false);
+    }
   };
 
   return (
@@ -180,7 +207,7 @@ export default function PerfilPage() {
           </Campo>
 
           <Campo label="Sexo">
-            <ChipSelect opciones={["Masculino", "Femenino", "Prefiero no decir"]} valor={sexo} onSelect={setSexo} />
+            <ChipSelect opciones={SEXOS} valor={sexo} onSelect={setSexo} />
           </Campo>
 
           <Campo label="Ciudad">
@@ -217,11 +244,60 @@ export default function PerfilPage() {
       {/* Logout */}
       <button
         onClick={cerrarSesion}
-        className="w-full py-4 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-[0.98]"
+        className="w-full py-4 rounded-2xl font-bold text-sm tracking-wide transition-all active:scale-[0.98] mb-3"
         style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(255,255,255,0.06)", color: "#ef4444" }}
       >
         Cerrar sesión
       </button>
+
+      {/* Eliminar cuenta */}
+      {!confirmarEliminar ? (
+        <button
+          onClick={() => setConfirmarEliminar(true)}
+          className="w-full py-3 rounded-2xl text-sm font-semibold tracking-wide transition-all active:scale-[0.98]"
+          style={{ color: "#4b5563" }}
+        >
+          Eliminar cuenta
+        </button>
+      ) : (
+        <div
+          className="rounded-3xl p-5 space-y-4"
+          style={{ backgroundColor: "#1c1c1c", border: "1px solid rgba(239,68,68,0.2)" }}
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <p className="text-sm font-black text-white mb-1">¿Eliminar tu cuenta?</p>
+              <p className="text-xs leading-relaxed" style={{ color: "#9ca3af" }}>
+                Esta acción es permanente. Se borrarán todos tus datos: transacciones, historial y perfil. No se puede deshacer.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirmarEliminar(false)}
+              disabled={eliminandoCuenta}
+              className="flex-1 py-3.5 rounded-2xl text-sm font-bold disabled:opacity-50"
+              style={{ backgroundColor: "#222", color: "#9ca3af" }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={eliminarCuenta}
+              disabled={eliminandoCuenta}
+              className="flex-1 py-3.5 rounded-2xl text-sm font-bold disabled:opacity-50"
+              style={{ backgroundColor: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}
+            >
+              {eliminandoCuenta ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-red-500/30 border-t-red-400 rounded-full animate-spin" />
+                  Eliminando...
+                </span>
+              ) : "Sí, eliminar todo"}
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
