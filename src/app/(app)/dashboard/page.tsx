@@ -97,30 +97,30 @@ export default function DashboardPage() {
 
       {/* BALANCE CARD */}
       <div className="mx-4 mb-4">
-        <div className="bg-black rounded-3xl p-5 shadow-lg">
+        <div className="balance-card-bg rounded-3xl p-5">
           <p className="text-[10px] font-bold tracking-widest text-white/40 uppercase mb-3">
             Balance · {mesLabel}
           </p>
           {cargando
             ? <div className="h-12 w-44 rounded-xl bg-white/10 animate-pulse mb-1" />
-            : <p className="text-5xl font-black tracking-tight mb-1" style={{ color: balance < 0 ? "#f87171" : "#ffffff" }}>
+            : <p className="text-5xl font-black tracking-tight mb-1 font-number" style={{ color: balance < 0 ? "#f87171" : "#ffffff" }}>
                 {formatearMonto(balance)}
               </p>
           }
           <p className="text-xs text-white/30 mb-4">MXN disponibles</p>
 
           <div className="flex gap-2">
-            <div className="flex-1 rounded-2xl px-3 py-3 bg-white/8" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+            <div className="flex-1 rounded-2xl px-3 py-3" style={{ backgroundColor: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.06)" }}>
               {cargando
                 ? <div className="h-5 w-20 rounded-lg bg-white/10 animate-pulse mb-1" />
-                : <p className="text-base font-black text-green-400">+{formatearMonto(ingresos)}</p>
+                : <p className="text-base font-black text-green-400 font-number">+{formatearMonto(ingresos)}</p>
               }
               <p className="text-[10px] font-semibold text-white/40 mt-0.5">Ingresos</p>
             </div>
-            <div className="flex-1 rounded-2xl px-3 py-3" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+            <div className="flex-1 rounded-2xl px-3 py-3" style={{ backgroundColor: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.06)" }}>
               {cargando
                 ? <div className="h-5 w-20 rounded-lg bg-white/10 animate-pulse mb-1" />
-                : <p className="text-base font-black text-red-400">-{formatearMonto(gastos)}</p>
+                : <p className="text-base font-black text-red-400 font-number">-{formatearMonto(gastos)}</p>
               }
               <p className="text-[10px] font-semibold text-white/40 mt-0.5">Gastos</p>
             </div>
@@ -214,7 +214,7 @@ export default function DashboardPage() {
                       {fechaStr}{t.categoria ? ` · ${t.categoria}` : ""}
                     </p>
                   </div>
-                  <p className="text-sm font-black shrink-0" style={{ color: t.tipo === "ingreso" ? "#16a34a" : "#111827" }}>
+                  <p className="text-sm font-black shrink-0 font-number" style={{ color: t.tipo === "ingreso" ? "#16a34a" : "#111827" }}>
                     {t.tipo === "ingreso" ? "+" : "−"}{formatearMonto(t.monto)}
                   </p>
                 </div>
