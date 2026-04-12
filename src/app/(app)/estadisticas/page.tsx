@@ -27,6 +27,25 @@ export default function EstadisticasPage() {
 
   const { ingresos, gastos, balance } = calcularResumen(filtradas);
 
+  // Métricas derivadas
+  const tasaAhorro = ingresos > 0 ? ((ingresos - gastos) / ingresos) * 100 : null;
+  const diasPeriodo = periodo === "mes" ? 30 : periodo === "3meses" ? 90 :
+    filtradas.length > 0
+      ? Math.max(1, Math.ceil((Date.now() - new Date(filtradas[filtradas.length - 1].fecha + "T12:00:00").getTime()) / 86400000))
+      : 30;
+  const promedioDiario = gastos / diasPeriodo;
+
+  // Comparación con periodo anterior (solo "mes")
+  const txsMesAnterior = transacciones.filter((t) => {
+    if (periodo !== "mes") return false;
+    const f = new Date(t.fecha + "T12:00:00");
+    const hace60 = new Date(); hace60.setDate(hace60.getDate() - 60);
+    const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
+    return f >= hace60 && f < hace30;
+  });
+  const gastosMesAnterior = txsMesAnterior.filter((t) => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
+  const deltaGasto = gastosMesAnterior > 0 ? ((gastos - gastosMesAnterior) / gastosMesAnterior) * 100 : null;
+
   const porCategoria: Record<string, number> = {};
   filtradas.filter((t) => t.tipo === "gasto").forEach((t) => {
     const cat = t.categoria || "Otros";
@@ -70,6 +89,44 @@ export default function EstadisticasPage() {
           </div>
         ) : (
           <>
+            {/* Métricas clave */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Tasa de ahorro */}
+              <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+                <p className="text-[9px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Tasa de ahorro</p>
+                {tasaAhorro !== null ? (
+                  <>
+                    <p className="text-2xl font-black font-number leading-none" style={{ color: tasaAhorro >= 20 ? "var(--success)" : tasaAhorro >= 0 ? "var(--gold)" : "var(--danger)" }}>
+                      {tasaAhorro.toFixed(0)}%
+                    </p>
+                    <p className="text-[10px] mt-1.5 leading-tight" style={{ color: "var(--text-3)" }}>
+                      {tasaAhorro >= 20 ? "Excelente" : tasaAhorro >= 10 ? "Bien" : tasaAhorro >= 0 ? "Ajustado" : "En negativo"}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm" style={{ color: "var(--text-3)" }}>Sin ingresos</p>
+                )}
+              </div>
+
+              {/* Promedio diario */}
+              <div className="rounded-2xl p-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+                <p className="text-[9px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Gasto diario</p>
+                <p className="text-lg font-black font-number leading-none" style={{ color: "var(--text-1)" }}>
+                  {formatearMonto(promedioDiario)}
+                </p>
+                {deltaGasto !== null && (
+                  <p className="text-[10px] mt-1.5" style={{ color: deltaGasto > 0 ? "var(--danger)" : "var(--success)" }}>
+                    {deltaGasto > 0 ? "▲" : "▼"} {Math.abs(deltaGasto).toFixed(0)}% vs mes ant.
+                  </p>
+                )}
+                {deltaGasto === null && (
+                  <p className="text-[10px] mt-1.5" style={{ color: "var(--text-3)" }}>
+                    promedio de {diasPeriodo} días
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Resumen */}
             <div className="grid grid-cols-3 gap-2">
               {[

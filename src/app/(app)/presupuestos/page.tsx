@@ -109,9 +109,13 @@ export default function PresupuestosPage() {
 
   const guardarPresupuesto = async (categoria: string, limite: number) => {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     const existe = presupuestos.find((p) => p.categoria === categoria);
-    if (existe?.id) await supabase.from("presupuestos").update({ limite }).eq("id", existe.id);
-    else await supabase.from("presupuestos").insert([{ categoria, limite }]);
+    if (existe?.id) {
+      await supabase.from("presupuestos").update({ limite }).eq("id", existe.id);
+    } else {
+      await supabase.from("presupuestos").insert([{ categoria, limite, usuario_id: user?.id }]);
+    }
     setModal(null); cargar();
   };
 

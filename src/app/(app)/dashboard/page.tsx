@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { obtenerTransacciones, calcularResumen, formatearMonto } from "@/lib/transacciones";
 import { calcularProyeccion } from "@/lib/proyeccion";
 import { detectarRecurrentes, totalRecurrentes } from "@/lib/recurrentes";
+import {
+  getQuincenaActual,
+  filtrarPorQuincena,
+  calcularProyeccionQuincena,
+} from "@/lib/quincena";
 import type { Transaccion } from "@/lib/supabase";
 import NuevaTransaccion from "@/components/NuevaTransaccion";
 import EditarTransaccion from "@/components/EditarTransaccion";
@@ -18,6 +23,7 @@ const CAT_ICON: Record<string, string> = {
 };
 
 type Filtro = "todos" | "gastos" | "ingresos";
+type Modo = "mes" | "quincena";
 
 function Skel({ w, h, r = "8px" }: { w: string; h: string; r?: string }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: r }} />;
@@ -49,6 +55,7 @@ export default function DashboardPage() {
   const [iniciales, setIniciales] = useState("??");
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [mostrarRecurrentes, setMostrarRecurrentes] = useState(false);
+  const [modo, setModo] = useState<Modo>("mes");
 
   const cargar = async () => {
     try {
@@ -76,11 +83,20 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const { ingresos, gastos, balance } = calcularResumen(transacciones);
+  // ── Periodo activo ────────────────────────────────────────────────
+  const quinc = getQuincenaActual();
+  const txsVista = modo === "quincena"
+    ? filtrarPorQuincena(transacciones, quinc)
+    : transacciones;
+
+  const { ingresos, gastos, balance } = calcularResumen(txsVista);
   const spendingPct = ingresos > 0 ? Math.min((gastos / ingresos) * 100, 100) : 0;
   const spendingColor = spendingPct >= 90 ? "var(--danger)" : spendingPct >= 70 ? "var(--warning)" : "var(--gold)";
 
-  const proyeccion = calcularProyeccion(transacciones);
+  // Proyección según modo
+  const proyeccionMes = calcularProyeccion(transacciones);
+  const proyeccionQ = calcularProyeccionQuincena(transacciones, quinc);
+
   const recurrentes = detectarRecurrentes(transacciones);
   const totalSuscripciones = totalRecurrentes(recurrentes);
 
@@ -89,6 +105,9 @@ export default function DashboardPage() {
   const hoy = new Date();
   const diaFinMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
   const mesCorto = hoy.toLocaleString("es-MX", { month: "short" });
+  const periodoLabel = modo === "quincena"
+    ? quinc.label
+    : hoy.toLocaleString("es-MX", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
 
   const lista = transacciones.filter((t) =>
     filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
@@ -124,9 +143,31 @@ export default function DashboardPage() {
 
       {/* ── BALANCE HERO ── */}
       <div style={{ padding: "20px 20px 16px" }}>
-        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 10 }}>
-          {hoy.toLocaleString("es-MX", { month: "long", year: "numeric" }).replace(/^\w/, c => c.toUpperCase())}
-        </p>
+
+        {/* Periodo + toggle */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-3)" }}>
+            {periodoLabel}
+          </p>
+          <div style={{ display: "flex", gap: 3 }}>
+            {(["mes", "quincena"] as Modo[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => setModo(m)}
+                style={{
+                  fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+                  padding: "3px 9px", borderRadius: 99,
+                  backgroundColor: modo === m ? "var(--surface-3)" : "transparent",
+                  color: modo === m ? "var(--text-1)" : "var(--text-3)",
+                  border: modo === m ? "1px solid var(--border)" : "1px solid transparent",
+                  cursor: "pointer", transition: "all 0.15s",
+                }}
+              >
+                {m === "mes" ? "Mes" : "Quinc."}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {cargando ? <Skel w="200px" h="52px" r="10px" /> : (
           <p className="font-display" style={{
@@ -165,7 +206,7 @@ export default function DashboardPage() {
           <div style={{ marginTop: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <p style={{ fontSize: 10, color: "var(--text-3)", fontWeight: 500 }}>
-                {spendingPct >= 90 ? "⚠ Casi al límite" : spendingPct >= 70 ? "Ojo con los gastos" : "Vas bien este mes"}
+                {spendingPct >= 90 ? "⚠ Casi al límite" : spendingPct >= 70 ? "Ojo con los gastos" : "Vas bien"}
               </p>
               <p className="font-number" style={{ fontSize: 10, fontWeight: 700, color: spendingColor }}>
                 {spendingPct.toFixed(0)}%
@@ -182,8 +223,8 @@ export default function DashboardPage() {
       {!cargando && (
         <div style={{ padding: "0 20px 4px", display: "flex", flexDirection: "column", gap: 8 }}>
 
-          {/* Proyección fin de mes */}
-          {proyeccion.motivo === "ok" && proyeccion.proyectado !== null && (
+          {/* Proyección — mes */}
+          {modo === "mes" && proyeccionMes.motivo === "ok" && proyeccionMes.proyectado !== null && (
             <div style={{
               padding: "12px 14px", borderRadius: 14,
               backgroundColor: "var(--surface)", border: "1px solid var(--border)",
@@ -195,17 +236,46 @@ export default function DashboardPage() {
                 </p>
                 <p className="font-number" style={{
                   fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em",
-                  color: proyeccion.proyectado >= 0 ? "var(--success)" : "var(--danger)",
+                  color: proyeccionMes.proyectado >= 0 ? "var(--success)" : "var(--danger)",
                 }}>
-                  ~{formatearMonto(proyeccion.proyectado)}
+                  ~{formatearMonto(proyeccionMes.proyectado)}
                 </p>
               </div>
               <div style={{ textAlign: "right" }}>
                 <p style={{ fontSize: 10, color: "var(--text-3)", lineHeight: 1.6 }}>
-                  Día {proyeccion.diasTranscurridos} de {proyeccion.diasEnMes}
+                  Día {proyeccionMes.diasTranscurridos} de {proyeccionMes.diasEnMes}
                 </p>
                 <p style={{ fontSize: 10, color: "var(--text-3)" }}>
-                  Quedan {proyeccion.diasRestantes} días
+                  Quedan {proyeccionMes.diasRestantes} días
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Proyección — quincena */}
+          {modo === "quincena" && proyeccionQ.motivo === "ok" && proyeccionQ.proyectado !== null && (
+            <div style={{
+              padding: "12px 14px", borderRadius: 14,
+              backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 3 }}>
+                  Proyección fin de {quinc.numero === 1 ? "Q1" : "Q2"}
+                </p>
+                <p className="font-number" style={{
+                  fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em",
+                  color: proyeccionQ.proyectado >= 0 ? "var(--success)" : "var(--danger)",
+                }}>
+                  ~{formatearMonto(proyeccionQ.proyectado)}
+                </p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 10, color: "var(--text-3)", lineHeight: 1.6 }}>
+                  Día {quinc.diasTranscurridos} de {quinc.diasTotales}
+                </p>
+                <p style={{ fontSize: 10, color: "var(--text-3)" }}>
+                  Quedan {quinc.diasRestantes} días
                 </p>
               </div>
             </div>
