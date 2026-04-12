@@ -36,7 +36,7 @@ function similitudOverlap(a: string, b: string): number {
   const pb = palabrasSignificativas(b);
   if (pa.size === 0 && pb.size === 0) return 1;
   if (pa.size === 0 || pb.size === 0) return 0;
-  const interseccion = [...pa].filter((w) => pb.has(w)).length;
+  const interseccion = Array.from(pa).filter((w) => pb.has(w)).length;
   return interseccion / Math.min(pa.size, pb.size);
 }
 
