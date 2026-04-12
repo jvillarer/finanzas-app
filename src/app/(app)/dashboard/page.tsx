@@ -10,22 +10,30 @@ import { createClient } from "@/lib/supabase";
 import { registrarServiceWorker, pedirPermisoNotificaciones } from "@/lib/notificaciones";
 
 const CAT_ICON: Record<string, string> = {
-  Comida: "🍽",
-  Supermercado: "🛒",
-  Transporte: "🚗",
-  Entretenimiento: "🎬",
-  Salud: "💊",
-  Servicios: "⚡",
-  Ropa: "👕",
-  Hogar: "🏠",
-  Educación: "📚",
-  Otros: "📦",
+  Comida: "🍽", Supermercado: "🛒", Transporte: "🚗",
+  Entretenimiento: "🎬", Salud: "💊", Servicios: "⚡",
+  Ropa: "👕", Hogar: "🏠", Educación: "📚", Otros: "📦",
 };
 
 type Filtro = "todos" | "gastos" | "ingresos";
 
-function Skel({ w, h, rounded = "rounded-xl" }: { w: string; h: string; rounded?: string }) {
-  return <div className={`skeleton ${w} ${h} ${rounded}`} />;
+function Skel({ w, h, rounded = "8px" }: { w: string; h: string; rounded?: string }) {
+  return <div className="skeleton" style={{ width: w, height: h, borderRadius: rounded }} />;
+}
+
+function agruparPorFecha(txs: Transaccion[]): [string, Transaccion[]][] {
+  const hoy = new Date().toISOString().split("T")[0];
+  const ayer = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  const grupos: Record<string, Transaccion[]> = {};
+  for (const t of txs) {
+    const label =
+      t.fecha === hoy ? "Hoy" :
+      t.fecha === ayer ? "Ayer" :
+      new Date(t.fecha + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+    if (!grupos[label]) grupos[label] = [];
+    grupos[label].push(t);
+  }
+  return Object.entries(grupos);
 }
 
 export default function DashboardPage() {
@@ -61,11 +69,12 @@ export default function DashboardPage() {
     cargar();
     registrarServiceWorker();
     if ("Notification" in window && Notification.permission === "default") {
-      setTimeout(() => setMostrarBannerNotif(true), 3000);
+      setTimeout(() => setMostrarBannerNotif(true), 4000);
     }
   }, []);
 
   const { ingresos, gastos, balance } = calcularResumen(transacciones);
+  const spendingPct = ingresos > 0 ? Math.min((gastos / ingresos) * 100, 100) : 0;
 
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
@@ -74,104 +83,144 @@ export default function DashboardPage() {
 
   const lista = transacciones.filter((t) =>
     filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
-  );
+  ).slice(0, 40);
+
+  const grupos = agruparPorFecha(lista);
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
+    <main className="min-h-screen no-scroll" style={{ backgroundColor: "var(--bg)" }}>
 
-      {/* HEADER */}
-      <div className="px-5 pt-14 pb-4 flex items-center justify-between">
+      {/* ── HEADER ── */}
+      <div className="px-5 pt-14 pb-3 flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold" style={{ color: "var(--text-3)" }}>{saludo},</p>
-          <h1 className="text-2xl font-black tracking-tight" style={{ color: "var(--text-1)" }}>
-            {cargando ? <Skel w="w-28" h="h-7" /> : (nombre || "Mis Finanzas")}
+          <p className="text-xs font-medium" style={{ color: "var(--text-3)" }}>{saludo}</p>
+          <h1 className="text-xl font-bold" style={{ color: "var(--text-1)" }}>
+            {cargando ? <Skel w="112px" h="28px" rounded="8px" /> : (nombre || "Mis finanzas")}
           </h1>
         </div>
         <button
           onClick={() => router.push("/perfil")}
-          className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-opacity active:opacity-60"
           style={{
-            background: "linear-gradient(135deg, #1f6b4e, #2a8a64)",
-            boxShadow: "0 4px 14px rgba(31,107,78,0.35)",
+            backgroundColor: "var(--surface-2)",
+            border: "1px solid var(--gold-border)",
+            color: "var(--gold)",
+            fontSize: "11px",
+            letterSpacing: "0.5px",
           }}
         >
           {iniciales}
         </button>
       </div>
 
-      {/* BALANCE CARD */}
-      <div className="mx-4 mb-4">
-        <div className="balance-card-bg rounded-3xl p-5">
-          <p className="text-[10px] font-bold tracking-widest uppercase mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
-            Balance · {mesLabel}
+      {/* ── BALANCE HERO ── */}
+      <div className="px-5 pt-6 pb-6">
+        <p
+          className="text-[10px] font-semibold tracking-[0.15em] uppercase mb-2"
+          style={{ color: "var(--text-3)" }}
+        >
+          Balance · {mesLabel}
+        </p>
+        {cargando ? (
+          <Skel w="220px" h="60px" rounded="10px" />
+        ) : (
+          <p
+            className="font-display leading-none mb-1"
+            style={{
+              fontSize: "clamp(44px, 12vw, 56px)",
+              fontWeight: 500,
+              color: balance < 0 ? "var(--danger)" : "var(--text-1)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {formatearMonto(balance)}
           </p>
-          {cargando
-            ? <div className="h-12 w-44 rounded-xl mb-1" style={{ backgroundColor: "rgba(255,255,255,0.08)" }} />
-            : <p className="text-5xl font-black tracking-tight mb-1 font-number" style={{ color: balance < 0 ? "#f87171" : "#ffffff" }}>
-                {formatearMonto(balance)}
-              </p>
-          }
-          <p className="text-xs mb-5" style={{ color: "rgba(255,255,255,0.25)" }}>MXN disponibles</p>
+        )}
+        <p className="text-xs font-medium mt-2" style={{ color: "var(--text-3)" }}>MXN disponibles</p>
 
-          <div className="flex gap-2">
-            {/* Ingresos */}
-            <div
-              className="flex-1 rounded-2xl px-3.5 py-3"
-              style={{
-                backgroundColor: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.07)",
-              }}
-            >
+        {/* Income / Expense pills */}
+        <div className="flex gap-2 mt-5">
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 rounded-2xl flex-1"
+            style={{ backgroundColor: "var(--success-dim)", border: "1px solid rgba(62,207,142,0.15)" }}
+          >
+            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--success)" }} />
+            <div>
               {cargando
-                ? <div className="h-5 w-20 rounded-lg mb-1" style={{ backgroundColor: "rgba(255,255,255,0.08)" }} />
-                : <p className="text-base font-black font-number" style={{ color: "#4ade80" }}>
+                ? <Skel w="64px" h="16px" />
+                : <p className="text-sm font-bold font-number" style={{ color: "var(--success)" }}>
                     +{formatearMonto(ingresos)}
                   </p>
               }
-              <p className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Ingresos</p>
+              <p className="text-[10px] font-medium mt-0.5" style={{ color: "var(--text-3)" }}>Ingresos</p>
             </div>
-            {/* Gastos */}
-            <div
-              className="flex-1 rounded-2xl px-3.5 py-3"
-              style={{
-                backgroundColor: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.07)",
-              }}
-            >
+          </div>
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 rounded-2xl flex-1"
+            style={{ backgroundColor: "var(--danger-dim)", border: "1px solid rgba(240,110,110,0.15)" }}
+          >
+            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--danger)" }} />
+            <div>
               {cargando
-                ? <div className="h-5 w-20 rounded-lg mb-1" style={{ backgroundColor: "rgba(255,255,255,0.08)" }} />
-                : <p className="text-base font-black font-number" style={{ color: "#f87171" }}>
+                ? <Skel w="64px" h="16px" />
+                : <p className="text-sm font-bold font-number" style={{ color: "var(--danger)" }}>
                     -{formatearMonto(gastos)}
                   </p>
               }
-              <p className="text-[10px] font-semibold mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Gastos</p>
+              <p className="text-[10px] font-medium mt-0.5" style={{ color: "var(--text-3)" }}>Gastos</p>
             </div>
           </div>
         </div>
+
+        {/* Spending rate */}
+        {!cargando && ingresos > 0 && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-3)" }}>
+                Gasto del mes
+              </p>
+              <p className="text-[10px] font-bold" style={{ color: spendingPct >= 90 ? "var(--danger)" : spendingPct >= 70 ? "var(--warning)" : "var(--text-2)" }}>
+                {spendingPct.toFixed(0)}%
+              </p>
+            </div>
+            <div className="w-full rounded-full h-1" style={{ backgroundColor: "var(--surface-2)" }}>
+              <div
+                className="h-1 rounded-full transition-all duration-700"
+                style={{
+                  width: `${spendingPct}%`,
+                  backgroundColor: spendingPct >= 90 ? "var(--danger)" : spendingPct >= 70 ? "var(--warning)" : "var(--gold)",
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* BANNER NOTIFICACIONES */}
+      {/* ── DIVIDER ── */}
+      <div style={{ height: "1px", backgroundColor: "var(--border-2)", margin: "0 20px" }} />
+
+      {/* ── BANNER NOTIFICACIONES ── */}
       {mostrarBannerNotif && (
         <div
-          className="mx-4 mb-4 px-4 py-3.5 rounded-2xl flex items-center gap-3 fade-in bg-white"
-          style={{ boxShadow: "var(--shadow-sm)" }}
+          className="mx-5 mt-4 px-4 py-3 rounded-2xl flex items-center gap-3 fade-in"
+          style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
         >
-          <span className="text-xl shrink-0">🐑</span>
+          <span className="text-lg shrink-0">🐑</span>
           <p className="text-xs font-medium flex-1 leading-relaxed" style={{ color: "var(--text-2)" }}>
-            Activa notificaciones y Lani te avisa cuando te pasas del límite
+            Lani puede avisarte si te pasas del límite
           </p>
           <div className="flex gap-1.5 shrink-0">
             <button
               onClick={() => setMostrarBannerNotif(false)}
-              className="text-xs font-bold px-3 py-1.5 rounded-full"
+              className="text-xs font-semibold px-3 py-1.5 rounded-full"
               style={{ backgroundColor: "var(--surface-2)", color: "var(--text-3)" }}
             >
               No
             </button>
             <button
               onClick={async () => { await pedirPermisoNotificaciones(); setMostrarBannerNotif(false); }}
-              className="text-xs font-bold px-3 py-1.5 rounded-full text-white"
-              style={{ backgroundColor: "var(--accent)" }}
+              className="text-xs font-bold px-3 py-1.5 rounded-full"
+              style={{ backgroundColor: "var(--gold)", color: "#0c0c0e" }}
             >
               Activar
             </button>
@@ -179,18 +228,17 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* FILTROS */}
-      <div className="px-4 mb-3 flex gap-2">
+      {/* ── FILTROS ── */}
+      <div className="px-5 mt-5 mb-3 flex gap-2">
         {(["todos", "gastos", "ingresos"] as Filtro[]).map((f) => (
           <button
             key={f}
             onClick={() => setFiltro(f)}
-            className="px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all"
+            className="px-3.5 py-1.5 rounded-full text-[11px] font-semibold transition-all"
             style={{
-              backgroundColor: filtro === f ? "var(--text-1)" : "var(--surface)",
-              color: filtro === f ? "#fff" : "var(--text-3)",
-              boxShadow: filtro === f ? "none" : "var(--shadow-sm)",
-              border: filtro === f ? "none" : "1px solid rgba(0,0,0,0.05)",
+              backgroundColor: filtro === f ? "var(--surface-3)" : "transparent",
+              color: filtro === f ? "var(--text-1)" : "var(--text-3)",
+              border: filtro === f ? "1px solid var(--border)" : "1px solid transparent",
             }}
           >
             {f === "todos" ? "Recientes" : f === "gastos" ? "Gastos" : "Ingresos"}
@@ -198,86 +246,109 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* LISTA */}
-      <div className="mx-4 pb-8">
+      {/* ── LISTA AGRUPADA ── */}
+      <div className="px-5 pb-28">
         {cargando ? (
-          <div className="bg-white rounded-3xl overflow-hidden" style={{ boxShadow: "var(--shadow-md)" }}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: "1px solid rgba(0,0,0,0.04)" }}>
-                <div className="w-11 h-11 rounded-2xl skeleton shrink-0" />
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+          >
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-4" style={{ borderBottom: "1px solid var(--border-2)" }}>
+                <Skel w="40px" h="40px" rounded="12px" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3.5 skeleton w-2/5" />
-                  <div className="h-2.5 skeleton w-1/4" />
+                  <Skel w="40%" h="13px" />
+                  <Skel w="24%" h="10px" />
                 </div>
-                <div className="h-4 skeleton w-16" />
+                <Skel w="60px" h="14px" />
               </div>
             ))}
           </div>
         ) : lista.length === 0 ? (
           <div
-            className="text-center py-16 bg-white rounded-3xl"
-            style={{ boxShadow: "var(--shadow-md)" }}
+            className="text-center py-14 rounded-2xl"
+            style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
           >
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3"
-              style={{ backgroundColor: "var(--surface-2)" }}
-            >
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mx-auto mb-3" style={{ backgroundColor: "var(--surface-2)" }}>
               💳
             </div>
-            <p className="text-sm font-bold mb-1" style={{ color: "var(--text-1)" }}>Sin movimientos</p>
-            <p className="text-xs" style={{ color: "var(--text-3)" }}>Agrega tu primer gasto con el botón +</p>
+            <p className="text-sm font-semibold mb-1" style={{ color: "var(--text-2)" }}>Sin movimientos</p>
+            <p className="text-xs" style={{ color: "var(--text-3)" }}>Toca + para agregar tu primer gasto</p>
           </div>
         ) : (
-          <div className="bg-white rounded-3xl overflow-hidden" style={{ boxShadow: "var(--shadow-md)" }}>
-            {lista.slice(0, 30).map((t, idx) => {
-              const emoji = t.tipo === "ingreso" ? "💰" : (CAT_ICON[t.categoria] || "📦");
-              const fechaStr = new Date(t.fecha + "T12:00:00").toLocaleDateString("es-MX", {
-                day: "numeric", month: "short",
-              });
-              const esIngreso = t.tipo === "ingreso";
-              return (
-                <div
-                  key={t.id}
-                  onClick={() => setTransaccionEditar(t)}
-                  className="flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors active:bg-gray-50"
-                  style={{ borderBottom: idx < lista.length - 1 ? "1px solid rgba(0,0,0,0.04)" : "none" }}
+          <div className="space-y-5">
+            {grupos.map(([fecha, txs]) => (
+              <div key={fecha}>
+                {/* Date label */}
+                <p
+                  className="text-[10px] font-bold uppercase tracking-[0.12em] mb-2"
+                  style={{ color: "var(--text-3)" }}
                 >
-                  <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0"
-                    style={{
-                      backgroundColor: esIngreso ? "var(--accent-light, #e6f4ed)" : "var(--surface-2)",
-                    }}
-                  >
-                    {emoji}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate" style={{ color: "var(--text-1)" }}>
-                      {t.descripcion || t.categoria || "Sin descripción"}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
-                      {fechaStr}{t.categoria ? ` · ${t.categoria}` : ""}
-                    </p>
-                  </div>
-                  <p
-                    className="text-sm font-black shrink-0 font-number"
-                    style={{ color: esIngreso ? "var(--success)" : "var(--text-1)" }}
-                  >
-                    {esIngreso ? "+" : "−"}{formatearMonto(t.monto)}
-                  </p>
+                  {fecha}
+                </p>
+                <div
+                  className="rounded-2xl overflow-hidden"
+                  style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+                >
+                  {txs.map((t, idx) => {
+                    const emoji = t.tipo === "ingreso" ? "💰" : (CAT_ICON[t.categoria] || "📦");
+                    const esIngreso = t.tipo === "ingreso";
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => setTransaccionEditar(t)}
+                        className="flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors"
+                        style={{
+                          borderBottom: idx < txs.length - 1 ? "1px solid var(--border-2)" : "none",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--surface-2)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                      >
+                        {/* Icon */}
+                        <div
+                          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
+                          style={{ backgroundColor: "var(--surface-2)" }}
+                        >
+                          {emoji}
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate" style={{ color: "var(--text-1)" }}>
+                            {t.descripcion || t.categoria || "Sin descripción"}
+                          </p>
+                          {t.categoria && (
+                            <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
+                              {t.categoria}
+                            </p>
+                          )}
+                        </div>
+                        {/* Amount */}
+                        <p
+                          className="text-sm font-bold shrink-0 font-number"
+                          style={{ color: esIngreso ? "var(--success)" : "var(--text-2)" }}
+                        >
+                          {esIngreso ? "+" : "−"}{formatearMonto(t.monto)}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* FAB */}
+      {/* ── FAB ── */}
       <button
         onClick={() => setMostrarFormulario(true)}
-        className="fixed bottom-24 right-5 w-14 h-14 rounded-2xl text-white text-2xl font-bold flex items-center justify-center active:scale-95 transition-transform"
+        className="fixed bottom-24 right-5 w-13 h-13 rounded-2xl text-lg font-bold flex items-center justify-center active:scale-95 transition-transform"
         style={{
-          background: "linear-gradient(135deg, #1a5e44, #2a8a64)",
-          boxShadow: "0 8px 28px rgba(31,107,78,0.4), 0 4px 12px rgba(0,0,0,0.15)",
+          width: 52,
+          height: 52,
+          backgroundColor: "var(--gold)",
+          color: "#0c0c0e",
+          boxShadow: "var(--shadow-gold)",
         }}
       >
         +

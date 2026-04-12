@@ -56,49 +56,57 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
     onEliminado();
   };
 
+  const label = (txt: string) => (
+    <label className="block text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--text-3)" }}>
+      {txt}
+    </label>
+  );
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end"
-      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+      style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
     >
       <div
-        className="w-full pt-5 pb-10 px-5 slide-up bg-white"
+        className="w-full pt-4 pb-10 px-5 slide-up"
         style={{
-          borderTopLeftRadius: "2rem",
-          borderTopRightRadius: "2rem",
+          backgroundColor: "var(--surface)",
+          borderTopLeftRadius: "24px",
+          borderTopRightRadius: "24px",
           maxHeight: "92vh",
           overflowY: "auto",
-          boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
+          borderTop: "1px solid var(--border)",
         }}
       >
         {/* Handle */}
-        <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: "#e4e3de" }} />
+        <div className="w-8 h-0.5 rounded-full mx-auto mb-5" style={{ backgroundColor: "var(--surface-3)" }} />
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-black" style={{ color: "var(--text-1)" }}>Editar movimiento</h2>
+          <h2 className="text-base font-bold" style={{ color: "var(--text-1)" }}>Editar movimiento</h2>
           <button
             onClick={onCerrar}
-            className="w-8 h-8 rounded-full flex items-center justify-center"
+            className="w-7 h-7 rounded-full flex items-center justify-center"
             style={{ backgroundColor: "var(--surface-2)" }}
           >
-            <svg viewBox="0 0 20 20" fill="#9ca3af" className="w-4 h-4">
+            <svg viewBox="0 0 20 20" fill="var(--text-3)" className="w-3.5 h-3.5">
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
             </svg>
           </button>
         </div>
 
         {/* Tipo */}
-        <div className="flex gap-2 mb-6 p-1 rounded-2xl" style={{ backgroundColor: "var(--surface-2)" }}>
+        <div className="flex gap-1.5 mb-6 p-1 rounded-xl" style={{ backgroundColor: "var(--surface-2)" }}>
           {(["gasto", "ingreso"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTipo(t)}
-              className="flex-1 py-3 rounded-xl text-sm font-bold transition-all"
+              className="flex-1 py-2.5 rounded-lg text-xs font-bold transition-all"
               style={{
-                backgroundColor: tipo === t ? "var(--text-1)" : "transparent",
-                color: tipo === t ? "#fff" : "var(--text-3)",
+                backgroundColor: tipo === t ? "var(--surface-3)" : "transparent",
+                color: tipo === t ? "var(--text-1)" : "var(--text-3)",
+                border: tipo === t ? "1px solid var(--border)" : "1px solid transparent",
               }}
             >
               {t === "ingreso" ? "💰 Ingreso" : "💸 Gasto"}
@@ -108,40 +116,32 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
 
         {/* Monto */}
         <div className="mb-5">
-          <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--text-3)" }}>Monto</label>
+          {label("Monto")}
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold" style={{ color: "var(--text-1)" }}>$</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold" style={{ color: "var(--text-3)" }}>$</span>
             <input
               type="number" inputMode="decimal" placeholder="0.00"
               value={monto} onChange={(e) => setMonto(e.target.value)}
-              className="w-full rounded-2xl pl-9 pr-4 py-4 text-2xl font-black outline-none font-number"
-              style={{
-                backgroundColor: "var(--surface-2)",
-                border: "1.5px solid rgba(0,0,0,0.06)",
-                color: "var(--text-1)",
-              }}
+              className="w-full rounded-xl pl-8 pr-4 py-3.5 text-2xl font-black outline-none font-number"
+              style={{ backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" }}
             />
           </div>
         </div>
 
         {/* Descripción */}
         <div className="mb-5">
-          <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--text-3)" }}>Descripción</label>
+          {label("Descripción")}
           <input
             type="text" placeholder="Ej. Súper, gasolina..."
             value={descripcion} onChange={(e) => setDescripcion(e.target.value)}
-            className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none placeholder-gray-300"
-            style={{
-              backgroundColor: "var(--surface-2)",
-              border: "1.5px solid rgba(0,0,0,0.06)",
-              color: "var(--text-1)",
-            }}
+            className="w-full rounded-xl px-4 py-3.5 text-sm font-medium outline-none"
+            style={{ backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" }}
           />
         </div>
 
         {/* Categorías */}
         <div className="mb-5">
-          <label className="block text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "var(--text-3)" }}>Categoría</label>
+          {label("Categoría")}
           <div className="grid grid-cols-5 gap-2">
             {CATEGORIAS.map((cat) => {
               const activa = categoria === cat.nombre;
@@ -149,17 +149,14 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
                 <button
                   key={cat.nombre}
                   onClick={() => setCategoria(activa ? "" : cat.nombre)}
-                  className="flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all active:scale-95"
+                  className="flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all active:scale-95"
                   style={{
-                    backgroundColor: activa ? "var(--accent-light)" : "var(--surface-2)",
-                    border: activa ? "2px solid var(--accent)" : "2px solid transparent",
+                    backgroundColor: activa ? "var(--gold-dim)" : "var(--surface-2)",
+                    border: activa ? "1px solid var(--gold-border)" : "1px solid transparent",
                   }}
                 >
                   <span className="text-lg">{cat.emoji}</span>
-                  <span
-                    className="text-[9px] font-bold"
-                    style={{ color: activa ? "var(--accent)" : "var(--text-3)" }}
-                  >
+                  <span className="text-[9px] font-semibold" style={{ color: activa ? "var(--gold)" : "var(--text-3)" }}>
                     {cat.nombre.length > 6 ? cat.nombre.slice(0, 6) + "…" : cat.nombre}
                   </span>
                 </button>
@@ -170,54 +167,49 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
 
         {/* Fecha */}
         <div className="mb-6">
-          <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--text-3)" }}>Fecha</label>
+          {label("Fecha")}
           <input
             type="date" value={fecha} onChange={(e) => setFecha(e.target.value)}
-            className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none"
-            style={{
-              backgroundColor: "var(--surface-2)",
-              border: "1.5px solid rgba(0,0,0,0.06)",
-              color: "var(--text-1)",
-            }}
+            className="w-full rounded-xl px-4 py-3.5 text-sm font-medium outline-none"
+            style={{ backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" }}
           />
         </div>
 
-        {error && <p className="text-xs font-semibold mb-4 text-red-500">{error}</p>}
+        {error && <p className="text-xs font-semibold mb-4" style={{ color: "var(--danger)" }}>{error}</p>}
 
-        {/* Guardar */}
         <button
           onClick={handleGuardar} disabled={guardando}
-          className="w-full font-bold py-4 rounded-full disabled:opacity-40 transition-all active:scale-[0.98] text-sm mb-3 text-white"
-          style={{ backgroundColor: "var(--text-1)" }}
+          className="w-full font-bold py-3.5 rounded-xl disabled:opacity-40 transition-all active:scale-[0.98] text-sm mb-3"
+          style={{ backgroundColor: "var(--gold)", color: "#0c0c0e" }}
         >
           {guardando ? "Guardando..." : "Guardar cambios"}
         </button>
 
-        {/* Eliminar */}
         {!confirmarEliminar ? (
           <button
             onClick={() => setConfirmarEliminar(true)}
-            className="w-full font-bold py-4 rounded-full text-sm transition-all active:scale-[0.98]"
-            style={{ backgroundColor: "#fff1f2", color: "#dc2626" }}
+            className="w-full font-semibold py-3.5 rounded-xl text-sm transition-all active:scale-[0.98]"
+            style={{ backgroundColor: "var(--danger-dim)", color: "var(--danger)", border: "1px solid rgba(240,110,110,0.15)" }}
           >
             Eliminar movimiento
           </button>
         ) : (
-          <div className="rounded-2xl p-4 bg-red-50 border border-red-100">
-            <p className="text-sm font-bold mb-3 text-center" style={{ color: "var(--text-1)" }}>¿Eliminar este movimiento?</p>
+          <div className="rounded-xl p-4" style={{ backgroundColor: "var(--danger-dim)", border: "1px solid rgba(240,110,110,0.2)" }}>
+            <p className="text-sm font-bold mb-3 text-center" style={{ color: "var(--text-1)" }}>¿Eliminar?</p>
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmarEliminar(false)}
-                className="flex-1 py-3 rounded-full text-sm font-bold"
-                style={{ backgroundColor: "var(--surface-2)", color: "var(--text-3)" }}
+                className="flex-1 py-3 rounded-xl text-xs font-bold"
+                style={{ backgroundColor: "var(--surface-2)", color: "var(--text-2)" }}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleEliminar} disabled={eliminando}
-                className="flex-1 py-3 rounded-full text-sm font-bold disabled:opacity-40 bg-red-500 text-white"
+                className="flex-1 py-3 rounded-xl text-xs font-bold disabled:opacity-40"
+                style={{ backgroundColor: "var(--danger)", color: "#fff" }}
               >
-                {eliminando ? "Eliminando..." : "Sí, eliminar"}
+                {eliminando ? "..." : "Sí, eliminar"}
               </button>
             </div>
           </div>
