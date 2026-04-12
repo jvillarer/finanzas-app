@@ -123,10 +123,38 @@ function ModalCrear({ onGuardado, onCerrar }: { onGuardado: () => void; onCerrar
         {/* Fecha */}
         <div style={{ marginBottom: 20 }}>
           {lbl("¿Para cuándo? (opcional)")}
-          <input
-            type="date" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)}
-            style={inputStyle}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type="date"
+              value={fechaLimite}
+              min={new Date().toISOString().split("T")[0]}
+              onChange={(e) => setFechaLimite(e.target.value)}
+              style={{
+                ...inputStyle,
+                colorScheme: "dark",
+                color: fechaLimite ? "var(--text-1)" : "var(--text-3)",
+                paddingRight: 44,
+                cursor: "pointer",
+              }}
+            />
+            {/* Icono calendario decorativo */}
+            <svg
+              viewBox="0 0 20 20" fill="none" stroke="var(--gold)"
+              strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"
+              style={{ width: 18, height: 18, position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}
+            >
+              <rect x="3" y="4" width="14" height="13" rx="2" />
+              <path d="M3 8h14M7 2v4M13 2v4" />
+            </svg>
+          </div>
+          {fechaLimite && (
+            <button
+              onClick={() => setFechaLimite("")}
+              style={{ marginTop: 6, fontSize: 11, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            >
+              × Quitar fecha límite
+            </button>
+          )}
         </div>
 
         {error && (
