@@ -366,7 +366,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── FILTROS ── */}
-      <div style={{ display: "flex", gap: 20, padding: "16px 20px 10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "16px 20px 10px" }}>
         {(["todos", "gastos", "ingresos"] as Filtro[]).map((f) => {
           const activo = filtro === f;
           return (
@@ -383,6 +383,15 @@ export default function DashboardPage() {
             </button>
           );
         })}
+        <button
+          onClick={() => router.push("/subir-archivo")}
+          style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0 }}
+        >
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 13, height: 13 }}>
+            <path d="M8 10.5V2.5M5 5l3-3 3 3M3 13h10" />
+          </svg>
+          Importar
+        </button>
       </div>
 
       {/* ── LISTA AGRUPADA ── */}

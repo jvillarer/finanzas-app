@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 
     // Llamar a Claude con el PDF como documento
     const respuesta = await anthropic.messages.create({
-      model: "claude-opus-4-6",
+      model: "claude-haiku-4-5",
       max_tokens: 4096,
       tools: [HERRAMIENTA_EXTRACCION],
       tool_choice: { type: "any" },
