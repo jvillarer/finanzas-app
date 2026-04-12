@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design Tokens ─── */
+:root {
+  --bg:           #f5f4f0;
+  --surface:      #ffffff;
+  --surface-2:    #eeede8;
+  --accent:       #1f6b4e;
+  --accent-mid:   #2a8a64;
+  --accent-light: #e6f4ed;
+  --text-1:       #0d1117;
+  --text-2:       #52525b;
+  --text-3:       #a1a1aa;
+  --success:      #16a34a;
+  --danger:       #dc2626;
+  --warning:      #d97706;
+  --border:       rgba(0,0,0,0.06);
+  --shadow-sm:    0 1px 2px rgba(0,0,0,0.05), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-md:    0 2px 8px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+}
+
 * {
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
@@ -12,14 +32,14 @@ html {
 }
 
 body {
-  background-color: #f2f2f7;
-  color: #111827;
+  background-color: var(--bg);
+  color: var(--text-1);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
 }
 
-/* Financial numbers — JetBrains Mono con tabular figures */
+/* ─── Financial numbers ─── */
 .font-number {
   font-family: var(--font-mono), 'Courier New', monospace;
   font-feature-settings: "tnum" 1, "kern" 1;
@@ -27,13 +47,14 @@ body {
   letter-spacing: -0.02em;
 }
 
-/* Balance card premium gradient */
+/* ─── Balance card ─── */
 .balance-card-bg {
-  background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+  background: linear-gradient(145deg, #061410 0%, #0c2218 45%, #071912 100%);
   box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.35),
-    0 8px 24px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 28px 72px rgba(0, 0, 0, 0.40),
+    0 8px 24px rgba(0, 0, 0, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -42,19 +63,29 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
-  opacity: 0.6;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
   pointer-events: none;
   border-radius: inherit;
 }
 
+.balance-card-bg::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(42,138,100,0.6), transparent);
+  pointer-events: none;
+}
+
+/* ─── Utilities ─── */
 .no-scroll::-webkit-scrollbar { display: none; }
 .no-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ─── Animations ─── */
 @keyframes slideUp {
   from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 .slide-up {
   animation: slideUp 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;
@@ -62,7 +93,7 @@ body {
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
 .fade-in {
   animation: fadeIn 0.22s ease forwards;
@@ -75,20 +106,20 @@ body {
 .skeleton {
   background: linear-gradient(
     90deg,
-    #ebebeb 0%,
-    #f5f5f5 40%,
-    #ebebeb 80%
+    #e8e7e2 0%,
+    #f0efe9 45%,
+    #e8e7e2 80%
   );
   background-size: 300% 100%;
-  animation: shimmer 1.6s ease-in-out infinite;
+  animation: shimmer 1.7s ease-in-out infinite;
   border-radius: 8px;
 }
 
-/* Focus rings elegantes */
+/* ─── Focus rings ─── */
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
   outline: none;
-  border-color: rgba(0, 0, 0, 0.25) !important;
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(31, 107, 78, 0.12);
 }

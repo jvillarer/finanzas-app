@@ -40,36 +40,50 @@ function ModalPresupuesto({
   return (
     <div
       className="fixed inset-0 z-50 flex items-end"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
     >
       <div
         className="w-full px-5 pt-5 pb-10 slide-up bg-white"
-        style={{ borderTopLeftRadius: "2rem", borderTopRightRadius: "2rem", boxShadow: "0 -4px 24px rgba(0,0,0,0.12)" }}
+        style={{
+          borderTopLeftRadius: "2rem",
+          borderTopRightRadius: "2rem",
+          boxShadow: "0 -8px 32px rgba(0,0,0,0.12)",
+        }}
       >
-        <div className="w-10 h-1 rounded-full mx-auto mb-6 bg-gray-200" />
+        <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ backgroundColor: "#e4e3de" }} />
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-2xl">{emoji}</div>
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+            style={{ backgroundColor: "var(--accent-light)" }}
+          >
+            {emoji}
+          </div>
           <div>
-            <p className="text-lg font-black text-gray-900">{categoria}</p>
-            <p className="text-xs text-gray-400">Límite mensual</p>
+            <p className="text-lg font-black" style={{ color: "var(--text-1)" }}>{categoria}</p>
+            <p className="text-xs" style={{ color: "var(--text-3)" }}>Límite mensual</p>
           </div>
         </div>
 
-        <label className="block text-xs font-bold tracking-widest uppercase mb-2 text-gray-400">Monto límite</label>
+        <label className="block text-xs font-bold tracking-widest uppercase mb-2" style={{ color: "var(--text-3)" }}>Monto límite</label>
         <div className="relative mb-6">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-gray-900">$</span>
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold" style={{ color: "var(--text-1)" }}>$</span>
           <input
             type="number" inputMode="decimal" placeholder="0.00"
             value={valor} onChange={(e) => setValor(e.target.value)} autoFocus
-            className="w-full rounded-2xl pl-9 pr-4 py-4 text-2xl font-black outline-none text-gray-900"
-            style={{ backgroundColor: "#f5f5f5", border: "1.5px solid rgba(0,0,0,0.08)" }}
+            className="w-full rounded-2xl pl-9 pr-4 py-4 text-2xl font-black outline-none font-number"
+            style={{
+              backgroundColor: "var(--surface-2)",
+              border: "1.5px solid rgba(0,0,0,0.06)",
+              color: "var(--text-1)",
+            }}
           />
         </div>
 
         <button
           onClick={() => { if (Number(valor) > 0) onGuardar(Number(valor)); }}
-          className="w-full font-bold py-4 rounded-full text-sm mb-3 bg-black text-white"
+          className="w-full font-bold py-4 rounded-full text-sm mb-3 text-white"
+          style={{ backgroundColor: "var(--text-1)" }}
         >
           Guardar presupuesto
         </button>
@@ -105,7 +119,6 @@ export default function PresupuestosPage() {
 
     setPresupuestos(presData || []);
 
-    // Gastos del mes actual
     const inicioMes = new Date();
     inicioMes.setDate(1);
     inicioMes.setHours(0, 0, 0, 0);
@@ -118,7 +131,6 @@ export default function PresupuestosPage() {
         gastados[cat] = (gastados[cat] || 0) + t.monto;
       });
     setGastosPorCat(gastados);
-    // Verificar y disparar notificaciones si hay excesos
     if (presData && presData.length > 0) {
       verificarPresupuestos(presData, gastados);
     }
@@ -163,10 +175,10 @@ export default function PresupuestosPage() {
   })();
 
   return (
-    <main className="min-h-screen px-4 pt-14 pb-10" style={{ backgroundColor: "#f2f2f7" }}>
+    <main className="min-h-screen px-4 pt-14 pb-10" style={{ backgroundColor: "var(--bg)" }}>
       <div className="mb-7">
-        <h1 className="text-2xl font-black text-gray-900 tracking-tight">Presupuestos</h1>
-        <p className="text-sm mt-0.5 text-gray-400">{mesLabel} — define tus límites</p>
+        <h1 className="text-2xl font-black tracking-tight" style={{ color: "var(--text-1)" }}>Presupuestos</h1>
+        <p className="text-sm mt-0.5" style={{ color: "var(--text-3)" }}>{mesLabel} — define tus límites</p>
       </div>
 
       {cargando ? (
@@ -183,28 +195,31 @@ export default function PresupuestosPage() {
               {conPresupuesto.map((cat) => {
                 const pasado = cat.gastado > cat.limite;
                 const cerca = cat.pct >= 80 && !pasado;
-                const color = pasado ? "#dc2626" : cerca ? "#d97706" : "#16a34a";
-                const bgColor = pasado ? "#fff1f2" : cerca ? "#fffbeb" : "#f0fdf4";
+                const color = pasado ? "#dc2626" : cerca ? "#d97706" : "var(--accent)";
+                const bgColor = pasado ? "#fff1f2" : cerca ? "#fffbeb" : "var(--accent-light)";
 
                 return (
                   <button
                     key={cat.categoria}
                     onClick={() => setModal({ categoria: cat.categoria, emoji: cat.emoji, limiteActual: cat.limite, id: cat.id })}
                     className="w-full rounded-3xl p-4 text-left transition-all active:scale-[0.98] bg-white"
-                    style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }}
+                    style={{ boxShadow: "var(--shadow-md)" }}
                   >
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-2xl bg-gray-100 flex items-center justify-center text-xl shrink-0">
+                      <div
+                        className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0"
+                        style={{ backgroundColor: bgColor }}
+                      >
                         {cat.emoji}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-900">{cat.categoria}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-sm font-bold" style={{ color: "var(--text-1)" }}>{cat.categoria}</p>
+                        <p className="text-xs font-number" style={{ color: "var(--text-3)" }}>
                           {formatearMonto(cat.gastado)} de {formatearMonto(cat.limite)}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-sm font-black" style={{ color }}>
+                        <p className="text-sm font-black font-number" style={{ color }}>
                           {cat.pct.toFixed(0)}%
                         </p>
                         {pasado && <p className="text-[10px] font-bold text-red-500">Excedido</p>}
@@ -213,9 +228,9 @@ export default function PresupuestosPage() {
                     </div>
 
                     {/* Barra */}
-                    <div className="w-full rounded-full h-2 bg-gray-100">
+                    <div className="w-full rounded-full h-1.5" style={{ backgroundColor: "var(--surface-2)" }}>
                       <div
-                        className="h-2 rounded-full transition-all"
+                        className="h-1.5 rounded-full transition-all duration-500"
                         style={{ width: `${cat.pct}%`, backgroundColor: color }}
                       />
                     </div>
@@ -226,7 +241,7 @@ export default function PresupuestosPage() {
           )}
 
           {/* Sin presupuesto */}
-          <p className="text-xs font-bold tracking-widest uppercase mb-3 text-gray-400">
+          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: "var(--text-3)" }}>
             {conPresupuesto.length > 0 ? "Agregar más" : "Elige una categoría"}
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -235,12 +250,15 @@ export default function PresupuestosPage() {
                 key={cat.categoria}
                 onClick={() => setModal({ categoria: cat.categoria, emoji: cat.emoji })}
                 className="flex items-center gap-3 p-4 rounded-2xl text-left transition-all active:scale-[0.97] bg-white"
-                style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)", border: "1px solid rgba(0,0,0,0.04)" }}
+                style={{
+                  boxShadow: "var(--shadow-sm)",
+                  border: "1px solid rgba(0,0,0,0.04)",
+                }}
               >
                 <span className="text-xl">{cat.emoji}</span>
                 <div>
-                  <p className="text-sm font-bold text-gray-900">{cat.categoria}</p>
-                  <p className="text-[10px] font-semibold text-gray-400">Sin límite</p>
+                  <p className="text-sm font-bold" style={{ color: "var(--text-1)" }}>{cat.categoria}</p>
+                  <p className="text-[10px] font-semibold" style={{ color: "var(--text-3)" }}>Sin límite</p>
                 </div>
               </button>
             ))}
