@@ -43,8 +43,8 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
     }
   };
 
-  const label = (txt: string) => (
-    <label className="block text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--text-3)" }}>
+  const lbl = (txt: string) => (
+    <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase" as const, color: "var(--text-3)", marginBottom: 8 }}>
       {txt}
     </label>
   );
@@ -67,50 +67,57 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
         }}
       >
         {/* Handle */}
-        <div className="w-8 h-0.5 rounded-full mx-auto mb-5" style={{ backgroundColor: "var(--surface-3)" }} />
+        <div style={{ width: 32, height: 2, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 20px" }} />
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-base font-bold" style={{ color: "var(--text-1)" }}>Nuevo movimiento</h2>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.01em" }}>Nuevo movimiento</h2>
           <button
             onClick={onCerrar}
-            className="w-7 h-7 rounded-full flex items-center justify-center transition-opacity active:opacity-60"
-            style={{ backgroundColor: "var(--surface-2)" }}
+            style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
           >
-            <svg viewBox="0 0 20 20" fill="var(--text-3)" className="w-3.5 h-3.5">
+            <svg viewBox="0 0 20 20" fill="var(--text-3)" style={{ width: 13, height: 13 }}>
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
             </svg>
           </button>
         </div>
 
-        {/* Tipo */}
-        <div className="flex gap-1.5 mb-6 p-1 rounded-xl" style={{ backgroundColor: "var(--surface-2)" }}>
+        {/* Tipo — text-based, not pill */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 20, padding: 3, borderRadius: 10, backgroundColor: "var(--surface-2)" }}>
           {(["gasto", "ingreso"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTipo(t)}
-              className="flex-1 py-2.5 rounded-lg text-xs font-bold transition-all"
               style={{
-                backgroundColor: tipo === t ? "var(--surface-3)" : "transparent",
-                color: tipo === t ? "var(--text-1)" : "var(--text-3)",
+                flex: 1, padding: "9px 0",
+                borderRadius: 8,
+                fontSize: 12, fontWeight: 700,
+                backgroundColor: tipo === t ? "var(--bg)" : "transparent",
+                color: tipo === t
+                  ? (t === "ingreso" ? "var(--success)" : "var(--danger)")
+                  : "var(--text-3)",
                 border: tipo === t ? "1px solid var(--border)" : "1px solid transparent",
+                cursor: "pointer",
+                transition: "all 0.15s",
               }}
             >
-              {t === "ingreso" ? "💰 Ingreso" : "💸 Gasto"}
+              {t === "ingreso" ? "↑ Ingreso" : "↓ Gasto"}
             </button>
           ))}
         </div>
 
         {/* Monto */}
-        <div className="mb-5">
-          {label("Monto")}
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold" style={{ color: "var(--text-3)" }}>$</span>
+        <div style={{ marginBottom: 16 }}>
+          {lbl("Monto")}
+          <div style={{ position: "relative" }}>
+            <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, fontWeight: 700, color: "var(--text-3)" }}>$</span>
             <input
               type="number" inputMode="decimal" placeholder="0.00"
               value={monto} onChange={(e) => setMonto(e.target.value)}
-              className="w-full rounded-xl pl-8 pr-4 py-3.5 text-2xl font-black outline-none font-number"
+              className="font-number"
               style={{
+                width: "100%", borderRadius: 12, paddingLeft: 34, paddingRight: 14, paddingTop: 14, paddingBottom: 14,
+                fontSize: 26, fontWeight: 800, outline: "none",
                 backgroundColor: "var(--surface-2)",
                 border: "1px solid var(--border)",
                 color: "var(--text-1)",
@@ -120,13 +127,14 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
         </div>
 
         {/* Descripción */}
-        <div className="mb-5">
-          {label("Descripción (opcional)")}
+        <div style={{ marginBottom: 16 }}>
+          {lbl("Descripción")}
           <input
-            type="text" placeholder="Ej. Súper, gasolina, Netflix..."
+            type="text" placeholder="¿En qué gastaste?"
             value={descripcion} onChange={(e) => setDescripcion(e.target.value)}
-            className="w-full rounded-xl px-4 py-3.5 text-sm font-medium outline-none"
             style={{
+              width: "100%", borderRadius: 12, padding: "12px 14px",
+              fontSize: 14, fontWeight: 500, outline: "none",
               backgroundColor: "var(--surface-2)",
               border: "1px solid var(--border)",
               color: "var(--text-1)",
@@ -135,23 +143,27 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
         </div>
 
         {/* Categorías */}
-        <div className="mb-5">
-          {label("Categoría")}
-          <div className="grid grid-cols-5 gap-2">
+        <div style={{ marginBottom: 16 }}>
+          {lbl("Categoría")}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
             {CATEGORIAS.map((cat) => {
               const activa = categoria === cat.nombre;
               return (
                 <button
                   key={cat.nombre}
                   onClick={() => setCategoria(activa ? "" : cat.nombre)}
-                  className="flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all active:scale-95"
+                  className="active:scale-95 transition-transform"
                   style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                    padding: "9px 4px",
+                    borderRadius: 10,
                     backgroundColor: activa ? "var(--gold-dim)" : "var(--surface-2)",
                     border: activa ? "1px solid var(--gold-border)" : "1px solid transparent",
+                    cursor: "pointer",
                   }}
                 >
-                  <span className="text-lg">{cat.emoji}</span>
-                  <span className="text-[9px] font-semibold" style={{ color: activa ? "var(--gold)" : "var(--text-3)" }}>
+                  <span style={{ fontSize: 16 }}>{cat.emoji}</span>
+                  <span style={{ fontSize: 9, fontWeight: 600, color: activa ? "var(--gold)" : "var(--text-3)" }}>
                     {cat.nombre.length > 6 ? cat.nombre.slice(0, 6) + "…" : cat.nombre}
                   </span>
                 </button>
@@ -161,12 +173,13 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
         </div>
 
         {/* Fecha */}
-        <div className="mb-6">
-          {label("Fecha")}
+        <div style={{ marginBottom: 20 }}>
+          {lbl("Fecha")}
           <input
             type="date" value={fecha} onChange={(e) => setFecha(e.target.value)}
-            className="w-full rounded-xl px-4 py-3.5 text-sm font-medium outline-none"
             style={{
+              width: "100%", borderRadius: 12, padding: "12px 14px",
+              fontSize: 14, fontWeight: 500, outline: "none",
               backgroundColor: "var(--surface-2)",
               border: "1px solid var(--border)",
               color: "var(--text-1)",
@@ -175,15 +188,19 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
         </div>
 
         {error && (
-          <div className="mb-4 px-3 py-2.5 rounded-xl" style={{ backgroundColor: "var(--danger-dim)", border: "1px solid rgba(240,110,110,0.2)" }}>
-            <p className="text-xs font-semibold" style={{ color: "var(--danger)" }}>{error}</p>
+          <div style={{ marginBottom: 12, padding: "10px 12px", borderRadius: 10, backgroundColor: "var(--danger-dim)", border: "1px solid rgba(240,110,110,0.2)" }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--danger)" }}>{error}</p>
           </div>
         )}
 
         <button
           onClick={handleGuardar} disabled={guardando}
-          className="w-full font-bold py-3.5 rounded-xl disabled:opacity-40 transition-all active:scale-[0.98] text-sm"
-          style={{ backgroundColor: "var(--gold)", color: "#0c0c0e" }}
+          className="active:scale-[0.98] transition-transform"
+          style={{
+            width: "100%", fontWeight: 700, padding: "14px 0", borderRadius: 12,
+            fontSize: 14, backgroundColor: "var(--gold)", color: "#0c0c0e",
+            border: "none", cursor: "pointer", opacity: guardando ? 0.4 : 1,
+          }}
         >
           {guardando ? "Guardando..." : "Guardar movimiento"}
         </button>
