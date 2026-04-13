@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase";
 import type { Transaccion } from "@/lib/supabase";
+import { haptico } from "@/lib/haptics";
 
 const CATEGORIAS = [
   { nombre: "Comida",          emoji: "🍽" },
@@ -37,25 +38,28 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
 
   const handleGuardar = async () => {
     if (!monto || isNaN(Number(monto)) || Number(monto) <= 0) {
-      setError("Ingresa un monto válido"); return;
+      haptico.error(); setError("Ingresa un monto válido"); return;
     }
-    if (!categoria) { setError("Selecciona una categoría"); return; }
+    if (!categoria) { haptico.error(); setError("Selecciona una categoría"); return; }
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const fechaDate = new Date(fecha + "T00:00:00");
-    if (isNaN(fechaDate.getTime())) { setError("Fecha inválida"); return; }
-    if (fechaDate > hoy) { setError("La fecha no puede ser futura"); return; }
-    if (fechaDate.getFullYear() < 2000) { setError("Fecha demasiado antigua"); return; }
+    if (isNaN(fechaDate.getTime())) { haptico.error(); setError("Fecha inválida"); return; }
+    if (fechaDate > hoy) { haptico.error(); setError("La fecha no puede ser futura"); return; }
+    if (fechaDate.getFullYear() < 2000) { haptico.error(); setError("Fecha demasiado antigua"); return; }
+    haptico.medio();
     setGuardando(true); setError("");
     const supabase = createClient();
     const { error } = await supabase
       .from("transacciones")
       .update({ monto: Number(monto), descripcion, categoria, tipo, fecha })
       .eq("id", transaccion.id);
-    if (error) { setError("Error al guardar"); setGuardando(false); return; }
+    if (error) { haptico.error(); setError("Error al guardar"); setGuardando(false); return; }
+    haptico.exito();
     onGuardado();
   };
 
   const handleEliminar = async () => {
+    haptico.peligro();
     setEliminando(true);
     const supabase = createClient();
     await supabase.from("transacciones").delete().eq("id", transaccion.id);
@@ -107,7 +111,7 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
           {(["gasto", "ingreso"] as const).map((t) => (
             <button
               key={t}
-              onClick={() => setTipo(t)}
+              onClick={() => { haptico.ligero(); setTipo(t); }}
               className="flex-1 py-2.5 rounded-lg text-xs font-bold transition-all"
               style={{
                 backgroundColor: tipo === t ? "var(--surface-3)" : "transparent",
@@ -154,7 +158,7 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
               return (
                 <button
                   key={cat.nombre}
-                  onClick={() => setCategoria(activa ? "" : cat.nombre)}
+                  onClick={() => { haptico.seleccion(); setCategoria(activa ? "" : cat.nombre); }}
                   className="flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all active:scale-95"
                   style={{
                     backgroundColor: activa ? "var(--gold-dim)" : "var(--surface-2)",
@@ -193,7 +197,7 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
 
         {!confirmarEliminar ? (
           <button
-            onClick={() => setConfirmarEliminar(true)}
+            onClick={() => { haptico.ligero(); setConfirmarEliminar(true); }}
             className="w-full font-semibold py-3.5 rounded-xl text-sm transition-all active:scale-[0.98]"
             style={{ backgroundColor: "var(--danger-dim)", color: "var(--danger)", border: "1px solid rgba(240,110,110,0.15)" }}
           >

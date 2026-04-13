@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
+import { haptico } from "@/lib/haptics";
 
 // ─── Slides de presentación (visuales estáticos) ─────────────────────────────
 
@@ -207,10 +208,10 @@ export default function BienvenidaPage() {
   }, [router]);
 
   const toggleCategoria = (nombre: string) => {
+    haptico.seleccion();
     setSeleccionadas((prev) => {
       const next = new Set(prev);
       if (next.has(nombre)) {
-        // Mínimo 1 categoría seleccionada
         if (next.size > 1) next.delete(nombre);
       } else {
         next.add(nombre);
@@ -231,6 +232,7 @@ export default function BienvenidaPage() {
   };
 
   const siguiente = async () => {
+    haptico.ligero();
     if (paso === PASO_CATEGORIAS) {
       setGuardando(true);
       await guardarCategorias();
@@ -240,6 +242,7 @@ export default function BienvenidaPage() {
     if (paso < TOTAL_PASOS - 1) {
       setPaso((p) => p + 1);
     } else {
+      haptico.exito();
       localStorage.setItem("lani_onboarding_done", "1");
       router.replace("/dashboard");
     }

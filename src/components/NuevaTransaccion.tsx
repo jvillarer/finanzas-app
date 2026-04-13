@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { crearTransaccion } from "@/lib/transacciones";
+import { haptico } from "@/lib/haptics";
 
 const CATEGORIAS = [
   { nombre: "Comida",          emoji: "🍽" },
@@ -31,18 +32,21 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
   const [error, setError] = useState("");
 
   const handleGuardar = async () => {
-    if (!monto || isNaN(Number(monto)) || Number(monto) <= 0) { setError("Ingresa un monto válido"); return; }
-    if (!categoria) { setError("Selecciona una categoría"); return; }
+    if (!monto || isNaN(Number(monto)) || Number(monto) <= 0) { haptico.error(); setError("Ingresa un monto válido"); return; }
+    if (!categoria) { haptico.error(); setError("Selecciona una categoría"); return; }
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const fechaDate = new Date(fecha + "T00:00:00");
-    if (isNaN(fechaDate.getTime())) { setError("Fecha inválida"); return; }
-    if (fechaDate > hoy) { setError("La fecha no puede ser futura"); return; }
-    if (fechaDate.getFullYear() < 2000) { setError("Fecha demasiado antigua"); return; }
+    if (isNaN(fechaDate.getTime())) { haptico.error(); setError("Fecha inválida"); return; }
+    if (fechaDate > hoy) { haptico.error(); setError("La fecha no puede ser futura"); return; }
+    if (fechaDate.getFullYear() < 2000) { haptico.error(); setError("Fecha demasiado antigua"); return; }
+    haptico.medio();
     setGuardando(true); setError("");
     try {
       await crearTransaccion({ monto: Number(monto), descripcion, categoria, tipo, fecha });
+      haptico.exito();
       onGuardado();
     } catch (e: unknown) {
+      haptico.error();
       setError(e instanceof Error ? e.message : "Error al guardar");
     } finally {
       setGuardando(false);
@@ -93,7 +97,7 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
           {(["gasto", "ingreso"] as const).map((t) => (
             <button
               key={t}
-              onClick={() => setTipo(t)}
+              onClick={() => { haptico.ligero(); setTipo(t); }}
               style={{
                 flex: 1, padding: "9px 0",
                 borderRadius: 8,
@@ -157,7 +161,7 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
               return (
                 <button
                   key={cat.nombre}
-                  onClick={() => setCategoria(activa ? "" : cat.nombre)}
+                  onClick={() => { haptico.seleccion(); setCategoria(activa ? "" : cat.nombre); }}
                   className="active:scale-95 transition-transform"
                   style={{
                     display: "flex", flexDirection: "column", alignItems: "center", gap: 4,

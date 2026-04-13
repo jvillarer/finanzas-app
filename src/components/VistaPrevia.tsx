@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { FilaParseada } from "@/lib/parsear-csv";
 import { formatearMonto } from "@/lib/transacciones";
+import { haptico } from "@/lib/haptics";
 
 const CAT_ICON: Record<string, string> = {
   Comida: "🍽", Supermercado: "🛒", Transporte: "🚗",
@@ -34,6 +35,7 @@ export default function VistaPrevia({
   const [soloNuevas, setSoloNuevas] = useState(duplicados.size > 0);
 
   const toggleFila = (i: number) => {
+    haptico.seleccion();
     setSeleccionadas((prev) => {
       const sig = new Set(prev);
       sig.has(i) ? sig.delete(i) : sig.add(i);
@@ -202,7 +204,7 @@ export default function VistaPrevia({
       {/* Botón confirmar */}
       <div style={{ padding: "12px 16px 32px", backgroundColor: "var(--surface)", borderTop: "1px solid var(--border)" }}>
         <button
-          onClick={() => onConfirmar(filasSeleccionadas)}
+          onClick={() => { haptico.medio(); onConfirmar(filasSeleccionadas); }}
           disabled={seleccionadas.size === 0 || guardando}
           className="active:scale-[0.98] transition-transform"
           style={{
