@@ -4,28 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
-const SLIDES = [
-  {
-    titulo: "Habla con Lani",
-    descripcion: "Di \"Gasté $200 en comida\" o toma foto de un ticket. Lani registra, categoriza y suma — sin formularios.",
-    visual: <SlideChat />,
-  },
-  {
-    titulo: "Importa tu banco",
-    descripcion: "Sube el PDF de tu estado de cuenta. Lani extrae todas las transacciones y las categoriza automáticamente.",
-    visual: <SlideImportar />,
-  },
-  {
-    titulo: "Metas y presupuestos",
-    descripcion: "Define cuánto gastar por categoría y crea metas de ahorro. Lani te avisa cuando te acercas al límite.",
-    visual: <SlidePresupuestos />,
-  },
-  {
-    titulo: "Todo en un vistazo",
-    descripcion: "Balance del mes, proyección al fin de mes, suscripciones que quizás olvidaste y análisis semanal de Lani.",
-    visual: <SlideDashboard />,
-  },
-];
+// ─── Slides de presentación (visuales estáticos) ─────────────────────────────
 
 function SlideChat() {
   return (
@@ -47,7 +26,6 @@ function SlideChat() {
           <p style={{ fontSize: 12, color: "#eeebe4", fontWeight: 500 }}>Listo ✓ <span style={{ color: "#3ecf8e", fontWeight: 700 }}>$350</span> en Transporte. Llevas <span style={{ color: "#c9a84c" }}>$1,820</span> en gasolina este mes.</p>
         </div>
       </div>
-      {/* Mic button hint */}
       <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 99, backgroundColor: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.22)" }}>
           <span style={{ fontSize: 14 }}>🎙️</span>
@@ -61,7 +39,6 @@ function SlideChat() {
 function SlideImportar() {
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 20 }}>
-      {/* PDF card */}
       <div style={{ width: "100%", padding: "16px", borderRadius: 16, backgroundColor: "#1c1c21", border: "1px solid rgba(255,255,255,0.08)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📄</div>
@@ -70,7 +47,6 @@ function SlideImportar() {
             <p style={{ fontSize: 10, color: "#5c5c6c" }}>Estado de cuenta · 2.3 MB</p>
           </div>
         </div>
-        {/* Progress */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, height: 3, borderRadius: 99, backgroundColor: "#242428" }}>
             <div style={{ height: 3, borderRadius: 99, width: "100%", backgroundColor: "#3ecf8e" }} />
@@ -78,7 +54,6 @@ function SlideImportar() {
           <p style={{ fontSize: 10, color: "#3ecf8e", fontWeight: 700, flexShrink: 0 }}>✓ Listo</p>
         </div>
       </div>
-      {/* Results */}
       {[
         { desc: "Uber · Transporte", monto: "-$280", color: "#eeebe4" },
         { desc: "Netflix · Entretenimiento", monto: "-$219", color: "#eeebe4" },
@@ -122,7 +97,6 @@ function SlidePresupuestos() {
           </div>
         );
       })}
-      {/* Meta */}
       <div style={{ padding: "12px 14px", borderRadius: 14, backgroundColor: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.18)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 20 }}>✈️</span>
@@ -142,7 +116,6 @@ function SlidePresupuestos() {
 function SlideDashboard() {
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", gap: 10, padding: 20 }}>
-      {/* Balance */}
       <div style={{ padding: "14px", borderRadius: 14, backgroundColor: "#1c1c21", border: "1px solid rgba(255,255,255,0.06)" }}>
         <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5c5c6c", marginBottom: 4 }}>Balance · Abril</p>
         <p style={{ fontFamily: "Georgia, serif", fontSize: 32, fontStyle: "italic", fontWeight: 400, color: "#eeebe4", lineHeight: 1 }}>$14,230</p>
@@ -151,7 +124,6 @@ function SlideDashboard() {
           <p style={{ fontSize: 11, fontWeight: 600, color: "#f06e6e" }}>−$7,770</p>
         </div>
       </div>
-      {/* Proyección */}
       <div style={{ padding: "12px 14px", borderRadius: 12, backgroundColor: "#1c1c21", border: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5c5c6c", marginBottom: 3 }}>Proyección 30 abr</p>
@@ -159,7 +131,6 @@ function SlideDashboard() {
         </div>
         <p style={{ fontSize: 10, color: "#5c5c6c" }}>18 días restantes</p>
       </div>
-      {/* Insight */}
       <div style={{ padding: "10px 12px", borderRadius: 12, backgroundColor: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.18)", display: "flex", gap: 8 }}>
         <span style={{ fontSize: 13, flexShrink: 0 }}>🐑</span>
         <p style={{ fontSize: 11, color: "#9494a2", lineHeight: 1.5 }}>Tus suscripciones suman $1,200/mes. Considera revisar cuáles usas realmente.</p>
@@ -168,10 +139,62 @@ function SlideDashboard() {
   );
 }
 
+// ─── Categorías disponibles ───────────────────────────────────────────────────
+
+const TODAS_CATEGORIAS = [
+  { nombre: "Comida",          emoji: "🍽", desc: "Restaurantes, tacos, cafés" },
+  { nombre: "Supermercado",    emoji: "🛒", desc: "Walmart, Soriana, abarrotes" },
+  { nombre: "Transporte",      emoji: "🚗", desc: "Uber, gasolina, taxi" },
+  { nombre: "Entretenimiento", emoji: "🎬", desc: "Cine, Spotify, Netflix" },
+  { nombre: "Salud",           emoji: "💊", desc: "Farmacia, médico, gym" },
+  { nombre: "Servicios",       emoji: "⚡", desc: "Luz, agua, internet" },
+  { nombre: "Ropa",            emoji: "👕", desc: "Ropa, zapatos, accesorios" },
+  { nombre: "Hogar",           emoji: "🏠", desc: "Muebles, limpieza, reparaciones" },
+  { nombre: "Educación",       emoji: "📚", desc: "Cursos, libros, colegiatura" },
+  { nombre: "Otros",           emoji: "📦", desc: "Cualquier otro gasto" },
+];
+
+// ─── Slides informativos ─────────────────────────────────────────────────────
+
+const INFO_SLIDES = [
+  {
+    titulo: "Habla con Lani",
+    descripcion: "Di \"Gasté $200 en comida\" o toma foto de un ticket. Lani registra, categoriza y suma — sin formularios.",
+    visual: <SlideChat />,
+  },
+  {
+    titulo: "Importa tu banco",
+    descripcion: "Sube el PDF de tu estado de cuenta. Lani extrae todas las transacciones y las categoriza automáticamente.",
+    visual: <SlideImportar />,
+  },
+  {
+    titulo: "Metas y presupuestos",
+    descripcion: "Define cuánto gastar por categoría y crea metas de ahorro. Lani te avisa cuando te acercas al límite.",
+    visual: <SlidePresupuestos />,
+  },
+  {
+    titulo: "Todo en un vistazo",
+    descripcion: "Balance del mes, proyección al fin de mes, suscripciones que quizás olvidaste y análisis semanal de Lani.",
+    visual: <SlideDashboard />,
+  },
+];
+
+// El paso de categorías se inserta en la posición 2 (antes de metas)
+const PASO_CATEGORIAS = 2;
+const TOTAL_PASOS = INFO_SLIDES.length + 1; // +1 por el paso de categorías
+
+// ─── Página principal ─────────────────────────────────────────────────────────
+
 export default function BienvenidaPage() {
   const router = useRouter();
   const [paso, setPaso] = useState(0);
   const [nombre, setNombre] = useState("");
+  const [guardando, setGuardando] = useState(false);
+
+  // Estado para el paso de categorías
+  const [seleccionadas, setSeleccionadas] = useState<Set<string>>(
+    new Set(TODAS_CATEGORIAS.map((c) => c.nombre)) // todas activas por defecto
+  );
 
   useEffect(() => {
     (async () => {
@@ -183,8 +206,38 @@ export default function BienvenidaPage() {
     })();
   }, [router]);
 
-  const siguiente = () => {
-    if (paso < SLIDES.length - 1) {
+  const toggleCategoria = (nombre: string) => {
+    setSeleccionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(nombre)) {
+        // Mínimo 1 categoría seleccionada
+        if (next.size > 1) next.delete(nombre);
+      } else {
+        next.add(nombre);
+      }
+      return next;
+    });
+  };
+
+  const guardarCategorias = async () => {
+    const cats = Array.from(seleccionadas);
+    // Guardar en localStorage para acceso rápido
+    localStorage.setItem("lani_categorias", JSON.stringify(cats));
+    // Guardar en metadata del usuario
+    try {
+      const supabase = createClient();
+      await supabase.auth.updateUser({ data: { categorias_activas: cats } });
+    } catch { /* no bloqueamos */ }
+  };
+
+  const siguiente = async () => {
+    if (paso === PASO_CATEGORIAS) {
+      setGuardando(true);
+      await guardarCategorias();
+      setGuardando(false);
+    }
+
+    if (paso < TOTAL_PASOS - 1) {
       setPaso((p) => p + 1);
     } else {
       localStorage.setItem("lani_onboarding_done", "1");
@@ -197,8 +250,18 @@ export default function BienvenidaPage() {
     router.replace("/dashboard");
   };
 
-  const slide = SLIDES[paso];
-  const esUltimo = paso === SLIDES.length - 1;
+  // Calcular qué slide informativo mostrar
+  // Pasos 0-1 → INFO_SLIDES[0-1]
+  // Paso 2    → Categorías (especial)
+  // Pasos 3-4 → INFO_SLIDES[2-3]
+  const esPasoCategorias = paso === PASO_CATEGORIAS;
+  const esUltimo = paso === TOTAL_PASOS - 1;
+
+  const infoSlide = esPasoCategorias
+    ? null
+    : paso < PASO_CATEGORIAS
+    ? INFO_SLIDES[paso]
+    : INFO_SLIDES[paso - 1];
 
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "#0c0c0e", display: "flex", flexDirection: "column" }}>
@@ -206,13 +269,13 @@ export default function BienvenidaPage() {
       {/* Dots + skip */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "56px 24px 0" }}>
         <div style={{ display: "flex", gap: 6 }}>
-          {SLIDES.map((_, i) => (
+          {Array.from({ length: TOTAL_PASOS }).map((_, i) => (
             <div
               key={i}
               style={{
                 height: 5, borderRadius: 99,
                 width: i === paso ? 20 : 5,
-                backgroundColor: i === paso ? "#c9a84c" : "#242428",
+                backgroundColor: i === paso ? "#c9a84c" : i < paso ? "#5c4a1e" : "#242428",
                 transition: "all 0.3s ease",
               }}
             />
@@ -225,21 +288,72 @@ export default function BienvenidaPage() {
         )}
       </div>
 
-      {/* Visual */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 24px" }}>
-        <div style={{
-          width: "100%", maxWidth: 360,
-          borderRadius: 24, overflow: "hidden",
-          backgroundColor: "#141417",
-          border: "1px solid rgba(255,255,255,0.08)",
-          minHeight: 300,
-        }}>
-          {slide.visual}
+      {/* Visual / Interactivo */}
+      {esPasoCategorias ? (
+        // ── Paso de categorías ──────────────────────────────────────────────
+        <div style={{ flex: 1, padding: "20px 24px 0", overflowY: "auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {TODAS_CATEGORIAS.map((cat) => {
+              const activa = seleccionadas.has(cat.nombre);
+              return (
+                <button
+                  key={cat.nombre}
+                  onClick={() => toggleCategoria(cat.nombre)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 12,
+                    padding: "14px 14px",
+                    borderRadius: 16,
+                    backgroundColor: activa ? "rgba(201,168,76,0.10)" : "#141417",
+                    border: activa ? "1.5px solid rgba(201,168,76,0.4)" : "1.5px solid rgba(255,255,255,0.06)",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s",
+                    position: "relative",
+                  }}
+                >
+                  <span style={{ fontSize: 24, flexShrink: 0 }}>{cat.emoji}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: activa ? "#c9a84c" : "#eeebe4", whiteSpace: "nowrap" }}>{cat.nombre}</p>
+                    <p style={{ fontSize: 10, color: "#5c5c6c", marginTop: 1, lineHeight: 1.3 }}>{cat.desc}</p>
+                  </div>
+                  {/* Check */}
+                  {activa && (
+                    <div style={{
+                      position: "absolute", top: 8, right: 8,
+                      width: 16, height: 16, borderRadius: "50%",
+                      backgroundColor: "#c9a84c",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <svg viewBox="0 0 12 12" fill="none" style={{ width: 9, height: 9 }}>
+                        <path d="M2 6l3 3 5-5" stroke="#0c0c0e" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <p style={{ fontSize: 11, color: "#5c5c6c", textAlign: "center", marginTop: 12, paddingBottom: 4 }}>
+            {seleccionadas.size} de {TODAS_CATEGORIAS.length} seleccionadas
+          </p>
         </div>
-      </div>
+      ) : (
+        // ── Slide visual estático ───────────────────────────────────────────
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 24px" }}>
+          <div style={{
+            width: "100%", maxWidth: 360,
+            borderRadius: 24, overflow: "hidden",
+            backgroundColor: "#141417",
+            border: "1px solid rgba(255,255,255,0.08)",
+            minHeight: 300,
+          }}>
+            {infoSlide?.visual}
+          </div>
+        </div>
+      )}
 
       {/* Texto + CTA */}
-      <div style={{ padding: "0 24px 48px" }}>
+      <div style={{ padding: "16px 24px 48px", flexShrink: 0 }}>
         {/* Saludo en último slide */}
         {esUltimo && nombre && (
           <p style={{ fontSize: 13, fontWeight: 600, color: "#c9a84c", marginBottom: 6 }}>
@@ -247,22 +361,25 @@ export default function BienvenidaPage() {
           </p>
         )}
         <h2 style={{ fontSize: 26, fontWeight: 800, color: "#eeebe4", letterSpacing: "-0.025em", lineHeight: 1.15, marginBottom: 10 }}>
-          {slide.titulo}
+          {esPasoCategorias ? "Elige tus categorías" : infoSlide?.titulo}
         </h2>
-        <p style={{ fontSize: 14, color: "#9494a2", lineHeight: 1.6, marginBottom: 28 }}>
-          {slide.descripcion}
+        <p style={{ fontSize: 14, color: "#9494a2", lineHeight: 1.6, marginBottom: 24 }}>
+          {esPasoCategorias
+            ? "Activa las que aplican a tu vida. Puedes cambiarlas después."
+            : infoSlide?.descripcion}
         </p>
 
         <button
           onClick={siguiente}
+          disabled={guardando}
           style={{
             width: "100%", padding: "16px 0", borderRadius: 14,
             fontSize: 15, fontWeight: 700, color: "#0c0c0e",
             backgroundColor: "#c9a84c", border: "none", cursor: "pointer",
-            letterSpacing: "-0.01em",
+            letterSpacing: "-0.01em", opacity: guardando ? 0.6 : 1,
           }}
         >
-          {esUltimo ? (nombre ? `Entrar, ${nombre}` : "Entrar al dashboard") : "Continuar"}
+          {guardando ? "Guardando..." : esUltimo ? (nombre ? `Entrar, ${nombre}` : "Entrar al dashboard") : "Continuar"}
         </button>
       </div>
     </main>
