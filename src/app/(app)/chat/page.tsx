@@ -176,6 +176,7 @@ const MENSAJE_BIENVENIDA: Mensaje = {
 };
 
 const STORAGE_KEY = "lani_chat_mensajes";
+const MEMORIA_KEY = "lani_memoria";
 
 function cargarMensajes(): Mensaje[] {
   try {
@@ -188,6 +189,24 @@ function cargarMensajes(): Mensaje[] {
   return [MENSAJE_BIENVENIDA];
 }
 
+function cargarMemoria(): string {
+  try { return localStorage.getItem(MEMORIA_KEY) || ""; } catch { return ""; }
+}
+
+// Actualiza la memoria persistente con info de transacciones creadas en esta sesión
+function actualizarMemoria(transacciones: TransaccionCreada[]) {
+  try {
+    const anterior = localStorage.getItem(MEMORIA_KEY) || "";
+    const lineasAnteriores = anterior.split("\n").filter(Boolean).slice(-20); // máx 20 líneas de memoria
+    const nuevasLineas = transacciones.map((t) => {
+      const tipo = t.tipo === "gasto" ? "gasto" : "ingreso";
+      return `- Registré ${tipo} $${t.monto} en ${t.categoria}: "${t.descripcion}" (${t.fecha})`;
+    });
+    const memoria = [...lineasAnteriores, ...nuevasLineas].join("\n");
+    localStorage.setItem(MEMORIA_KEY, memoria);
+  } catch { /* ok */ }
+}
+
 export default function ChatPage() {
   const [mensajes, setMensajes] = useState<Mensaje[]>([MENSAJE_BIENVENIDA]);
   const [input, setInput] = useState("");
@@ -197,6 +216,7 @@ export default function ChatPage() {
   const [imagenPendiente, setImagenPendiente] = useState<{
     base64: string; mediaType: string; previewUrl: string;
   } | null>(null);
+  const memoriaRef = useRef<string>("");
 
   // Voz
   const [grabando, setGrabando] = useState(false);
@@ -218,8 +238,9 @@ export default function ChatPage() {
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     setSoportaVoz(!!SR && !!window.speechSynthesis);
-    // Cargar conversación guardada al montar
+    // Cargar conversación y memoria guardadas al montar
     setMensajes(cargarMensajes());
+    memoriaRef.current = cargarMemoria();
   }, []);
 
   // Mantener refs sincronizados
@@ -409,6 +430,7 @@ export default function ChatPage() {
       const cuerpo: Record<string, unknown> = {
         mensajes: nuevosMensajes.map((m) => ({ role: m.rol, content: m.contenido })),
         incluirContexto: true,
+        memoriaUsuario: memoriaRef.current || undefined,
       };
       if (imagenParaEnviar) {
         cuerpo.imagen = { base64: imagenParaEnviar.base64, mediaType: imagenParaEnviar.mediaType };
@@ -435,6 +457,11 @@ export default function ChatPage() {
       });
 
       const creadas: TransaccionCreada[] = datos.transaccionesCreadas || [];
+      if (creadas.length > 0) {
+        // Actualizar memoria persistente con las nuevas transacciones
+        actualizarMemoria(creadas);
+        memoriaRef.current = cargarMemoria();
+      }
       if (creadas.length === 1) {
         const t = creadas[0];
         const monto = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(t.monto);

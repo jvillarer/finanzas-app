@@ -39,6 +39,12 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
     if (!monto || isNaN(Number(monto)) || Number(monto) <= 0) {
       setError("Ingresa un monto válido"); return;
     }
+    if (!categoria) { setError("Selecciona una categoría"); return; }
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const fechaDate = new Date(fecha + "T00:00:00");
+    if (isNaN(fechaDate.getTime())) { setError("Fecha inválida"); return; }
+    if (fechaDate > hoy) { setError("La fecha no puede ser futura"); return; }
+    if (fechaDate.getFullYear() < 2000) { setError("Fecha demasiado antigua"); return; }
     setGuardando(true); setError("");
     const supabase = createClient();
     const { error } = await supabase

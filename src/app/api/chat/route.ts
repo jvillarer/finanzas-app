@@ -145,6 +145,26 @@ const HERRAMIENTAS: Anthropic.Tool[] = [
   },
 ];
 
+const CATEGORIAS_VALIDAS = new Set([
+  "Comida", "Supermercado", "Transporte", "Entretenimiento",
+  "Salud", "Servicios", "Ropa", "Hogar", "Educación", "Otros",
+]);
+
+function sanitizarTransaccion(t: TransaccionInput, hoy: string): TransaccionInput | null {
+  const monto = Number(t.monto);
+  if (!isFinite(monto) || monto <= 0 || monto > 10_000_000) return null;
+  const tipo = t.tipo === "ingreso" ? "ingreso" : "gasto";
+  const categoria = CATEGORIAS_VALIDAS.has(t.categoria) ? t.categoria : "Otros";
+  const fechaRaw = t.fecha || hoy;
+  // Valida fecha: YYYY-MM-DD, entre 2000-01-01 y hoy
+  const fechaDate = new Date(fechaRaw + "T00:00:00");
+  const hoyDate = new Date(hoy + "T00:00:00");
+  const fecha = (!isNaN(fechaDate.getTime()) && fechaDate <= hoyDate && fechaDate.getFullYear() >= 2000)
+    ? fechaRaw
+    : hoy;
+  return { ...t, monto, tipo, categoria, fecha };
+}
+
 interface TransaccionInput {
   monto: number;
   descripcion?: string;
@@ -169,28 +189,50 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response("No autorizado", { status: 401 });
 
-    const { mensajes, incluirContexto, imagen } = await req.json() as {
+    const { mensajes, incluirContexto, imagen, memoriaUsuario } = await req.json() as {
       mensajes: { role: string; content: string }[];
       incluirContexto: boolean;
       imagen?: ImagenRequest;
+      memoriaUsuario?: string;
     };
 
     // Contexto de transacciones recientes (incluye IDs para editar/eliminar)
     let contextoTransacciones = "";
     if (incluirContexto) {
-      const { data: transacciones } = await supabase
-        .from("transacciones")
-        .select("id, monto, descripcion, categoria, tipo, fecha")
-        .order("fecha", { ascending: false })
-        .limit(50);
+      // Fetch en paralelo: transacciones (200 en formato compacto) + metas activas
+      const [{ data: transacciones }, { data: metas }] = await Promise.all([
+        supabase
+          .from("transacciones")
+          .select("id, monto, descripcion, categoria, tipo, fecha")
+          .order("fecha", { ascending: false })
+          .limit(200),
+        supabase
+          .from("metas")
+          .select("nombre, emoji, monto_objetivo, monto_actual")
+          .order("created_at", { ascending: false })
+          .limit(10),
+      ]);
 
       if (transacciones && transacciones.length > 0) {
-        contextoTransacciones = `\n\n--- DATOS FINANCIEROS DEL USUARIO ---\n${construirResumen(transacciones)}\n---`;
+        contextoTransacciones = `\n\n--- DATOS FINANCIEROS DEL USUARIO ---\n${construirResumen(transacciones, metas || [])}\n---`;
       }
     }
 
+    // Nombre del usuario para personalización
+    const nombreUsuario = user.user_metadata?.nombre_completo
+      ? user.user_metadata.nombre_completo.split(" ")[0]
+      : null;
+
     const hoy = new Date().toISOString().split("T")[0];
-    const sistemaFinal = PROMPT_SISTEMA + contextoTransacciones + `\n\nFecha de hoy: ${hoy}`;
+
+    // Memoria persistente de sesiones anteriores (enviada por el cliente)
+    const seccionMemoria = memoriaUsuario
+      ? `\n\n--- MEMORIA DE SESIONES ANTERIORES ---\n${memoriaUsuario}\n---`
+      : "";
+
+    const saludo = nombreUsuario ? `\nEl nombre del usuario es ${nombreUsuario}.` : "";
+
+    const sistemaFinal = PROMPT_SISTEMA + saludo + seccionMemoria + contextoTransacciones + `\n\nFecha de hoy: ${hoy}`;
 
     // Construir mensajes para la API — si hay imagen, el último mensaje la incluye
     type MensajeAPI = { role: string; content: string | Anthropic.ContentBlockParam[] };
@@ -238,19 +280,20 @@ export async function POST(req: NextRequest) {
         textoFinal = "No pude procesar la solicitud.";
       } else if (bloqueHerramienta.name === "crear_transaccion") {
         // --- Transacción individual ---
-        const datos = bloqueHerramienta.input as TransaccionInput;
-        const fecha = datos.fecha || hoy;
+        const datosRaw = bloqueHerramienta.input as TransaccionInput;
+        const datos = sanitizarTransaccion(datosRaw, hoy);
+        const fecha = datos?.fecha || hoy;
 
-        const { error } = await supabase.from("transacciones").insert({
+        const { error } = datos ? await supabase.from("transacciones").insert({
           usuario_id: user.id,
           monto: datos.monto,
           descripcion: datos.descripcion || datos.categoria,
           categoria: datos.categoria,
           tipo: datos.tipo,
           fecha,
-        });
+        }) : { error: new Error("Datos inválidos") };
 
-        if (!error) {
+        if (!error && datos) {
           transaccionesCreadas = [{ ...datos, fecha }];
         }
 
@@ -296,8 +339,11 @@ export async function POST(req: NextRequest) {
 
       } else if (bloqueHerramienta.name === "crear_multiples_transacciones") {
         // --- Múltiples transacciones (ticket) ---
-        const datos = bloqueHerramienta.input as MultipleTransaccionesInput;
-        const filas = datos.transacciones.map((t) => ({
+        const datosRaw = bloqueHerramienta.input as MultipleTransaccionesInput;
+        const txSanitizadas = datosRaw.transacciones
+          .map((t) => sanitizarTransaccion(t, hoy))
+          .filter((t): t is TransaccionInput => t !== null);
+        const filas = txSanitizadas.map((t) => ({
           usuario_id: user.id,
           monto: t.monto,
           descripcion: t.descripcion || t.categoria,
@@ -309,7 +355,7 @@ export async function POST(req: NextRequest) {
         const { error } = await supabase.from("transacciones").insert(filas);
 
         if (!error) {
-          transaccionesCreadas = datos.transacciones.map((t) => ({
+          transaccionesCreadas = txSanitizadas.map((t) => ({
             ...t,
             fecha: t.fecha || hoy,
           }));
@@ -373,34 +419,54 @@ interface Transaccion {
   fecha: string;
 }
 
-function construirResumen(transacciones: Transaccion[]): string {
-  const ingresos = transacciones.filter((t) => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
-  const gastos = transacciones.filter((t) => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
+interface Meta {
+  nombre: string;
+  emoji: string;
+  monto_objetivo: number;
+  monto_actual: number;
+}
+
+function construirResumen(transacciones: Transaccion[], metas: Meta[] = []): string {
+  const mesActual = new Date().toISOString().slice(0, 7); // "2026-04"
+  const txMes = transacciones.filter((t) => t.fecha.startsWith(mesActual));
+
+  const ingresosMes = txMes.filter((t) => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
+  const gastosMes = txMes.filter((t) => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
 
   const porCategoria: Record<string, number> = {};
-  transacciones.filter((t) => t.tipo === "gasto").forEach((t) => {
+  txMes.filter((t) => t.tipo === "gasto").forEach((t) => {
     const cat = t.categoria || "Otros";
     porCategoria[cat] = (porCategoria[cat] || 0) + Number(t.monto);
   });
 
   const categorias = Object.entries(porCategoria)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([cat, monto]) => `  - ${cat}: $${monto.toFixed(2)}`)
-    .join("\n");
+    .map(([cat, monto]) => `${cat}:$${Math.round(monto)}`)
+    .join(", ");
 
-  const ultimas = transacciones.slice(0, 50).map((t) =>
-    `  - [ID:${t.id}] [${t.fecha}] ${t.tipo === "ingreso" ? "+" : "-"}$${Number(t.monto).toFixed(2)} | ${t.descripcion || t.categoria} | ${t.categoria}`
-  ).join("\n");
+  // Formato compacto: ID corto | fecha | tipo | monto | desc/cat
+  // Permite incluir 200 transacciones sin saturar el contexto
+  const listaCompacta = transacciones.map((t) => {
+    const idCorto = t.id.replace(/-/g, "").substring(0, 8);
+    const tipo = t.tipo === "ingreso" ? "I" : "G";
+    const desc = t.descripcion || t.categoria;
+    return `[${idCorto}] ${t.fecha} ${tipo} $${Number(t.monto).toFixed(0)} ${desc} (${t.categoria})`;
+  }).join("\n");
 
-  return `Resumen (últimas ${transacciones.length} transacciones):
-Total ingresos: $${ingresos.toFixed(2)} MXN
-Total gastos: $${gastos.toFixed(2)} MXN
-Balance: $${(ingresos - gastos).toFixed(2)} MXN
+  // Metas activas
+  const metasTexto = metas.length > 0
+    ? "\n\nMetas de ahorro:\n" + metas.map((m) => {
+        const pct = Math.round((m.monto_actual / m.monto_objetivo) * 100);
+        return `${m.emoji} ${m.nombre}: $${m.monto_actual.toLocaleString()} de $${m.monto_objetivo.toLocaleString()} (${pct}%)`;
+      }).join("\n")
+    : "";
 
-Gastos por categoría:
-${categorias || "  Sin categorías"}
+  return `Mes actual (${mesActual}):
+Ingresos: $${ingresosMes.toFixed(0)} | Gastos: $${gastosMes.toFixed(0)} | Balance: $${(ingresosMes - gastosMes).toFixed(0)}
+Gastos por categoría este mes: ${categorias || "Sin datos"}
+${metasTexto}
 
-Últimas transacciones:
-${ultimas}`;
+Historial completo (${transacciones.length} movimientos, más reciente primero):
+Formato: [ID] fecha tipo monto descripción (categoría)
+${listaCompacta}`;
 }
