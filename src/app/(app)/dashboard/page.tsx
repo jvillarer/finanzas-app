@@ -57,6 +57,8 @@ export default function DashboardPage() {
   const [mostrarRecurrentes, setMostrarRecurrentes] = useState(false);
   const [modo, setModo] = useState<Modo>("mes");
   const [paginaLista, setPaginaLista] = useState(30);
+  const [insight, setInsight] = useState<string | null>(null);
+  const [insightCargando, setInsightCargando] = useState(false);
 
   const cargar = async () => {
     try {
@@ -69,10 +71,57 @@ export default function DashboardPage() {
       }
       const datos = await obtenerTransacciones();
       setTransacciones(datos);
+      // Insight solo si hay transacciones suficientes
+      if (datos.length >= 5) cargarInsight(datos);
     } catch (e) {
       console.error(e);
     } finally {
       setCargando(false);
+    }
+  };
+
+  const cargarInsight = async (datos: typeof transacciones) => {
+    const cacheKey = "lani_insight_fecha";
+    const hoyStr = new Date().toISOString().split("T")[0];
+    const guardado = typeof window !== "undefined" ? localStorage.getItem(cacheKey) : null;
+    const [fechaGuardada, insightGuardado] = guardado ? guardado.split("|||") : [];
+    // Reusar insight del mismo día
+    if (fechaGuardada === hoyStr && insightGuardado) {
+      setInsight(insightGuardado);
+      return;
+    }
+    setInsightCargando(true);
+    try {
+      const hoy = new Date();
+      const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      const txsMes = datos.filter((t) => new Date(t.fecha + "T12:00:00") >= inicioMes);
+      const gastosMes = txsMes.filter((t) => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
+      const ingresosMes = txsMes.filter((t) => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
+      const porCat: Record<string, number> = {};
+      txsMes.filter((t) => t.tipo === "gasto").forEach((t) => {
+        const c = t.categoria || "Otros";
+        porCat[c] = (porCat[c] || 0) + Number(t.monto);
+      });
+      const topCat = Object.entries(porCat).sort((a, b) => b[1] - a[1]).slice(0, 3)
+        .map(([c, m]) => `${c}: $${m.toFixed(0)}`).join(", ");
+      const diaActual = hoy.getDate();
+      const diasEnMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+      const mesLabel = hoy.toLocaleString("es-MX", { month: "long" });
+
+      const resumen = `Mes: ${mesLabel}. Día ${diaActual} de ${diasEnMes}. Ingresos: $${ingresosMes.toFixed(0)}. Gastos: $${gastosMes.toFixed(0)}. Balance: $${(ingresosMes - gastosMes).toFixed(0)}. Top categorías de gasto: ${topCat || "sin datos"}. Total transacciones este mes: ${txsMes.length}.`;
+
+      const res = await fetch("/api/insight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumen }),
+      });
+      const { insight: txt } = await res.json();
+      if (txt) {
+        setInsight(txt);
+        localStorage.setItem(cacheKey, `${hoyStr}|||${txt}`);
+      }
+    } catch { /* silencioso */ } finally {
+      setInsightCargando(false);
     }
   };
 
@@ -134,19 +183,36 @@ export default function DashboardPage() {
             {cargando ? <Skel w="100px" h="26px" /> : (nombre || "Mis finanzas")}
           </h1>
         </div>
-        <button
-          onClick={() => router.push("/perfil")}
-          className="active:opacity-50 transition-opacity"
-          style={{
-            width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-            backgroundColor: "var(--surface-2)",
-            border: "1px solid var(--gold-border)",
-            color: "var(--gold)", fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          {iniciales}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            onClick={() => router.push("/buscar")}
+            className="active:opacity-50 transition-opacity"
+            style={{
+              width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+              backgroundColor: "var(--surface-2)",
+              border: "1px solid var(--border)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <svg viewBox="0 0 20 20" fill="none" stroke="var(--text-3)" strokeWidth={1.6} strokeLinecap="round" style={{ width: 15, height: 15 }}>
+              <circle cx="8.5" cy="8.5" r="5.5" />
+              <path d="M15 15l-2.5-2.5" />
+            </svg>
+          </button>
+          <button
+            onClick={() => router.push("/perfil")}
+            className="active:opacity-50 transition-opacity"
+            style={{
+              width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+              backgroundColor: "var(--surface-2)",
+              border: "1px solid var(--gold-border)",
+              color: "var(--gold)", fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            {iniciales}
+          </button>
+        </div>
       </div>
 
       {/* ── BALANCE HERO ── */}
@@ -226,6 +292,29 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* ── LANI INSIGHT ── */}
+      {(insight || insightCargando) && (
+        <div style={{ padding: "0 20px 8px" }}>
+          <div style={{
+            padding: "12px 14px", borderRadius: 14,
+            backgroundColor: "var(--gold-dim)",
+            border: "1px solid var(--gold-border)",
+            display: "flex", alignItems: "flex-start", gap: 10,
+          }}>
+            <span style={{ fontSize: 16, flexShrink: 0, lineHeight: 1.5 }}>🐑</span>
+            {insightCargando ? (
+              <div style={{ display: "flex", gap: 4, alignItems: "center", paddingTop: 4 }}>
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="animate-bounce" style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "var(--gold)", display: "block", animationDelay: `${i * 150}ms` }} />
+                ))}
+              </div>
+            ) : (
+              <p style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.55 }}>{insight}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── INFO CARDS: Proyección + Recurrentes ── */}
       {!cargando && (
