@@ -55,6 +55,9 @@ export default function PerfilPage() {
   const [resumen, setResumen] = useState({ ingresos: 0, gastos: 0, balance: 0 });
   const [eliminandoCuenta, setEliminandoCuenta] = useState(false);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+  const [borrandoDatos, setBorrandoDatos] = useState(false);
+  const [confirmarBorrarDatos, setConfirmarBorrarDatos] = useState(false);
+  const [datosBorrados, setDatosBorrados] = useState(false);
 
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
@@ -113,6 +116,35 @@ export default function PerfilPage() {
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  };
+
+  const borrarDatos = async () => {
+    setBorrandoDatos(true);
+    try {
+      const res = await fetch("/api/borrar-datos", { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Ocurrió un error.");
+        setBorrandoDatos(false);
+        setConfirmarBorrarDatos(false);
+        return;
+      }
+      // Limpiar caché local también
+      localStorage.removeItem("lani_chat_mensajes");
+      localStorage.removeItem("lani_memoria");
+      // Borrar todas las claves de insight por fecha
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith("lani_insight_")) localStorage.removeItem(k);
+      });
+      setResumen({ ingresos: 0, gastos: 0, balance: 0 });
+      setConfirmarBorrarDatos(false);
+      setDatosBorrados(true);
+      setTimeout(() => setDatosBorrados(false), 4000);
+    } catch {
+      alert("Error de conexión. Intenta de nuevo.");
+    } finally {
+      setBorrandoDatos(false);
+    }
   };
 
   const eliminarCuenta = async () => {
@@ -253,6 +285,40 @@ export default function PerfilPage() {
         style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--danger)" }}>
         Cerrar sesión
       </button>
+
+      {/* Borrar mis datos */}
+      {datosBorrados ? (
+        <div className="w-full py-3.5 rounded-xl text-sm font-semibold text-center mb-2"
+          style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--success)" }}>
+          ✓ Todos tus datos fueron borrados
+        </div>
+      ) : !confirmarBorrarDatos ? (
+        <button onClick={() => setConfirmarBorrarDatos(true)}
+          className="w-full py-3.5 rounded-xl font-semibold text-sm transition-all active:scale-[0.98] mb-2"
+          style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
+          Borrar mis datos
+        </button>
+      ) : (
+        <div className="rounded-xl p-4 mb-2"
+          style={{ backgroundColor: "rgba(180,130,0,0.08)", border: "1px solid rgba(180,130,0,0.2)" }}>
+          <p className="text-sm font-bold mb-1" style={{ color: "var(--text-1)" }}>¿Borrar todos tus datos?</p>
+          <p className="text-xs leading-relaxed mb-4" style={{ color: "var(--text-3)" }}>
+            Se eliminarán todas tus transacciones, metas y presupuestos. Tu cuenta se mantiene activa y puedes volver a empezar.
+          </p>
+          <div className="flex gap-2">
+            <button onClick={() => setConfirmarBorrarDatos(false)} disabled={borrandoDatos}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+              style={{ backgroundColor: "var(--surface-2)", color: "var(--text-2)", border: "1px solid var(--border)" }}>
+              Cancelar
+            </button>
+            <button onClick={borrarDatos} disabled={borrandoDatos}
+              className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50"
+              style={{ backgroundColor: "var(--gold)", color: "#0c0c0e" }}>
+              {borrandoDatos ? "Borrando..." : "Sí, borrar"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Eliminar cuenta */}
       {!confirmarEliminar ? (
