@@ -56,6 +56,7 @@ export default function DashboardPage() {
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [mostrarRecurrentes, setMostrarRecurrentes] = useState(false);
   const [modo, setModo] = useState<Modo>("mes");
+  const [paginaLista, setPaginaLista] = useState(30);
 
   const cargar = async () => {
     try {
@@ -85,9 +86,14 @@ export default function DashboardPage() {
 
   // ── Periodo activo ────────────────────────────────────────────────
   const quinc = getQuincenaActual();
+  const hoyDate = new Date();
+  const inicioMesActual = new Date(hoyDate.getFullYear(), hoyDate.getMonth(), 1);
+  const txsMesActual = transacciones.filter(
+    (t) => new Date(t.fecha + "T12:00:00") >= inicioMesActual
+  );
   const txsVista = modo === "quincena"
     ? filtrarPorQuincena(transacciones, quinc)
-    : transacciones;
+    : txsMesActual;
 
   const { ingresos, gastos, balance } = calcularResumen(txsVista);
   const spendingPct = ingresos > 0 ? Math.min((gastos / ingresos) * 100, 100) : 0;
@@ -109,9 +115,11 @@ export default function DashboardPage() {
     ? quinc.label
     : hoy.toLocaleString("es-MX", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
 
-  const lista = transacciones.filter((t) =>
+  const listaBase = transacciones.filter((t) =>
     filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
-  ).slice(0, 40);
+  );
+  const lista = listaBase.slice(0, paginaLista);
+  const hayMas = listaBase.length > paginaLista;
 
   const grupos = agruparPorFecha(lista);
 
@@ -460,6 +468,21 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Ver más */}
+        {!cargando && hayMas && (
+          <button
+            onClick={() => setPaginaLista((p) => p + 30)}
+            style={{
+              width: "100%", padding: "13px 0", marginTop: 8, borderRadius: 14,
+              fontSize: 12, fontWeight: 600,
+              backgroundColor: "var(--surface)", color: "var(--text-3)",
+              border: "1px solid var(--border)", cursor: "pointer",
+            }}
+          >
+            Ver más ({listaBase.length - paginaLista} restantes)
+          </button>
         )}
       </div>
 

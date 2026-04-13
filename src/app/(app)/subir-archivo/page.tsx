@@ -39,14 +39,32 @@ export default function SubirArchivoPage() {
 
       if (!existentes || existentes.length === 0) return new Set();
 
+      const normDesc = (s: string) =>
+        (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+
       const clavesExistentes = new Set(
         existentes.map((t) => `${t.fecha}|${Number(t.monto).toFixed(2)}|${t.tipo}`)
+      );
+      // Clave extendida con descripción para evitar falsos positivos
+      const { data: existentesDesc } = await supabase
+        .from("transacciones")
+        .select("fecha, monto, tipo, descripcion")
+        .gte("fecha", desde)
+        .lte("fecha", hasta);
+      const clavesConDesc = new Set(
+        (existentesDesc || []).map(
+          (t) => `${t.fecha}|${Number(t.monto).toFixed(2)}|${t.tipo}|${normDesc(t.descripcion)}`
+        )
       );
 
       const idxDuplicados = new Set<number>();
       filas.forEach((f, i) => {
-        const clave = `${f.fecha}|${f.monto.toFixed(2)}|${f.tipo}`;
-        if (clavesExistentes.has(clave)) idxDuplicados.add(i);
+        const claveSimple = `${f.fecha}|${f.monto.toFixed(2)}|${f.tipo}`;
+        const claveDesc = `${f.fecha}|${f.monto.toFixed(2)}|${f.tipo}|${normDesc(f.descripcion)}`;
+        // Duplicado solo si coincide fecha+monto+tipo+descripción
+        if (clavesExistentes.has(claveSimple) && clavesConDesc.has(claveDesc)) {
+          idxDuplicados.add(i);
+        }
       });
 
       return idxDuplicados;

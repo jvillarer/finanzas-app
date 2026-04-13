@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  obtenerMetas, crearMeta, abonarMeta, eliminarMeta,
+  obtenerMetas, crearMeta, abonarMeta, eliminarMeta, actualizarMeta,
   calcularMeta, type Meta,
 } from "@/lib/metas";
 import { formatearMonto } from "@/lib/transacciones";
@@ -186,6 +186,15 @@ function ModalAbonar({ meta, onGuardado, onCerrar, onEliminar }: {
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+  const [editando, setEditando] = useState(false);
+
+  // Estado de edición
+  const [editEmoji, setEditEmoji] = useState(meta.emoji);
+  const [editNombre, setEditNombre] = useState(meta.nombre);
+  const [editObjetivo, setEditObjetivo] = useState(String(meta.monto_objetivo));
+  const [editFecha, setEditFecha] = useState(meta.fecha_limite || "");
+  const [guardandoEdit, setGuardandoEdit] = useState(false);
+
   const calc = calcularMeta(meta);
 
   const handleAbonar = async () => {
@@ -193,6 +202,18 @@ function ModalAbonar({ meta, onGuardado, onCerrar, onEliminar }: {
     if (!v || v <= 0) return;
     setGuardando(true);
     await abonarMeta(meta.id, v);
+    onGuardado();
+  };
+
+  const handleGuardarEdit = async () => {
+    if (!editNombre.trim() || !editObjetivo || Number(editObjetivo) <= 0) return;
+    setGuardandoEdit(true);
+    await actualizarMeta(meta.id, {
+      nombre: editNombre.trim(),
+      emoji: editEmoji,
+      monto_objetivo: Number(editObjetivo),
+      fecha_limite: editFecha || null,
+    });
     onGuardado();
   };
 
@@ -218,18 +239,66 @@ function ModalAbonar({ meta, onGuardado, onCerrar, onEliminar }: {
           <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "var(--surface-2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
             {meta.emoji}
           </div>
-          <div>
+          <div style={{ flex: 1 }}>
             <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>{meta.nombre}</p>
             <p className="font-number" style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>
               {formatearMonto(meta.monto_actual)} / {formatearMonto(meta.monto_objetivo)}
             </p>
           </div>
-          <button onClick={onCerrar} style={{ marginLeft: "auto", width: 28, height: 28, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button
+            onClick={() => setEditando(!editando)}
+            style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: editando ? "var(--gold-dim)" : "var(--surface-2)", border: editando ? "1px solid var(--gold-border)" : "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <svg viewBox="0 0 20 20" fill={editando ? "var(--gold)" : "var(--text-3)"} style={{ width: 12, height: 12 }}>
+              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+            </svg>
+          </button>
+          <button onClick={onCerrar} style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg viewBox="0 0 20 20" fill="var(--text-3)" style={{ width: 13, height: 13 }}>
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
             </svg>
           </button>
         </div>
+
+        {/* ── Modo edición ── */}
+        {editando && (
+          <div style={{ marginBottom: 20, padding: "16px", borderRadius: 14, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)" }}>
+            {/* Emoji */}
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>Ícono</p>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+              {EMOJIS.map((e) => (
+                <button key={e} onClick={() => setEditEmoji(e)}
+                  style={{ width: 36, height: 36, borderRadius: 9, fontSize: 18, backgroundColor: editEmoji === e ? "var(--gold-dim)" : "var(--surface-3)", border: editEmoji === e ? "1px solid var(--gold-border)" : "1px solid transparent", cursor: "pointer" }}>
+                  {e}
+                </button>
+              ))}
+            </div>
+            {/* Nombre */}
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6 }}>Nombre</p>
+            <input
+              type="text" value={editNombre} onChange={(e) => setEditNombre(e.target.value)}
+              style={{ width: "100%", borderRadius: 10, padding: "10px 12px", fontSize: 13, fontWeight: 600, backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none", marginBottom: 12 }}
+            />
+            {/* Objetivo */}
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6 }}>Meta ($)</p>
+            <input
+              type="number" inputMode="decimal" value={editObjetivo} onChange={(e) => setEditObjetivo(e.target.value)}
+              className="font-number"
+              style={{ width: "100%", borderRadius: 10, padding: "10px 12px", fontSize: 16, fontWeight: 700, backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none", marginBottom: 12 }}
+            />
+            {/* Fecha */}
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6 }}>Fecha límite</p>
+            <input
+              type="date" value={editFecha} onChange={(e) => setEditFecha(e.target.value)}
+              style={{ width: "100%", borderRadius: 10, padding: "10px 12px", fontSize: 13, backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: editFecha ? "var(--text-1)" : "var(--text-3)", outline: "none", colorScheme: "dark", marginBottom: 14 }}
+            />
+            <button onClick={handleGuardarEdit} disabled={guardandoEdit}
+              className="active:scale-[0.98] transition-transform"
+              style={{ width: "100%", padding: "12px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: "var(--gold)", color: "#0c0c0e", border: "none", cursor: "pointer", opacity: guardandoEdit ? 0.5 : 1 }}>
+              {guardandoEdit ? "Guardando..." : "Guardar cambios"}
+            </button>
+          </div>
+        )}
 
         {/* Barra de progreso */}
         <div style={{ marginBottom: 20 }}>

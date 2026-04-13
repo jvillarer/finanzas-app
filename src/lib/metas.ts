@@ -95,6 +95,15 @@ export async function abonarMeta(id: string, montoAbonar: number): Promise<void>
   if (error) throw error;
 }
 
+export async function actualizarMeta(
+  id: string,
+  datos: Partial<Pick<Meta, "nombre" | "emoji" | "monto_objetivo" | "fecha_limite">>
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from("metas").update(datos).eq("id", id);
+  if (error) throw error;
+}
+
 export async function eliminarMeta(id: string): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase.from("metas").delete().eq("id", id);

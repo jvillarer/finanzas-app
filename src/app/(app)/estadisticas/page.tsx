@@ -18,33 +18,44 @@ export default function EstadisticasPage() {
     obtenerTransacciones().then(setTransacciones).finally(() => setCargando(false));
   }, []);
 
+  const hoy = new Date();
+  const inicioMesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+  const inicio3Meses = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1);
+
   const filtradas = transacciones.filter((t) => {
     if (periodo === "todo") return true;
-    const dias = periodo === "mes" ? 30 : 90;
-    const limite = new Date(); limite.setDate(limite.getDate() - dias);
-    return new Date(t.fecha) >= limite;
+    const f = new Date(t.fecha + "T12:00:00");
+    if (periodo === "mes") return f >= inicioMesActual;
+    return f >= inicio3Meses;
   });
 
   const { ingresos, gastos, balance } = calcularResumen(filtradas);
 
   // Métricas derivadas
   const tasaAhorro = ingresos > 0 ? ((ingresos - gastos) / ingresos) * 100 : null;
-  const diasPeriodo = periodo === "mes" ? 30 : periodo === "3meses" ? 90 :
-    filtradas.length > 0
-      ? Math.max(1, Math.ceil((Date.now() - new Date(filtradas[filtradas.length - 1].fecha + "T12:00:00").getTime()) / 86400000))
+  const diasPeriodo = periodo === "mes"
+    ? hoy.getDate()
+    : periodo === "3meses"
+    ? Math.ceil((hoy.getTime() - inicio3Meses.getTime()) / 86400000)
+    : filtradas.length > 0
+      ? Math.max(1, Math.ceil((hoy.getTime() - new Date(filtradas[filtradas.length - 1].fecha + "T12:00:00").getTime()) / 86400000))
       : 30;
-  const promedioDiario = gastos / diasPeriodo;
+  const promedioDiario = diasPeriodo > 0 ? gastos / diasPeriodo : 0;
 
-  // Comparación con periodo anterior (solo "mes")
+  // Comparación con mes calendario anterior
+  const inicioMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+  const finMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth(), 0, 23, 59, 59);
   const txsMesAnterior = transacciones.filter((t) => {
     if (periodo !== "mes") return false;
     const f = new Date(t.fecha + "T12:00:00");
-    const hace60 = new Date(); hace60.setDate(hace60.getDate() - 60);
-    const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
-    return f >= hace60 && f < hace30;
+    return f >= inicioMesAnterior && f <= finMesAnterior;
   });
-  const gastosMesAnterior = txsMesAnterior.filter((t) => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
-  const deltaGasto = gastosMesAnterior > 0 ? ((gastos - gastosMesAnterior) / gastosMesAnterior) * 100 : null;
+  const gastosMesAnterior = txsMesAnterior
+    .filter((t) => t.tipo === "gasto")
+    .reduce((s, t) => s + Number(t.monto), 0);
+  const deltaGasto = gastosMesAnterior > 0
+    ? ((gastos - gastosMesAnterior) / gastosMesAnterior) * 100
+    : null;
 
   const porCategoria: Record<string, number> = {};
   filtradas.filter((t) => t.tipo === "gasto").forEach((t) => {
@@ -77,7 +88,9 @@ export default function EstadisticasPage() {
                 border: periodo === p ? "1px solid var(--border)" : "1px solid transparent",
               }}
             >
-              {p === "mes" ? "Este mes" : p === "3meses" ? "3 meses" : "Todo"}
+              {p === "mes"
+                ? hoy.toLocaleString("es-MX", { month: "long" }).replace(/^\w/, c => c.toUpperCase())
+                : p === "3meses" ? "3 meses" : "Todo"}
             </button>
           ))}
         </div>
