@@ -63,7 +63,7 @@ export default function VistaPrevia({
   const totalGastos = filasSeleccionadas.filter((f) => f.tipo === "gasto").reduce((s, f) => s + f.monto, 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: "var(--bg)" }}>
+    <div className="fixed inset-0 z-[60] flex flex-col" style={{ backgroundColor: "var(--bg)" }}>
 
       {/* Header */}
       <div style={{

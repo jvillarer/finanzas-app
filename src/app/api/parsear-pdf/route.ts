@@ -6,32 +6,45 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-const PROMPT_EXTRACCION = `Eres un experto en leer estados de cuenta bancarios mexicanos.
-Tu tarea es extraer TODAS las transacciones del estado de cuenta adjunto y categorizarlas inteligentemente.
+const PROMPT_EXTRACCION = `Eres un experto en leer estados de cuenta bancarios y de tarjetas de crédito mexicanas.
+Tu tarea es extraer todas las transacciones REALES del estado de cuenta adjunto y categorizarlas inteligentemente.
 
-REGLAS DE TIPO:
-- DEPOSITO / ABONO / CRÉDITO / recibido → tipo "ingreso"
-- RETIRO / CARGO / DÉBITO / PAGO / enviado → tipo "gasto"
+━━━ PASO 1: IDENTIFICAR QUÉ TIPO DE ESTADO DE CUENTA ES ━━━
+Determina si es:
+A) Estado de cuenta de TARJETA DE CRÉDITO (Amex, BBVA Visa, etc.)
+B) Estado de cuenta de CUENTA BANCARIA / DÉBITO
 
-REGLAS DE EXTRACCIÓN:
-- Extrae TODAS las filas de movimientos sin omitir ninguna
+━━━ PASO 2: EXCLUIR ESTAS ENTRADAS (NO las registres) ━━━
+Los siguientes movimientos NO son ingresos ni gastos reales — son transferencias internas entre cuentas propias o ajustes contables:
+- "PAGO EN LINEA", "PAGO RECIBIDO", "PAGO DOMICILIADO", "PAGO TARJETA", "PAGO MINIMO", "LIQUIDACION TOTAL" → el usuario pagando su tarjeta de crédito. OMITIR.
+- "SALDO ANTERIOR", "SALDO FINAL", "SALDO INICIAL" → datos de resumen. OMITIR.
+- "BONIFICACION POR PAGO", "CASHBACK", ajustes de saldo → OMITIR si no son compras reales.
+- Cuotas de apertura, intereses cobrados, comisiones bancarias → puedes incluirlas como gasto en "Servicios" si el monto es significativo.
+
+━━━ PASO 3: REGLAS DE TIPO ━━━
+Para las transacciones QUE SÍ registras:
+- Si es tarjeta de crédito: CASI TODOS los movimientos son "gasto" (cargos/compras). Solo marca como "ingreso" si es una devolución/reembolso de una tienda (ej: "DEVOLUCION WALMART").
+- Si es cuenta bancaria: DEPÓSITO / ABONO recibido de terceros → "ingreso". RETIRO / CARGO / transferencia saliente → "gasto".
+- Nómina, sueldo, depósito de empresa → "ingreso".
+- NUNCA marques como "ingreso" el pago que el usuario hizo a su propia tarjeta.
+
+━━━ PASO 4: EXTRACCIÓN ━━━
+- Extrae TODAS las filas de movimientos reales (aplicando las exclusiones anteriores)
 - Fecha en formato YYYY-MM-DD
-- El monto siempre es positivo
-- Para la descripción: usa el CONCEPTO si existe, si no el nombre del beneficiario/comercio, si no el tipo de operación
+- El monto siempre es positivo (nunca negativo)
+- Para la descripción: usa el CONCEPTO si existe, luego el nombre del comercio/beneficiario, luego el tipo de operación
 
-REGLAS DE CATEGORIZACIÓN (muy importante, analiza TODO el texto de la descripción):
-- Busca palabras clave en cualquier parte: CONCEPTO, nombre del beneficiario, nombre del comercio
+━━━ PASO 5: CATEGORIZACIÓN ━━━
+Analiza TODO el texto de la descripción para categorizar:
 - RENTA, alquiler → Servicios
 - ESTACIONAMIENTO, gasolina, UBER, DIDI, CABIFY, parking → Transporte
-- AMERICAN EXPRESS, AMEX, tarjeta de crédito, domiciliación → Servicios
 - WALMART, SORIANA, OXXO, CHEDRAUI, super, mercado → Supermercado
-- NETFLIX, SPOTIFY, STEAM, juego, cine, bar → Entretenimiento
-- FARMACIA, doctor, médico, hospital, dentista, gym → Salud
-- LUZ, CFE, TELMEX, TELCEL, IZZI, internet, agua, gas → Servicios
-- Transferencias a personas SIN concepto claro → Otros
-- Nómina, sueldo, pago de empresa → ingreso categoría Otros
-- Si el concepto dice algo reconocible aunque sea parcialmente, úsalo para categorizar
-- Solo usa "Otros" cuando realmente no hay ninguna pista de qué es
+- NETFLIX, SPOTIFY, STEAM, juego, cine, bar, CINEPOLIS → Entretenimiento
+- FARMACIA, doctor, médico, hospital, dentista, gym, SANA → Salud
+- LUZ, CFE, TELMEX, TELCEL, IZZI, internet, agua, gas, seguro → Servicios
+- AMERICAN EXPRESS, AMEX → Servicios (si es cargo por membresía o seguro, no pago de tarjeta)
+- Transferencias a personas sin concepto claro → Otros
+- Nómina, sueldo, pago de empresa → Otros (tipo ingreso)
 
 Categorías disponibles (SOLO estas 10):
 1. Comida (restaurantes, tacos, cafeterías, comida rápida)
@@ -39,11 +52,11 @@ Categorías disponibles (SOLO estas 10):
 3. Transporte (uber, didi, gasolina, taxi, estacionamiento)
 4. Entretenimiento (cine, spotify, netflix, steam, bares, salidas)
 5. Salud (farmacia, médico, dentista, gimnasio)
-6. Servicios (luz, agua, internet, teléfono, renta, domiciliaciones, american express, seguros)
+6. Servicios (luz, agua, internet, teléfono, renta, domiciliaciones, seguros)
 7. Ropa (ropa, zapatos, accesorios)
 8. Hogar (muebles, limpieza, ferretería, decoración)
 9. Educación (libros, cursos, colegiatura, escuela)
-10. Otros (transferencias sin ningún concepto identificable, retiros en efectivo)`;
+10. Otros (transferencias sin concepto identificable, retiros en efectivo)`;
 
 const HERRAMIENTA_EXTRACCION: Anthropic.Tool = {
   name: "registrar_transacciones_estado_cuenta",
