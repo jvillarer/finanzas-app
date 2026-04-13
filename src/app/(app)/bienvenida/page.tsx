@@ -4,139 +4,169 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
-/* ── Mockups visuales para cada slide ── */
-
-function MockupChat({ nombre }: { nombre: string }) {
-  return (
-    <div className="w-full h-full flex flex-col justify-end gap-2.5 p-5">
-      {/* Mensaje Lani */}
-      <div className="flex items-end gap-2">
-        <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center text-xs font-black text-white flex-shrink-0">L</div>
-        <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[75%] shadow-sm">
-          <p className="text-xs font-semibold text-gray-800">Hola {nombre || ""}! Soy Lani 🐑 Cuéntame tus gastos.</p>
-        </div>
-      </div>
-      {/* Mensaje usuario */}
-      <div className="flex justify-end">
-        <div className="bg-black rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[75%]">
-          <p className="text-xs font-semibold text-white">Gasté $350 en el súper hoy</p>
-        </div>
-      </div>
-      {/* Respuesta Lani */}
-      <div className="flex items-end gap-2">
-        <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center text-xs font-black text-white flex-shrink-0">L</div>
-        <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-2.5 max-w-[75%] shadow-sm">
-          <p className="text-xs font-semibold text-gray-800">Listo, registré $350 en Supermercado.</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MockupTicket() {
-  return (
-    <div className="w-full h-full flex items-center justify-center p-8">
-      <div className="bg-white rounded-3xl shadow-md w-full max-w-[220px] p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-black text-gray-800 tracking-wide uppercase">Ticket</p>
-          <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          </div>
-        </div>
-        {[
-          { concepto: "Leche", monto: "$28.00" },
-          { concepto: "Pan", monto: "$35.50" },
-          { concepto: "Frutas", monto: "$89.00" },
-          { concepto: "Yogurt", monto: "$42.00" },
-        ].map((item, i) => (
-          <div key={i} className="flex justify-between py-1.5 border-b border-gray-100 last:border-0">
-            <p className="text-xs text-gray-500">{item.concepto}</p>
-            <p className="text-xs font-bold text-gray-800">{item.monto}</p>
-          </div>
-        ))}
-        <div className="mt-3 flex justify-between">
-          <p className="text-xs font-black text-gray-800">Total</p>
-          <p className="text-xs font-black text-gray-800">$194.50</p>
-        </div>
-        <div className="mt-3 bg-black rounded-xl py-2 text-center">
-          <p className="text-xs font-bold text-white">Registrado por Lani</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MockupLimites() {
-  const categorias = [
-    { nombre: "Comida", gasto: 72, limite: 100, color: "#22c55e" },
-    { nombre: "Transporte", gasto: 90, limite: 100, color: "#f59e0b" },
-    { nombre: "Entretenimiento", gasto: 105, limite: 100, color: "#ef4444" },
-  ];
-  return (
-    <div className="w-full h-full flex flex-col justify-center gap-3 p-6">
-      {categorias.map((cat) => {
-        const pct = Math.min((cat.gasto / cat.limite) * 100, 100);
-        return (
-          <div key={cat.nombre} className="bg-white rounded-2xl px-4 py-3 shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-xs font-bold text-gray-800">{cat.nombre}</p>
-              <p className="text-xs font-semibold" style={{ color: cat.color }}>
-                ${cat.gasto} / ${cat.limite}
-              </p>
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${pct}%`, backgroundColor: cat.color }}
-              />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function MockupListo({ nombre }: { nombre: string }) {
-  return (
-    <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-      <div className="w-24 h-24 rounded-3xl bg-black flex items-center justify-center shadow-lg">
-        <span className="text-5xl">🐑</span>
-      </div>
-      <div className="bg-white rounded-2xl px-6 py-4 shadow-sm text-center mx-8">
-        <p className="text-xs font-black text-gray-800 mb-0.5">
-          {nombre ? `¡Hola, ${nombre}!` : "¡Todo listo!"}
-        </p>
-        <p className="text-xs text-gray-400">Tu asistente financiera te espera</p>
-      </div>
-    </div>
-  );
-}
-
-/* ── Slides de onboarding ── */
-
 const SLIDES = [
   {
     titulo: "Habla con Lani",
-    descripcion: "Dile tus gastos en lenguaje natural. \"Gasté $200 en gasolina\" — y ya queda registrado.",
-    accion: "Continuar",
+    descripcion: "Di \"Gasté $200 en comida\" o toma foto de un ticket. Lani registra, categoriza y suma — sin formularios.",
+    visual: <SlideChat />,
   },
   {
-    titulo: "Sube fotos de tickets",
-    descripcion: "Toma foto de cualquier recibo y Lani registra cada producto automáticamente.",
-    accion: "Continuar",
+    titulo: "Importa tu banco",
+    descripcion: "Sube el PDF de tu estado de cuenta. Lani extrae todas las transacciones y las categoriza automáticamente.",
+    visual: <SlideImportar />,
   },
   {
-    titulo: "Pon límites de gasto",
-    descripcion: "Fija cuánto gastar por categoría. Lani te avisa cuando te estás pasando.",
-    accion: "Continuar",
+    titulo: "Metas y presupuestos",
+    descripcion: "Define cuánto gastar por categoría y crea metas de ahorro. Lani te avisa cuando te acercas al límite.",
+    visual: <SlidePresupuestos />,
   },
   {
-    titulo: "¡Ya estás lista!",
-    descripcion: "Primero cuéntale a Lani cuánto ganaste este mes para tener un punto de partida.",
-    accion: "Hablar con Lani",
+    titulo: "Todo en un vistazo",
+    descripcion: "Balance del mes, proyección al fin de mes, suscripciones que quizás olvidaste y análisis semanal de Lani.",
+    visual: <SlideDashboard />,
   },
 ];
+
+function SlideChat() {
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 10, padding: 20 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+        <div style={{ width: 30, height: 30, borderRadius: "50%", backgroundColor: "#c9a84c", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>🐑</div>
+        <div style={{ backgroundColor: "#1c1c21", borderRadius: "12px 12px 12px 4px", padding: "10px 14px", maxWidth: "78%", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <p style={{ fontSize: 12, color: "#eeebe4", fontWeight: 500 }}>Hola! Cuéntame un gasto o mándame foto de un ticket 👋</p>
+        </div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ backgroundColor: "#c9a84c", borderRadius: "12px 12px 4px 12px", padding: "10px 14px", maxWidth: "78%" }}>
+          <p style={{ fontSize: 12, color: "#0c0c0e", fontWeight: 600 }}>Gasté $350 en gasolina</p>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+        <div style={{ width: 30, height: 30, borderRadius: "50%", backgroundColor: "#c9a84c", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>🐑</div>
+        <div style={{ backgroundColor: "#1c1c21", borderRadius: "12px 12px 12px 4px", padding: "10px 14px", maxWidth: "78%", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <p style={{ fontSize: 12, color: "#eeebe4", fontWeight: 500 }}>Listo ✓ <span style={{ color: "#3ecf8e", fontWeight: 700 }}>$350</span> en Transporte. Llevas <span style={{ color: "#c9a84c" }}>$1,820</span> en gasolina este mes.</p>
+        </div>
+      </div>
+      {/* Mic button hint */}
+      <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 99, backgroundColor: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.22)" }}>
+          <span style={{ fontSize: 14 }}>🎙️</span>
+          <p style={{ fontSize: 11, color: "#c9a84c", fontWeight: 600 }}>También puedes hablarle</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SlideImportar() {
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 20 }}>
+      {/* PDF card */}
+      <div style={{ width: "100%", padding: "16px", borderRadius: 16, backgroundColor: "#1c1c21", border: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📄</div>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#eeebe4" }}>BBVA_Enero_2026.pdf</p>
+            <p style={{ fontSize: 10, color: "#5c5c6c" }}>Estado de cuenta · 2.3 MB</p>
+          </div>
+        </div>
+        {/* Progress */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1, height: 3, borderRadius: 99, backgroundColor: "#242428" }}>
+            <div style={{ height: 3, borderRadius: 99, width: "100%", backgroundColor: "#3ecf8e" }} />
+          </div>
+          <p style={{ fontSize: 10, color: "#3ecf8e", fontWeight: 700, flexShrink: 0 }}>✓ Listo</p>
+        </div>
+      </div>
+      {/* Results */}
+      {[
+        { desc: "Uber · Transporte", monto: "-$280", color: "#eeebe4" },
+        { desc: "Netflix · Entretenimiento", monto: "-$219", color: "#eeebe4" },
+        { desc: "Nómina · Ingreso", monto: "+$18,000", color: "#3ecf8e" },
+        { desc: "CFE · Servicios", monto: "-$640", color: "#eeebe4" },
+      ].map((r, i) => (
+        <div key={i} style={{ width: "100%", display: "flex", justifyContent: "space-between", padding: "8px 12px", borderRadius: 10, backgroundColor: "#1c1c21", border: "1px solid rgba(255,255,255,0.04)" }}>
+          <p style={{ fontSize: 11, color: "#9494a2" }}>{r.desc}</p>
+          <p style={{ fontSize: 11, fontWeight: 700, color: r.color }}>{r.monto}</p>
+        </div>
+      ))}
+      <p style={{ fontSize: 10, color: "#5c5c6c", textAlign: "center" }}>47 transacciones detectadas</p>
+    </div>
+  );
+}
+
+function SlidePresupuestos() {
+  const cats = [
+    { nombre: "Comida", gastado: 1800, limite: 3000, color: "#3ecf8e" },
+    { nombre: "Transporte", gastado: 2200, limite: 2500, color: "#e8a838" },
+    { nombre: "Entretenimiento", gastado: 1100, limite: 800, color: "#f06e6e" },
+  ];
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", gap: 10, padding: 20 }}>
+      {cats.map((c) => {
+        const pct = Math.min((c.gastado / c.limite) * 100, 100);
+        const pasado = c.gastado > c.limite;
+        return (
+          <div key={c.nombre} style={{ padding: "14px", borderRadius: 14, backgroundColor: "#1c1c21", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#eeebe4" }}>{c.nombre}</p>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: c.color }}>{pct.toFixed(0)}%</p>
+                {pasado && <p style={{ fontSize: 9, fontWeight: 700, color: "#f06e6e" }}>Excedido</p>}
+              </div>
+            </div>
+            <div style={{ width: "100%", height: 3, borderRadius: 99, backgroundColor: "#242428" }}>
+              <div style={{ height: 3, borderRadius: 99, width: `${pct}%`, backgroundColor: c.color }} />
+            </div>
+            <p style={{ fontSize: 10, color: "#5c5c6c", marginTop: 6 }}>${c.gastado.toLocaleString()} de ${c.limite.toLocaleString()}</p>
+          </div>
+        );
+      })}
+      {/* Meta */}
+      <div style={{ padding: "12px 14px", borderRadius: 14, backgroundColor: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.18)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 20 }}>✈️</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#eeebe4" }}>Vacaciones Europa</p>
+            <div style={{ width: "100%", height: 3, borderRadius: 99, backgroundColor: "#242428", marginTop: 6 }}>
+              <div style={{ height: 3, borderRadius: 99, width: "42%", backgroundColor: "#c9a84c" }} />
+            </div>
+          </div>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "#c9a84c" }}>42%</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SlideDashboard() {
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", gap: 10, padding: 20 }}>
+      {/* Balance */}
+      <div style={{ padding: "14px", borderRadius: 14, backgroundColor: "#1c1c21", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5c5c6c", marginBottom: 4 }}>Balance · Abril</p>
+        <p style={{ fontFamily: "Georgia, serif", fontSize: 32, fontStyle: "italic", fontWeight: 400, color: "#eeebe4", lineHeight: 1 }}>$14,230</p>
+        <div style={{ display: "flex", gap: 14, marginTop: 10 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "#3ecf8e" }}>+$22,000</p>
+          <p style={{ fontSize: 11, fontWeight: 600, color: "#f06e6e" }}>−$7,770</p>
+        </div>
+      </div>
+      {/* Proyección */}
+      <div style={{ padding: "12px 14px", borderRadius: 12, backgroundColor: "#1c1c21", border: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <p style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5c5c6c", marginBottom: 3 }}>Proyección 30 abr</p>
+          <p style={{ fontSize: 16, fontWeight: 700, color: "#3ecf8e" }}>~$11,400</p>
+        </div>
+        <p style={{ fontSize: 10, color: "#5c5c6c" }}>18 días restantes</p>
+      </div>
+      {/* Insight */}
+      <div style={{ padding: "10px 12px", borderRadius: 12, backgroundColor: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.18)", display: "flex", gap: 8 }}>
+        <span style={{ fontSize: 13, flexShrink: 0 }}>🐑</span>
+        <p style={{ fontSize: 11, color: "#9494a2", lineHeight: 1.5 }}>Tus suscripciones suman $1,200/mes. Considera revisar cuáles usas realmente.</p>
+      </div>
+    </div>
+  );
+}
 
 export default function BienvenidaPage() {
   const router = useRouter();
@@ -158,81 +188,82 @@ export default function BienvenidaPage() {
       setPaso((p) => p + 1);
     } else {
       localStorage.setItem("lani_onboarding_done", "1");
-      router.replace("/chat");
+      router.replace("/dashboard");
     }
   };
 
   const saltar = () => {
     localStorage.setItem("lani_onboarding_done", "1");
-    router.replace("/chat");
+    router.replace("/dashboard");
   };
 
   const slide = SLIDES[paso];
-
-  const mockups = [
-    <MockupChat key="chat" nombre={nombre} />,
-    <MockupTicket key="ticket" />,
-    <MockupLimites key="limites" />,
-    <MockupListo key="listo" nombre={nombre} />,
-  ];
+  const esUltimo = paso === SLIDES.length - 1;
 
   return (
-    <main className="min-h-screen flex flex-col" style={{ backgroundColor: "#f2f2f7" }}>
+    <main style={{ minHeight: "100vh", backgroundColor: "#0c0c0e", display: "flex", flexDirection: "column" }}>
 
-      {/* Dots — parte superior */}
-      <div className="flex gap-1.5 justify-center pt-14 pb-2">
-        {SLIDES.map((_, i) => (
-          <div
-            key={i}
-            className="rounded-full transition-all duration-300"
-            style={{
-              width: i === paso ? 22 : 6,
-              height: 6,
-              backgroundColor: i === paso ? "#000" : "#d1d5db",
-            }}
-          />
-        ))}
+      {/* Dots + skip */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "56px 24px 0" }}>
+        <div style={{ display: "flex", gap: 6 }}>
+          {SLIDES.map((_, i) => (
+            <div
+              key={i}
+              style={{
+                height: 5, borderRadius: 99,
+                width: i === paso ? 20 : 5,
+                backgroundColor: i === paso ? "#c9a84c" : "#242428",
+                transition: "all 0.3s ease",
+              }}
+            />
+          ))}
+        </div>
+        {!esUltimo && (
+          <button onClick={saltar} style={{ fontSize: 13, fontWeight: 600, color: "#5c5c6c", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+            Saltar
+          </button>
+        )}
       </div>
 
-      {/* Área visual — mockup */}
-      <div className="flex-1 flex items-center justify-center px-6 py-4">
-        <div
-          className="w-full rounded-3xl overflow-hidden transition-all duration-300"
-          style={{
-            backgroundColor: "#e8e8ed",
-            height: "340px",
-            maxWidth: "360px",
-          }}
-        >
-          {mockups[paso]}
+      {/* Visual */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px 24px" }}>
+        <div style={{
+          width: "100%", maxWidth: 360,
+          borderRadius: 24, overflow: "hidden",
+          backgroundColor: "#141417",
+          border: "1px solid rgba(255,255,255,0.08)",
+          minHeight: 300,
+        }}>
+          {slide.visual}
         </div>
       </div>
 
       {/* Texto + CTA */}
-      <div className="px-6 pb-10 space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-black text-gray-900 leading-tight">{slide.titulo}</h1>
-          <p className="text-sm leading-relaxed text-gray-500 max-w-xs mx-auto">{slide.descripcion}</p>
-        </div>
+      <div style={{ padding: "0 24px 48px" }}>
+        {/* Saludo en último slide */}
+        {esUltimo && nombre && (
+          <p style={{ fontSize: 13, fontWeight: 600, color: "#c9a84c", marginBottom: 6 }}>
+            ¡Hola, {nombre}! 🐑
+          </p>
+        )}
+        <h2 style={{ fontSize: 26, fontWeight: 800, color: "#eeebe4", letterSpacing: "-0.025em", lineHeight: 1.15, marginBottom: 10 }}>
+          {slide.titulo}
+        </h2>
+        <p style={{ fontSize: 14, color: "#9494a2", lineHeight: 1.6, marginBottom: 28 }}>
+          {slide.descripcion}
+        </p>
 
-        <div className="space-y-2">
-          <button
-            onClick={siguiente}
-            className="w-full py-4 rounded-full font-bold text-sm text-white tracking-wide transition-all active:scale-[0.97]"
-            style={{ backgroundColor: "#000" }}
-          >
-            {slide.accion}
-          </button>
-
-          {paso < SLIDES.length - 1 && (
-            <button
-              onClick={saltar}
-              className="w-full py-3 text-sm font-semibold text-gray-400"
-            >
-              Saltar intro
-            </button>
-          )}
-        </div>
+        <button
+          onClick={siguiente}
+          style={{
+            width: "100%", padding: "16px 0", borderRadius: 14,
+            fontSize: 15, fontWeight: 700, color: "#0c0c0e",
+            backgroundColor: "#c9a84c", border: "none", cursor: "pointer",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {esUltimo ? (nombre ? `Entrar, ${nombre}` : "Entrar al dashboard") : "Continuar"}
+        </button>
       </div>
     </main>
   );
