@@ -72,9 +72,9 @@ export default function GraficaMensual({ transacciones }: Props) {
         />
         <Tooltip
           formatter={(valor: number) =>
-            new Intl.NumberFormat("es-MX", {
-              style: "currency",
-              currency: "MXN",
+            "$" + new Intl.NumberFormat("es-MX", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
             }).format(valor)
           }
           contentStyle={{

@@ -46,8 +46,8 @@ export function calcularResumen(transacciones: Transaccion[]) {
 }
 
 export function formatearMonto(monto: number): string {
-  return new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
+  return "$" + new Intl.NumberFormat("es-MX", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(monto);
 }

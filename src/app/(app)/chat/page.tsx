@@ -464,11 +464,11 @@ export default function ChatPage() {
       }
       if (creadas.length === 1) {
         const t = creadas[0];
-        const monto = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(t.monto);
+        const monto = "$" + new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(t.monto);
         setNotificacion(`✓ ${t.tipo === "gasto" ? "Gasto" : "Ingreso"} registrado: ${monto} · ${t.categoria}`);
       } else if (creadas.length > 1) {
         const total = creadas.reduce((s, t) => s + t.monto, 0);
-        const fmt = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(total);
+        const fmt = "$" + new Intl.NumberFormat("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total);
         setNotificacion(`✓ ${creadas.length} movimientos registrados · ${fmt}`);
       }
     } catch {
