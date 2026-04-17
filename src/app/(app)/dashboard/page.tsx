@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { obtenerTransacciones, calcularResumen, formatearMonto } from "@/lib/transacciones";
 import { calcularProyeccion } from "@/lib/proyeccion";
@@ -61,7 +61,7 @@ export default function DashboardPage() {
   const [insightCargando, setInsightCargando] = useState(false);
   const [mesOffset, setMesOffset] = useState(0); // 0 = este mes, -1 = mes anterior, etc.
 
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -79,7 +79,8 @@ export default function DashboardPage() {
     } finally {
       setCargando(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cargarInsight = async (datos: typeof transacciones) => {
     const cacheKey = "lani_insight_fecha";
@@ -127,7 +128,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    cargar();
+    void cargar();
     registrarServiceWorker();
     if ("Notification" in window && Notification.permission === "default") {
       setTimeout(() => setMostrarBannerNotif(true), 5000);
@@ -135,36 +136,45 @@ export default function DashboardPage() {
   }, []);
 
   // ── Periodo activo ────────────────────────────────────────────────
-  const quinc = getQuincenaActual();
+  const quinc = useMemo(() => getQuincenaActual(), []);
   const hoyDate = new Date();
 
   // Mes seleccionado según offset (0 = este mes, -1 = mes anterior, etc.)
-  const mesSeleccionado = new Date(hoyDate.getFullYear(), hoyDate.getMonth() + mesOffset, 1);
-  const inicioMesSel = mesSeleccionado;
-  const finMesSel = new Date(mesSeleccionado.getFullYear(), mesSeleccionado.getMonth() + 1, 0);
+  const { mesSeleccionado, inicioMesSel, finMesSel } = useMemo(() => {
+    const sel = new Date(hoyDate.getFullYear(), hoyDate.getMonth() + mesOffset, 1);
+    return {
+      mesSeleccionado: sel,
+      inicioMesSel: sel,
+      finMesSel: new Date(sel.getFullYear(), sel.getMonth() + 1, 0),
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mesOffset]);
 
-  const txsMesActual = transacciones.filter((t) => {
+  const txsMesActual = useMemo(() => transacciones.filter((t) => {
     const f = new Date(t.fecha + "T12:00:00");
     return f >= inicioMesSel && f <= finMesSel;
-  });
-  const txsVista = modo === "quincena" && mesOffset === 0
-    ? filtrarPorQuincena(transacciones, quinc)
-    : txsMesActual;
+  }), [transacciones, inicioMesSel, finMesSel]);
 
-  const { ingresos, gastos, balance } = calcularResumen(txsVista);
+  const txsVista = useMemo(() =>
+    modo === "quincena" && mesOffset === 0
+      ? filtrarPorQuincena(transacciones, quinc)
+      : txsMesActual,
+  [modo, mesOffset, transacciones, quinc, txsMesActual]);
+
+  const { ingresos, gastos, balance } = useMemo(() => calcularResumen(txsVista), [txsVista]);
   const spendingPct = ingresos > 0 ? Math.min((gastos / ingresos) * 100, 100) : 0;
   const spendingColor = spendingPct >= 90 ? "var(--danger)" : spendingPct >= 70 ? "var(--warning)" : "var(--gold)";
 
-  // Proyección solo para el mes/quincena actual
-  const proyeccionMes = calcularProyeccion(transacciones);
-  const proyeccionQ = calcularProyeccionQuincena(transacciones, quinc);
+  // Proyección solo para el mes/quincena actual (O(n) — solo recalcular cuando cambian las txs)
+  const proyeccionMes = useMemo(() => calcularProyeccion(transacciones), [transacciones]);
+  const proyeccionQ = useMemo(() => calcularProyeccionQuincena(transacciones, quinc), [transacciones, quinc]);
 
-  const recurrentes = detectarRecurrentes(transacciones);
-  const totalSuscripciones = totalRecurrentes(recurrentes);
+  // detectarRecurrentes es O(n²) — memoizar para que no corra en cada render
+  const recurrentes = useMemo(() => detectarRecurrentes(transacciones), [transacciones]);
+  const totalSuscripciones = useMemo(() => totalRecurrentes(recurrentes), [recurrentes]);
 
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
-  const hoy = new Date();
   const diaFinMes = finMesSel.getDate();
   const mesCorto = mesSeleccionado.toLocaleString("es-MX", { month: "short" });
   const periodoLabel = modo === "quincena" && mesOffset === 0
@@ -172,13 +182,13 @@ export default function DashboardPage() {
     : mesSeleccionado.toLocaleString("es-MX", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
 
   // Lista filtrada por el mes seleccionado
-  const listaBase = txsMesActual.filter((t) =>
+  const listaBase = useMemo(() => txsMesActual.filter((t) =>
     filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
-  );
+  ), [txsMesActual, filtro]);
   const lista = listaBase.slice(0, paginaLista);
   const hayMas = listaBase.length > paginaLista;
 
-  const grupos = agruparPorFecha(lista);
+  const grupos = useMemo(() => agruparPorFecha(lista), [lista]);
 
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)" }}>

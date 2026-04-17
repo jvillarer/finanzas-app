@@ -103,18 +103,25 @@ export default function PerfilPage() {
   const guardar = async () => {
     setGuardando(true);
     const supabase = createClient();
+    // Obtener el usuario primero (necesario para el upsert del perfil)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setGuardando(false); return; }
+
+    const edadNum = Number(edad) || 0;
     const metadata = {
-      nombre_completo: nombre, edad: Number(edad), sexo, ciudad, estado,
+      nombre_completo: nombre, edad: edadNum, sexo, ciudad, estado,
       ocupacion, ingreso_mensual: ingresoRango, objetivo_financiero: objetivo,
     };
-    await supabase.auth.updateUser({ data: metadata });
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("perfiles").upsert({
-        id: user.id, nombre_completo: nombre, edad: Number(edad), sexo, ciudad, estado,
+
+    // Actualizar auth metadata y tabla perfiles en paralelo
+    await Promise.all([
+      supabase.auth.updateUser({ data: metadata }),
+      supabase.from("perfiles").upsert({
+        id: user.id, nombre_completo: nombre, edad: edadNum, sexo, ciudad, estado,
         ocupacion, ingreso_mensual_rango: ingresoRango, objetivo_financiero: objetivo,
-      });
-    }
+      }),
+    ]);
+
     setIniciales(nombre ? nombre.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase() : "?");
     setGuardando(false);
     setEditando(false);

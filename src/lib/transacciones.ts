@@ -1,11 +1,18 @@
 import { createClient, Transaccion } from "./supabase";
 
+// Formateador en módulo para no crear instancias en cada llamada
+const formateador = new Intl.NumberFormat("es-MX", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 export async function obtenerTransacciones(): Promise<Transaccion[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("transacciones")
-    .select("*")
-    .order("fecha", { ascending: false });
+    .select("id, monto, descripcion, categoria, tipo, fecha")
+    .order("fecha", { ascending: false })
+    .limit(500); // Evita cargar historiales masivos; 500 txs cubre ~2 años de uso activo
 
   if (error) throw error;
   return data ?? [];
@@ -46,8 +53,5 @@ export function calcularResumen(transacciones: Transaccion[]) {
 }
 
 export function formatearMonto(monto: number): string {
-  return "$" + new Intl.NumberFormat("es-MX", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(monto);
+  return "$" + formateador.format(monto);
 }

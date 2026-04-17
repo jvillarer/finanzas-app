@@ -190,11 +190,22 @@ interface ImagenRequest {
   mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
 }
 
+// Límites de seguridad
+const MAX_MENSAJES = 30;          // máximo de turnos enviados a Claude
+const MAX_MEMORIA_CHARS = 2_000;  // memoria del cliente, truncada
+const MAX_IMG_B64_CHARS = 5_200_000; // ~4 MB de imagen en base64
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerSupabase();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response("No autorizado", { status: 401 });
+
+    // Validar tamaño del body antes de parsear (Content-Length como heurística rápida)
+    const contentLength = Number(req.headers.get("content-length") ?? 0);
+    if (contentLength > 10_000_000) {
+      return new Response("Payload demasiado grande", { status: 413 });
+    }
 
     const { mensajes, incluirContexto, imagen, memoriaUsuario } = await req.json() as {
       mensajes: { role: string; content: string }[];
@@ -202,6 +213,11 @@ export async function POST(req: NextRequest) {
       imagen?: ImagenRequest;
       memoriaUsuario?: string;
     };
+
+    // Validar imagen antes de procesarla
+    if (imagen && typeof imagen.base64 === "string" && imagen.base64.length > MAX_IMG_B64_CHARS) {
+      return new Response("Imagen demasiado grande (máx 4 MB)", { status: 413 });
+    }
 
     // Contexto de transacciones recientes (incluye IDs para editar/eliminar)
     let contextoTransacciones = "";
@@ -233,8 +249,12 @@ export async function POST(req: NextRequest) {
     const hoy = new Date().toISOString().split("T")[0];
 
     // Memoria persistente de sesiones anteriores (enviada por el cliente)
-    const seccionMemoria = memoriaUsuario
-      ? `\n\n--- MEMORIA DE SESIONES ANTERIORES ---\n${memoriaUsuario}\n---`
+    // Se trunca y se limpian separadores para evitar inyección de prompt
+    const memoriaSegura = memoriaUsuario
+      ? memoriaUsuario.slice(0, MAX_MEMORIA_CHARS).replace(/---/g, "- -")
+      : null;
+    const seccionMemoria = memoriaSegura
+      ? `\n\n--- MEMORIA DE SESIONES ANTERIORES ---\n${memoriaSegura}\n---`
       : "";
 
     const saludo = nombreUsuario ? `\nEl nombre del usuario es ${nombreUsuario}.` : "";
@@ -242,8 +262,9 @@ export async function POST(req: NextRequest) {
     const sistemaFinal = PROMPT_SISTEMA + saludo + seccionMemoria + contextoTransacciones + `\n\nFecha de hoy: ${hoy}`;
 
     // Construir mensajes para la API — si hay imagen, el último mensaje la incluye
+    // Se limita el historial para evitar contextos enormes y costos elevados
     type MensajeAPI = { role: string; content: string | Anthropic.ContentBlockParam[] };
-    const mensajesAPI: MensajeAPI[] = [...mensajes];
+    const mensajesAPI: MensajeAPI[] = [...mensajes.slice(-MAX_MENSAJES)];
 
     if (imagen && mensajesAPI.length > 0) {
       const ultimoMensaje = mensajesAPI[mensajesAPI.length - 1];
