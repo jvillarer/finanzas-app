@@ -172,7 +172,7 @@ function ModoVoz({
 
 const MENSAJE_BIENVENIDA: Mensaje = {
   rol: "assistant",
-  contenido: "¡Hola! 🐑 Soy Lani, tu asistente financiera. Dime tus gastos e ingresos y los registro al momento. También puedo **leer fotos de tickets**.\n\n¿En qué te ayudo?",
+  contenido: "¡Qué onda! 🐑 Soy Lani. Cuéntame tus gastos e ingresos y los anoto al momento. También puedo leer fotos de tickets si me mandas una.\n\n¿Qué pasó hoy?",
 };
 
 const STORAGE_KEY = "lani_chat_mensajes";
