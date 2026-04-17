@@ -10,7 +10,7 @@ export async function obtenerTransacciones(): Promise<Transaccion[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("transacciones")
-    .select("id, monto, descripcion, categoria, tipo, fecha")
+    .select("id, monto, descripcion, categoria, tipo, fecha, usuario_id, creado_en")
     .order("fecha", { ascending: false })
     .limit(500); // Evita cargar historiales masivos; 500 txs cubre ~2 años de uso activo
 
