@@ -6,41 +6,49 @@ import { usePathname } from "next/navigation";
 const TABS = [
   {
     href: "/dashboard",
+    // Casa con techo redondeado y ventanita
     icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 1.8 : 1.4} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-        <path d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+        <path d="M3 10.5L12 3l9 7.5" />
+        <path d="M5 8.5V20a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1V8.5" />
       </svg>
     ),
   },
   {
     href: "/metas",
+    // Bandera de meta (más aspiracional que target)
     icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 1.8 : 1.4} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-        <circle cx="12" cy="12" r="9" />
-        <circle cx="12" cy="12" r="4" />
-        <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+        <path d="M5 3v18" />
+        <path d="M5 5h13l-3.5 4L18 13H5" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
       </svg>
     ),
   },
   {
     href: "/presupuestos",
+    // Cartera / wallet
     icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 1.8 : 1.4} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-        <path d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+        <rect x="2" y="7" width="20" height="14" rx="2" />
+        <path d="M16 14a1 1 0 100-2 1 1 0 000 2z" fill="currentColor" stroke="none" />
+        <path d="M6 7V5a2 2 0 012-2h8a2 2 0 012 2v2" />
       </svg>
     ),
   },
   {
     href: "/chat",
+    // Lani 🐑 — se queda, es la identidad de la app
     icon: (active: boolean) => (
-      <span style={{ fontSize: 20, lineHeight: 1, opacity: active ? 1 : 0.28 }}>🐑</span>
+      <span style={{ fontSize: 20, lineHeight: 1, opacity: active ? 1 : 0.3 }}>🐑</span>
     ),
   },
   {
     href: "/estadisticas",
+    // Línea de tendencia (más financiero que barras)
     icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 1.8 : 1.4} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-        <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+        <polyline points="3 17 8 11 13 14 21 6" />
+        <polyline points="17 6 21 6 21 10" />
       </svg>
     ),
   },

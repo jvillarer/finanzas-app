@@ -9,6 +9,13 @@ const OCUPACIONES = ["Empleado", "Independiente / Freelance", "Empresario", "Est
 const INGRESOS = ["Menos de $10k", "$10k–$20k", "$20k–$40k", "$40k–$80k", "Más de $80k"];
 const OBJETIVOS = ["Ahorrar más", "Salir de deudas", "Controlar mis gastos", "Planear un proyecto", "Invertir", "Solo quiero ver mis finanzas"];
 const SEXOS = ["Hombre", "Mujer"];
+const ESTADOS_MX = [
+  "Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua",
+  "Ciudad de México","Coahuila","Colima","Durango","Estado de México","Guanajuato","Guerrero",
+  "Hidalgo","Jalisco","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla",
+  "Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas",
+  "Tlaxcala","Veracruz","Yucatán","Zacatecas",
+];
 
 function ChipSelect({ opciones, valor, onSelect }: { opciones: string[]; valor: string; onSelect: (v: string) => void }) {
   return (
@@ -64,6 +71,7 @@ export default function PerfilPage() {
   const [edad, setEdad] = useState("");
   const [sexo, setSexo] = useState("");
   const [ciudad, setCiudad] = useState("");
+  const [estado, setEstado] = useState("");
   const [ocupacion, setOcupacion] = useState("");
   const [ingresoRango, setIngresoRango] = useState("");
   const [objetivo, setObjetivo] = useState("");
@@ -80,6 +88,7 @@ export default function PerfilPage() {
         setEdad(m.edad ? String(m.edad) : "");
         setSexo(m.sexo || "");
         setCiudad(m.ciudad || "");
+        setEstado(m.estado || "");
         setOcupacion(m.ocupacion || "");
         setIngresoRango(m.ingreso_mensual || "");
         setObjetivo(m.objetivo_financiero || "");
@@ -95,14 +104,14 @@ export default function PerfilPage() {
     setGuardando(true);
     const supabase = createClient();
     const metadata = {
-      nombre_completo: nombre, edad: Number(edad), sexo, ciudad,
+      nombre_completo: nombre, edad: Number(edad), sexo, ciudad, estado,
       ocupacion, ingreso_mensual: ingresoRango, objetivo_financiero: objetivo,
     };
     await supabase.auth.updateUser({ data: metadata });
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase.from("perfiles").upsert({
-        id: user.id, nombre_completo: nombre, edad: Number(edad), sexo, ciudad,
+        id: user.id, nombre_completo: nombre, edad: Number(edad), sexo, ciudad, estado,
         ocupacion, ingreso_mensual_rango: ingresoRango, objetivo_financiero: objetivo,
       });
     }
@@ -227,6 +236,7 @@ export default function PerfilPage() {
             <Fila label="Edad" valor={edad ? `${edad} años` : "—"} />
             <Fila label="Sexo" valor={sexo || "—"} />
             <Fila label="Ciudad" valor={ciudad || "—"} />
+            <Fila label="Estado" valor={estado || "—"} />
             <Fila label="Ocupación" valor={ocupacion || "—"} />
             <Fila label="Ingreso mensual" valor={ingresoRango || "—"} />
             <Fila label="Objetivo" valor={objetivo || "—"} />
@@ -255,9 +265,20 @@ export default function PerfilPage() {
 
           <Campo label="Ciudad">
             <input type="text" value={ciudad} onChange={(e) => setCiudad(e.target.value)}
-              placeholder="Ej. CDMX, Monterrey..."
+              placeholder="Ej. Monterrey, Guadalajara..."
               className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none"
               style={inputStyle} />
+          </Campo>
+
+          <Campo label="Estado">
+            <select
+              value={estado} onChange={(e) => setEstado(e.target.value)}
+              className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none"
+              style={{ ...inputStyle, appearance: "none", WebkitAppearance: "none" }}
+            >
+              <option value="">Selecciona tu estado</option>
+              {ESTADOS_MX.map((e) => <option key={e} value={e}>{e}</option>)}
+            </select>
           </Campo>
 
           <Campo label="Ocupación"><ChipSelect opciones={OCUPACIONES} valor={ocupacion} onSelect={setOcupacion} /></Campo>

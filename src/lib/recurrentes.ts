@@ -90,7 +90,16 @@ export function detectarRecurrentes(transacciones: Transaccion[]): PagoRecurrent
     const mesesUnicos = new Set(txs.map((t) => t.fecha.slice(0, 7)));
     if (mesesUnicos.size < 2) continue;
 
-    const montoPromedio = txs.reduce((s, t) => s + Number(t.monto), 0) / txs.length;
+    const montos = txs.map((t) => Number(t.monto));
+    const montoPromedio = montos.reduce((s, m) => s + m, 0) / montos.length;
+
+    // Coeficiente de variación: si los montos varían más del 30% no es suscripción
+    // (Farmacia San Pablo: $89, $347, $156 → CV alto → no es suscripción)
+    // (Netflix: $219, $219, $219 → CV bajo → sí es suscripción)
+    const varianza = montos.reduce((s, m) => s + Math.pow(m - montoPromedio, 2), 0) / montos.length;
+    const cv = montoPromedio > 0 ? Math.sqrt(varianza) / montoPromedio : 1;
+    if (cv > 0.30) continue;
+
     const ordenadas = [...txs].sort((a, b) => b.fecha.localeCompare(a.fecha));
     const ultimaFecha = ordenadas[0].fecha;
     const descripcion = ordenadas[0].descripcion.trim();

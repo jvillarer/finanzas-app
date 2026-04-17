@@ -59,6 +59,7 @@ export default function DashboardPage() {
   const [paginaLista, setPaginaLista] = useState(30);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightCargando, setInsightCargando] = useState(false);
+  const [mesOffset, setMesOffset] = useState(0); // 0 = este mes, -1 = mes anterior, etc.
 
   const cargar = async () => {
     try {
@@ -136,11 +137,17 @@ export default function DashboardPage() {
   // ── Periodo activo ────────────────────────────────────────────────
   const quinc = getQuincenaActual();
   const hoyDate = new Date();
-  const inicioMesActual = new Date(hoyDate.getFullYear(), hoyDate.getMonth(), 1);
-  const txsMesActual = transacciones.filter(
-    (t) => new Date(t.fecha + "T12:00:00") >= inicioMesActual
-  );
-  const txsVista = modo === "quincena"
+
+  // Mes seleccionado según offset (0 = este mes, -1 = mes anterior, etc.)
+  const mesSeleccionado = new Date(hoyDate.getFullYear(), hoyDate.getMonth() + mesOffset, 1);
+  const inicioMesSel = mesSeleccionado;
+  const finMesSel = new Date(mesSeleccionado.getFullYear(), mesSeleccionado.getMonth() + 1, 0);
+
+  const txsMesActual = transacciones.filter((t) => {
+    const f = new Date(t.fecha + "T12:00:00");
+    return f >= inicioMesSel && f <= finMesSel;
+  });
+  const txsVista = modo === "quincena" && mesOffset === 0
     ? filtrarPorQuincena(transacciones, quinc)
     : txsMesActual;
 
@@ -148,7 +155,7 @@ export default function DashboardPage() {
   const spendingPct = ingresos > 0 ? Math.min((gastos / ingresos) * 100, 100) : 0;
   const spendingColor = spendingPct >= 90 ? "var(--danger)" : spendingPct >= 70 ? "var(--warning)" : "var(--gold)";
 
-  // Proyección según modo
+  // Proyección solo para el mes/quincena actual
   const proyeccionMes = calcularProyeccion(transacciones);
   const proyeccionQ = calcularProyeccionQuincena(transacciones, quinc);
 
@@ -158,13 +165,14 @@ export default function DashboardPage() {
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
   const hoy = new Date();
-  const diaFinMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
-  const mesCorto = hoy.toLocaleString("es-MX", { month: "short" });
-  const periodoLabel = modo === "quincena"
+  const diaFinMes = finMesSel.getDate();
+  const mesCorto = mesSeleccionado.toLocaleString("es-MX", { month: "short" });
+  const periodoLabel = modo === "quincena" && mesOffset === 0
     ? quinc.label
-    : hoy.toLocaleString("es-MX", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
+    : mesSeleccionado.toLocaleString("es-MX", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
 
-  const listaBase = transacciones.filter((t) =>
+  // Lista filtrada por el mes seleccionado
+  const listaBase = txsMesActual.filter((t) =>
     filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
   );
   const lista = listaBase.slice(0, paginaLista);
@@ -218,29 +226,52 @@ export default function DashboardPage() {
       {/* ── BALANCE HERO ── */}
       <div style={{ padding: "20px 20px 16px" }}>
 
-        {/* Periodo + toggle */}
+        {/* Periodo + navegación + toggle */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-3)" }}>
-            {periodoLabel}
-          </p>
-          <div style={{ display: "flex", gap: 3 }}>
-            {(["mes", "quincena"] as Modo[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => setModo(m)}
-                style={{
-                  fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
-                  padding: "3px 9px", borderRadius: 99,
-                  backgroundColor: modo === m ? "var(--surface-3)" : "transparent",
-                  color: modo === m ? "var(--text-1)" : "var(--text-3)",
-                  border: modo === m ? "1px solid var(--border)" : "1px solid transparent",
-                  cursor: "pointer", transition: "all 0.15s",
-                }}
-              >
-                {m === "mes" ? "Mes" : "Quinc."}
-              </button>
-            ))}
+          {/* Flechas de mes */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button
+              onClick={() => { setMesOffset((o) => o - 1); setPaginaLista(30); }}
+              style={{ width: 24, height: 24, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            >
+              <svg viewBox="0 0 12 12" fill="none" stroke="var(--text-3)" strokeWidth={1.8} strokeLinecap="round" style={{ width: 10, height: 10 }}>
+                <path d="M7.5 9L4.5 6l3-3" />
+              </svg>
+            </button>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: mesOffset === 0 ? "var(--gold)" : "var(--text-2)" }}>
+              {periodoLabel}
+            </p>
+            <button
+              onClick={() => { setMesOffset((o) => Math.min(0, o + 1)); setPaginaLista(30); }}
+              disabled={mesOffset === 0}
+              style={{ width: 24, height: 24, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: mesOffset === 0 ? "default" : "pointer", opacity: mesOffset === 0 ? 0.25 : 1 }}
+            >
+              <svg viewBox="0 0 12 12" fill="none" stroke="var(--text-3)" strokeWidth={1.8} strokeLinecap="round" style={{ width: 10, height: 10 }}>
+                <path d="M4.5 9L7.5 6l-3-3" />
+              </svg>
+            </button>
           </div>
+          {/* Toggle mes/quincena solo en mes actual */}
+          {mesOffset === 0 && (
+            <div style={{ display: "flex", gap: 3 }}>
+              {(["mes", "quincena"] as Modo[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setModo(m)}
+                  style={{
+                    fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
+                    padding: "3px 9px", borderRadius: 99,
+                    backgroundColor: modo === m ? "var(--surface-3)" : "transparent",
+                    color: modo === m ? "var(--text-1)" : "var(--text-3)",
+                    border: modo === m ? "1px solid var(--border)" : "1px solid transparent",
+                    cursor: "pointer", transition: "all 0.15s",
+                  }}
+                >
+                  {m === "mes" ? "Mes" : "Quinc."}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {cargando ? <Skel w="200px" h="52px" r="10px" /> : (
