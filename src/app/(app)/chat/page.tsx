@@ -228,7 +228,7 @@ function calcularNudge(): NudgeDatos | null {
       return {
         emoji: "📊",
         titulo: `Llevas ${diasSinActividad} días sin registrar`,
-        subtitulo: "¿Qué has gastado? Dime algo corto tipo "uber 85" o "comida 320".",
+        subtitulo: "¿Qué has gastado? Dime algo corto tipo 'uber 85' o 'comida 320'.",
         sugerencia: diasSinActividad >= 5 ? `¿Qué gasté estos ${diasSinActividad} días?` : "¿Qué gasté desde el " + new Date(Date.now() - diasSinActividad * 86400000).toLocaleDateString("es-MX", { weekday: "long" }) + "?",
       };
     }
