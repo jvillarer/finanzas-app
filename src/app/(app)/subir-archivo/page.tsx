@@ -150,6 +150,8 @@ export default function SubirArchivoPage() {
         if (error) throw error;
       }
       setTotalImportadas(filasSeleccionadas.length);
+      // Guardar fecha de último PDF importado para recordatorio quincenal
+      try { localStorage.setItem("lani_ultimo_pdf", new Date().toISOString()); } catch { /* ok */ }
       setEstado("exito");
     } catch (e: unknown) {
       setMensajeError(e instanceof Error ? e.message : "Error al guardar");
@@ -261,11 +263,14 @@ export default function SubirArchivoPage() {
           ← Volver
         </button>
         <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 4 }}>
-          Importar
+          Ritual quincenal
         </p>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
-          Estado de cuenta
+          Importa tu banco
         </h1>
+        <p style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4, lineHeight: 1.5 }}>
+          Sube tu estado de cuenta cada quincena y Lani hace el resto.
+        </p>
       </div>
 
       {/* Drop zone */}

@@ -1,22 +1,41 @@
 {
-  "name": "Finanzas App",
-  "short_name": "Finanzas",
-  "description": "Gestiona tus finanzas personales",
-  "start_url": "/",
+  "name": "Lani — Tu asistente financiera",
+  "short_name": "Lani",
+  "description": "Registra, analiza y controla tus finanzas hablando con Lani",
+  "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#534AB7",
-  "theme_color": "#534AB7",
+  "background_color": "#0c0c0e",
+  "theme_color": "#0c0c0e",
   "orientation": "portrait",
+  "categories": ["finance", "productivity"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Registrar gasto",
+      "short_name": "Registrar",
+      "description": "Dile a Lani tu gasto rápido",
+      "url": "/chat",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Importar estado de cuenta",
+      "short_name": "Importar",
+      "description": "Sube tu PDF quincenal",
+      "url": "/subir-archivo",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

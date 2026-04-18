@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { obtenerTransacciones, calcularResumen, formatearMonto } from "@/lib/transacciones";
+import { suscribirAPush, cancelarPush, tienePushActivo } from "@/lib/notificaciones";
 
 const OCUPACIONES = ["Empleado", "Independiente / Freelance", "Empresario", "Estudiante", "Ama/o de casa", "Otro"];
 const INGRESOS = ["Menos de $10k", "$10k–$20k", "$20k–$40k", "$40k–$80k", "Más de $80k"];
@@ -65,6 +66,9 @@ export default function PerfilPage() {
   const [borrandoDatos, setBorrandoDatos] = useState(false);
   const [confirmarBorrarDatos, setConfirmarBorrarDatos] = useState(false);
   const [datosBorrados, setDatosBorrados] = useState(false);
+  const [pushActivo, setPushActivo] = useState(false);
+  const [activandoPush, setActivandoPush] = useState(false);
+  const [soportaPush, setSoportaPush] = useState(false);
 
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
@@ -97,6 +101,10 @@ export default function PerfilPage() {
       }
       const txs = await obtenerTransacciones();
       setResumen(calcularResumen(txs));
+      // Verificar soporte y estado de push
+      const soporte = "serviceWorker" in navigator && "PushManager" in window;
+      setSoportaPush(soporte);
+      if (soporte) setPushActivo(await tienePushActivo());
     })();
   }, []);
 
@@ -186,6 +194,21 @@ export default function PerfilPage() {
     }
   };
 
+  const togglePush = async () => {
+    setActivandoPush(true);
+    try {
+      if (pushActivo) {
+        await cancelarPush();
+        setPushActivo(false);
+      } else {
+        const ok = await suscribirAPush();
+        setPushActivo(ok);
+      }
+    } finally {
+      setActivandoPush(false);
+    }
+  };
+
   const inputStyle = {
     backgroundColor: "var(--surface-2)",
     border: "1px solid var(--border)",
@@ -226,6 +249,31 @@ export default function PerfilPage() {
           </div>
         ))}
       </div>
+
+      {/* Notificaciones push */}
+      {soportaPush && (
+        <div className="rounded-2xl px-5 py-4 mb-4 flex items-center justify-between"
+          style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div>
+            <p className="text-sm font-bold" style={{ color: "var(--text-1)" }}>Notificaciones de Lani</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
+              {pushActivo ? "Activas — recibirás recordatorios quincenales" : "Recibe recordatorios y alertas de presupuesto"}
+            </p>
+          </div>
+          <button
+            onClick={togglePush}
+            disabled={activandoPush}
+            className="relative shrink-0 transition-all active:scale-95 disabled:opacity-40"
+            style={{ width: 48, height: 28 }}
+            aria-label={pushActivo ? "Desactivar notificaciones" : "Activar notificaciones"}
+          >
+            <div className="absolute inset-0 rounded-full transition-colors duration-200"
+              style={{ backgroundColor: pushActivo ? "var(--gold)" : "var(--surface-2)", border: "1px solid var(--border)" }} />
+            <div className="absolute top-0.5 rounded-full transition-all duration-200 bg-white"
+              style={{ width: 24, height: 24, left: pushActivo ? 22 : 2, boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+          </button>
+        </div>
+      )}
 
       {/* Perfil */}
       {!editando ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
 interface Mensaje {
@@ -177,6 +178,164 @@ const MENSAJE_BIENVENIDA: Mensaje = {
 
 const STORAGE_KEY = "lani_chat_mensajes";
 const MEMORIA_KEY = "lani_memoria";
+const CLAVE_ULTIMO_PDF = "lani_ultimo_pdf";
+const CLAVE_ULTIMA_ACTIVIDAD = "lani_ultima_actividad";
+
+// ── Nudge contextual: sugiere acciones según contexto temporal ──
+interface NudgeDatos {
+  emoji: string;
+  titulo: string;
+  subtitulo: string;
+  accion?: string;
+  accionLabel?: string;
+  sugerencia?: string;
+}
+
+function calcularNudge(): NudgeDatos | null {
+  try {
+    const ahora = new Date();
+    const hora = ahora.getHours();
+    const diaSemana = ahora.getDay(); // 0=Dom, 6=Sáb
+    const dia = ahora.getDate();
+    const ultimoDia = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).getDate();
+    const diasRestantes = ultimoDia - dia;
+
+    // 1. Recordatorio quincenal de PDF
+    const ultimoPDF = localStorage.getItem(CLAVE_ULTIMO_PDF);
+    const diasDesdePDF = ultimoPDF
+      ? Math.floor((ahora.getTime() - new Date(ultimoPDF).getTime()) / 86400000)
+      : 999;
+
+    if (diasDesdePDF >= 15) {
+      return {
+        emoji: "📄",
+        titulo: diasDesdePDF >= 30 ? "¿Cuándo fue la última vez que importaste tu banco?" : "Ya es quincena de tu estado de cuenta",
+        subtitulo: diasDesdePDF < 999
+          ? `Llevas ${diasDesdePDF} días sin importar. Lani lo categoriza en segundos.`
+          : "Conecta tu banco de una vez. Lani extrae y categoriza todo automáticamente.",
+        accion: "/subir-archivo",
+        accionLabel: "Subir estado de cuenta",
+      };
+    }
+
+    // 2. Inactividad prolongada
+    const ultimaActividad = localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD);
+    const diasSinActividad = ultimaActividad
+      ? Math.floor((ahora.getTime() - new Date(ultimaActividad).getTime()) / 86400000)
+      : 0;
+
+    if (diasSinActividad >= 3) {
+      return {
+        emoji: "📊",
+        titulo: `Llevas ${diasSinActividad} días sin registrar`,
+        subtitulo: "¿Qué has gastado? Dime algo corto tipo "uber 85" o "comida 320".",
+        sugerencia: diasSinActividad >= 5 ? `¿Qué gasté estos ${diasSinActividad} días?` : "¿Qué gasté desde el " + new Date(Date.now() - diasSinActividad * 86400000).toLocaleDateString("es-MX", { weekday: "long" }) + "?",
+      };
+    }
+
+    // 3. Contextual por día y hora
+    // Lunes por la mañana → revisión del fin de semana
+    if (diaSemana === 1 && hora < 14) {
+      return {
+        emoji: "☕",
+        titulo: "¿Cómo quedó el fin de semana?",
+        subtitulo: "Cuéntame qué gastaste. Puedes decir algo como "resto sábado 800".",
+        sugerencia: "¿Cuánto gasté el fin de semana?",
+      };
+    }
+
+    // Hora de comida
+    if (hora >= 12 && hora < 15) {
+      return {
+        emoji: "🍽",
+        titulo: "¿Ya comiste? ¿Cuánto te salió?",
+        subtitulo: "Di algo como "comida 180" y lo anoto al tiro.",
+        sugerencia: "comida ",
+      };
+    }
+
+    // Noche → resumen del día
+    if (hora >= 20) {
+      return {
+        emoji: "🌙",
+        titulo: "¿Cómo te fue hoy en gastos?",
+        subtitulo: "Buen momento para anotar lo de hoy antes de que se te olvide.",
+        sugerencia: "¿Cuánto gasté hoy?",
+      };
+    }
+
+    // Fin de mes
+    if (diasRestantes <= 3) {
+      return {
+        emoji: "📅",
+        titulo: `Quedan ${diasRestantes === 0 ? "pocas horas" : diasRestantes + " días"} del mes`,
+        subtitulo: "¿Todo anotado? Revisemos cómo quedó el mes.",
+        sugerencia: "¿Cómo quedó el mes?",
+      };
+    }
+
+    // Quincena (día 15 o primer día del mes)
+    if (dia === 15 || dia === 1) {
+      return {
+        emoji: "💰",
+        titulo: dia === 15 ? "¡Mitad de mes!" : "¡Primer día del mes!",
+        subtitulo: "¿Ya te cayó la quincena? ¿Cómo vas con el presupuesto?",
+        sugerencia: dia === 15 ? "¿Cómo voy a la mitad del mes?" : "¿Cuánto gasté el mes pasado?",
+      };
+    }
+  } catch { /* ok */ }
+
+  return null;
+}
+
+// ── Componente de nudge contextual ──
+function NudgeContextual({ nudge, onEnviar, onNavegar }: {
+  nudge: NudgeDatos;
+  onEnviar: (texto: string) => void;
+  onNavegar: (url: string) => void;
+}) {
+  return (
+    <div
+      className="mx-2 mb-3 rounded-2xl overflow-hidden"
+      style={{ border: "1px solid rgba(0,0,0,0.07)", backgroundColor: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
+    >
+      <div className="px-4 pt-3.5 pb-3">
+        <div className="flex items-start gap-3">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0"
+            style={{ backgroundColor: "#f5f3ee" }}
+          >
+            {nudge.emoji}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-gray-900 leading-snug">{nudge.titulo}</p>
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "#6b7280" }}>{nudge.subtitulo}</p>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-3">
+          {nudge.accion && (
+            <button
+              onClick={() => onNavegar(nudge.accion!)}
+              className="flex-1 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]"
+              style={{ backgroundColor: "#0c0c0e", color: "#fff" }}
+            >
+              {nudge.accionLabel || "Ver"}
+            </button>
+          )}
+          {nudge.sugerencia && (
+            <button
+              onClick={() => onEnviar(nudge.sugerencia!)}
+              className="flex-1 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]"
+              style={{ backgroundColor: nudge.accion ? "#f3f4f6" : "#0c0c0e", color: nudge.accion ? "#374151" : "#fff" }}
+            >
+              {nudge.sugerencia.length > 28 ? nudge.sugerencia.slice(0, 26) + "…" : nudge.sugerencia}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function cargarMensajes(): Mensaje[] {
   try {
@@ -204,10 +363,13 @@ function actualizarMemoria(transacciones: TransaccionCreada[]) {
     });
     const memoria = [...lineasAnteriores, ...nuevasLineas].join("\n");
     localStorage.setItem(MEMORIA_KEY, memoria);
+    // Actualizar timestamp de última actividad
+    localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, new Date().toISOString());
   } catch { /* ok */ }
 }
 
 export default function ChatPage() {
+  const router = useRouter();
   const [mensajes, setMensajes] = useState<Mensaje[]>([MENSAJE_BIENVENIDA]);
   const [input, setInput] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -216,6 +378,7 @@ export default function ChatPage() {
   const [imagenPendiente, setImagenPendiente] = useState<{
     base64: string; mediaType: string; previewUrl: string;
   } | null>(null);
+  const [nudge, setNudge] = useState<NudgeDatos | null>(null);
   const memoriaRef = useRef<string>("");
 
   // Voz
@@ -241,6 +404,8 @@ export default function ChatPage() {
     // Cargar conversación y memoria guardadas al montar
     setMensajes(cargarMensajes());
     memoriaRef.current = cargarMemoria();
+    // Calcular nudge contextual
+    setNudge(calcularNudge());
   }, []);
 
   // Mantener refs sincronizados
@@ -657,6 +822,15 @@ export default function ChatPage() {
 
         {mensajes.length === 1 && (
           <div className="pt-2">
+            {/* Nudge contextual — recordatorio de PDF o inactividad */}
+            {nudge && (
+              <NudgeContextual
+                nudge={nudge}
+                onEnviar={(texto) => { setNudge(null); enviar(texto); }}
+                onNavegar={(url) => router.push(url)}
+              />
+            )}
+
             <p className="text-xs mb-2 text-center" style={{ color: "#6b7280" }}>Prueba diciendo:</p>
             <div className="flex flex-wrap gap-2 justify-center">
               {SUGERENCIAS.map((s) => (

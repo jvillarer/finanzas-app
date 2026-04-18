@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/push/recordatorio",
+      "schedule": "0 16 * * 1,4"
+    }
+  ]
+}
