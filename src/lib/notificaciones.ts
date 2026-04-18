@@ -20,14 +20,6 @@ export async function pedirPermisoNotificaciones(): Promise<boolean> {
 
 // ── Push Subscription (Web Push API + VAPID) ────────────────────────────────
 
-// Convierte la clave VAPID pública de base64url a Uint8Array para el navegador
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  return Uint8Array.from(rawData, (c) => c.charCodeAt(0));
-}
-
 // Suscribe al usuario a push notifications y registra la suscripción en el servidor.
 // Retorna true si tuvo éxito, false si no hay permiso o el browser no lo soporta.
 export async function suscribirAPush(): Promise<boolean> {
@@ -52,10 +44,10 @@ export async function suscribirAPush(): Promise<boolean> {
       return true;
     }
 
-    // Crear nueva suscripción
+    // Crear nueva suscripción — applicationServerKey acepta string base64url directamente
     const suscripcion = await registro.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      applicationServerKey: vapidPublicKey,
     });
 
     await enviarSuscripcionAlServidor(suscripcion);
