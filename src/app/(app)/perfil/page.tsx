@@ -79,6 +79,7 @@ export default function PerfilPage() {
   const [ocupacion, setOcupacion] = useState("");
   const [ingresoRango, setIngresoRango] = useState("");
   const [objetivo, setObjetivo] = useState("");
+  const [telefonoWA, setTelefonoWA] = useState("");
   const [iniciales, setIniciales] = useState("?");
 
   useEffect(() => {
@@ -96,6 +97,9 @@ export default function PerfilPage() {
         setOcupacion(m.ocupacion || "");
         setIngresoRango(m.ingreso_mensual || "");
         setObjetivo(m.objetivo_financiero || "");
+        // WhatsApp — leer de tabla perfiles
+        const { data: perfil } = await supabase.from("perfiles").select("telefono_whatsapp").eq("id", user.id).single();
+        setTelefonoWA(perfil?.telefono_whatsapp || "");
         const n = m.nombre_completo || "";
         setIniciales(n ? n.split(" ").slice(0, 2).map((p: string) => p[0]).join("").toUpperCase() : "?");
       }
@@ -121,12 +125,16 @@ export default function PerfilPage() {
       ocupacion, ingreso_mensual: ingresoRango, objetivo_financiero: objetivo,
     };
 
+    // Normalizar teléfono: quitar espacios y asegurar formato internacional
+    const telLimpio = telefonoWA.replace(/\s+/g, "").replace(/^(\+?52)?/, "52").replace(/\D/g, "");
+
     // Actualizar auth metadata y tabla perfiles en paralelo
     await Promise.all([
       supabase.auth.updateUser({ data: metadata }),
       supabase.from("perfiles").upsert({
         id: user.id, nombre_completo: nombre, edad: edadNum, sexo, ciudad, estado,
         ocupacion, ingreso_mensual_rango: ingresoRango, objetivo_financiero: objetivo,
+        telefono_whatsapp: telLimpio || null,
       }),
     ]);
 
@@ -295,6 +303,7 @@ export default function PerfilPage() {
             <Fila label="Ocupación" valor={ocupacion || "—"} />
             <Fila label="Ingreso mensual" valor={ingresoRango || "—"} />
             <Fila label="Objetivo" valor={objetivo || "—"} />
+            <Fila label="WhatsApp" valor={telefonoWA ? `+52 ${telefonoWA.slice(-10)}` : "No vinculado"} />
           </div>
         </div>
       ) : (
@@ -339,6 +348,22 @@ export default function PerfilPage() {
           <Campo label="Ocupación"><ChipSelect opciones={OCUPACIONES} valor={ocupacion} onSelect={setOcupacion} /></Campo>
           <Campo label="Ingreso mensual"><ChipSelect opciones={INGRESOS} valor={ingresoRango} onSelect={setIngresoRango} /></Campo>
           <Campo label="Objetivo financiero"><ChipSelect opciones={OBJETIVOS} valor={objetivo} onSelect={setObjetivo} /></Campo>
+
+          <Campo label="WhatsApp">
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: "var(--text-3)" }}>🇲🇽 +52</span>
+              <input
+                type="tel" inputMode="numeric" value={telefonoWA}
+                onChange={(e) => setTelefonoWA(e.target.value)}
+                placeholder="10 dígitos"
+                className="w-full rounded-xl pl-16 pr-4 py-3 text-sm font-medium outline-none"
+                style={inputStyle}
+              />
+            </div>
+            <p className="text-[10px] mt-1.5" style={{ color: "var(--text-3)" }}>
+              Vincúlalo para hablar con Lani directo desde WhatsApp
+            </p>
+          </Campo>
 
           <div className="flex gap-2 pt-1">
             <button onClick={() => setEditando(false)}
