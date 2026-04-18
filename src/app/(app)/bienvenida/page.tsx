@@ -879,10 +879,141 @@ function PasoCategoriasStep({ onSiguiente, onSaltar, seleccionadas, setSeleccion
   );
 }
 
+// ─── Tipos para gastos fijos ──────────────────────────────────
+type GastoOtro = { nombre: string; monto: string };
+
+// FilaToggleMonto — toggle con input de monto inline al activarse
+function FilaToggleMonto({ nombre, desc, activo, monto, onToggle, onMonto, esUltima }: {
+  nombre: string; desc: string; activo: boolean; monto: string;
+  onToggle: () => void; onMonto: (v: string) => void; esUltima: boolean;
+}) {
+  return (
+    <div style={{ borderBottom: esUltima && !activo ? "none" : `0.5px solid ${C.divider}` }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: "100%", background: "transparent", border: "none",
+          padding: "14px 16px", cursor: "pointer", fontFamily: F.sans,
+          display: "flex", alignItems: "center", gap: 12, textAlign: "left",
+          borderBottom: activo ? `0.5px solid ${C.divider}` : "none",
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: C.text, letterSpacing: -0.1 }}>{nombre}</div>
+          {!activo && <div style={{ fontSize: 11.5, color: C.textFaint, marginTop: 2 }}>{desc}</div>}
+        </div>
+        <div style={{
+          width: 36, height: 22, borderRadius: 99,
+          background: activo ? C.text : "rgba(14,14,16,0.12)",
+          position: "relative", flexShrink: 0,
+          transition: "background 200ms ease",
+        }}>
+          <div style={{
+            position: "absolute", top: 2, left: activo ? 16 : 2,
+            width: 18, height: 18, borderRadius: 99, background: "#FFF",
+            boxShadow: "0 1px 2px rgba(14,14,16,0.15)",
+            transition: "left 220ms cubic-bezier(0.2,0.9,0.3,1)",
+          }} />
+        </div>
+      </button>
+
+      {activo && (
+        <div style={{
+          padding: "10px 16px 12px",
+          borderBottom: esUltima ? "none" : "none",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <div style={{ color: C.textFaint, fontSize: 15, fontWeight: 500, flexShrink: 0 }}>$</div>
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="Monto mensual"
+            value={monto}
+            onChange={e => onMonto(formatearNumero(e.target.value))}
+            style={{
+              flex: 1, height: 38, borderRadius: 8,
+              border: `0.5px solid ${C.line}`, background: C.surface2,
+              color: C.text, fontFamily: F.sans, fontSize: 15,
+              fontWeight: 500, padding: "0 12px",
+              outline: "none", letterSpacing: -0.3,
+              fontVariantNumeric: "tabular-nums",
+              boxSizing: "border-box" as const,
+            }}
+          />
+          <div style={{ fontFamily: F.mono, fontSize: 10, color: C.textFaint, letterSpacing: 0.5, flexShrink: 0 }}>/mes</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// FilaOtro — gasto personalizado con nombre + monto
+function FilaOtro({ index, nombre, monto, onNombre, onMonto, onEliminar, esUltima }: {
+  index: number; nombre: string; monto: string;
+  onNombre: (v: string) => void; onMonto: (v: string) => void;
+  onEliminar: () => void; esUltima: boolean;
+}) {
+  return (
+    <div style={{
+      padding: "12px 16px",
+      borderTop: `0.5px solid ${C.divider}`,
+      borderBottom: esUltima ? "none" : `0.5px solid ${C.divider}`,
+      display: "flex", flexDirection: "column", gap: 8,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <input
+          type="text"
+          placeholder={`Otro gasto ${index + 1}`}
+          value={nombre}
+          onChange={e => onNombre(e.target.value)}
+          style={{
+            flex: 1, height: 36, borderRadius: 8,
+            border: `0.5px solid ${C.line}`, background: C.surface2,
+            color: C.text, fontFamily: F.sans, fontSize: 13.5,
+            fontWeight: 500, padding: "0 12px",
+            outline: "none", letterSpacing: -0.2,
+            boxSizing: "border-box" as const,
+          }}
+        />
+        <button
+          onClick={onEliminar}
+          style={{
+            background: "none", border: "none", cursor: "pointer",
+            color: C.textFaint, padding: "4px 6px", fontSize: 18,
+            lineHeight: 1, borderRadius: 6, flexShrink: 0,
+          }}
+        >×</button>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ color: C.textFaint, fontSize: 15, fontWeight: 500, flexShrink: 0 }}>$</div>
+        <input
+          type="text"
+          inputMode="numeric"
+          placeholder="Monto mensual"
+          value={monto}
+          onChange={e => onMonto(formatearNumero(e.target.value))}
+          style={{
+            flex: 1, height: 36, borderRadius: 8,
+            border: `0.5px solid ${C.line}`, background: C.surface2,
+            color: C.text, fontFamily: F.sans, fontSize: 15,
+            fontWeight: 500, padding: "0 12px",
+            outline: "none", letterSpacing: -0.3,
+            fontVariantNumeric: "tabular-nums",
+            boxSizing: "border-box" as const,
+          }}
+        />
+        <div style={{ fontFamily: F.mono, fontSize: 10, color: C.textFaint, letterSpacing: 0.5, flexShrink: 0 }}>/mes</div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Paso 06: Gastos fijos ────────────────────────────────────
-function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionados }: {
+function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionados, montos, setMontos, otros, setOtros }: {
   onSiguiente: () => void; onSaltar: () => void;
   seleccionados: Set<string>; setSeleccionados: (s: Set<string>) => void;
+  montos: Record<string, string>; setMontos: (m: Record<string, string>) => void;
+  otros: GastoOtro[]; setOtros: (o: GastoOtro[]) => void;
 }) {
   const toggle = (id: string) => {
     haptico.seleccion();
@@ -891,6 +1022,35 @@ function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionado
     setSeleccionados(s);
   };
 
+  const setMonto = (id: string, valor: string) => {
+    setMontos({ ...montos, [id]: valor });
+  };
+
+  const agregarOtro = () => {
+    haptico.ligero();
+    setOtros([...otros, { nombre: "", monto: "" }]);
+  };
+
+  const actualizarOtro = (i: number, campo: "nombre" | "monto", valor: string) => {
+    const nueva = otros.map((o, idx) =>
+      idx === i ? { ...o, [campo]: campo === "monto" ? formatearNumero(valor) : valor } : o
+    );
+    setOtros(nueva);
+  };
+
+  const eliminarOtro = (i: number) => {
+    haptico.ligero();
+    setOtros(otros.filter((_, idx) => idx !== i));
+  };
+
+  // Total mensual calculado
+  const total = GASTOS_FIJOS_LISTA
+    .filter(g => seleccionados.has(g.id))
+    .reduce((s, g) => s + (parseFloat((montos[g.id] || "").replace(/,/g, "")) || 0), 0)
+    + otros.reduce((s, o) => s + (parseFloat((o.monto || "").replace(/,/g, "")) || 0), 0);
+
+  const hayAlgo = seleccionados.size > 0 || otros.length > 0;
+
   return (
     <Chrome paso={5} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -898,40 +1058,83 @@ function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionado
           <Eyebrow>Paso 06 · Gastos fijos</Eyebrow>
           <Titulo>¿Cuáles son tus<br />gastos fijos?</Titulo>
           <Descripcion>
-            Los que salen sin falta cada mes. Los rastreo aparte de tus gastos variables.
+            Los que salen sin falta cada mes. Actívalos y escribe el monto.
           </Descripcion>
         </div>
 
         <div style={{ padding: "20px 20px 0", flex: 1, overflowY: "auto" }}>
+          {/* Lista predefinida */}
           <div style={{
             background: C.surface, borderRadius: 16,
             border: `0.5px solid ${C.line}`, overflow: "hidden",
             boxShadow: "0 1px 2px rgba(14,14,16,0.03)",
           }}>
             {GASTOS_FIJOS_LISTA.map((g, i) => (
-              <FilaToggle
-                key={g.id} nombre={g.nombre} desc={g.desc}
+              <FilaToggleMonto
+                key={g.id}
+                nombre={g.nombre} desc={g.desc}
                 activo={seleccionados.has(g.id)}
+                monto={montos[g.id] || ""}
                 onToggle={() => toggle(g.id)}
+                onMonto={v => setMonto(g.id, v)}
                 esUltima={i === GASTOS_FIJOS_LISTA.length - 1}
               />
             ))}
+
+            {/* Filas de "otros" personalizados */}
+            {otros.map((o, i) => (
+              <FilaOtro
+                key={i} index={i}
+                nombre={o.nombre} monto={o.monto}
+                onNombre={v => actualizarOtro(i, "nombre", v)}
+                onMonto={v => actualizarOtro(i, "monto", v)}
+                onEliminar={() => eliminarOtro(i)}
+                esUltima={i === otros.length - 1}
+              />
+            ))}
           </div>
-          <div style={{
-            marginTop: 12, padding: "0 4px",
-            fontFamily: F.mono, fontSize: 10.5, color: C.textFaint, letterSpacing: 1.2,
-          }}>
-            {seleccionados.size > 0
-              ? `${seleccionados.size} gasto${seleccionados.size > 1 ? "s" : ""} seleccionado${seleccionados.size > 1 ? "s" : ""}`
-              : "Ninguno seleccionado"}
-          </div>
+
+          {/* Botón agregar otro */}
+          <button
+            onClick={agregarOtro}
+            style={{
+              marginTop: 10, width: "100%", padding: "11px",
+              background: "transparent", border: `0.5px dashed rgba(14,14,16,0.2)`,
+              borderRadius: 12, cursor: "pointer",
+              fontFamily: F.sans, fontSize: 13, color: C.textDim,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}
+          >
+            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span>
+            Agregar otro gasto fijo
+          </button>
+
+          {/* Total */}
+          {total > 0 && (
+            <div style={{
+              marginTop: 12,
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              padding: "12px 16px",
+              background: C.surface, border: `0.5px solid ${C.line}`, borderRadius: 12,
+            }}>
+              <div style={{ fontFamily: F.mono, fontSize: 10, letterSpacing: 1.5, color: C.textFaint, textTransform: "uppercase" }}>
+                Total fijos / mes
+              </div>
+              <div style={{
+                fontFamily: F.sans, fontSize: 16, fontWeight: 600,
+                color: C.text, fontVariantNumeric: "tabular-nums", letterSpacing: -0.4,
+              }}>
+                ${total.toLocaleString("en-US")}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <Pie>
         <LaniNote pose="hi">Los separo de tus gastos variables para un análisis más claro.</LaniNote>
         <BotonPrimario onClick={onSiguiente}>
-          {seleccionados.size === 0 ? "No tengo fijos" : "Continuar"}
+          {!hayAlgo ? "No tengo fijos" : "Continuar"}
         </BotonPrimario>
       </Pie>
     </Chrome>
@@ -1465,7 +1668,9 @@ export default function BienvenidaPage() {
   const [cuentas, setCuentas] = useState<Set<string>>(new Set());
 
   // Gastos fijos (paso 06)
-  const [gastosFijos, setGastosFijos] = useState<Set<string>>(new Set());
+  const [gastosFijos,       setGastosFijos]       = useState<Set<string>>(new Set());
+  const [montosGastosFijos, setMontosGastosFijos] = useState<Record<string, string>>({});
+  const [otrosGastosFijos,  setOtrosGastosFijos]  = useState<GastoOtro[]>([]);
 
   // Deudas (paso 07)
   const [deudas, setDeudas] = useState<Set<string>>(new Set());
@@ -1512,10 +1717,27 @@ export default function BienvenidaPage() {
     const metaMontoNum = parseFloat(metaMonto.replace(/,/g, "")) || 0;
     const cats = Array.from(seleccionadas);
 
+    // Serializar gastos fijos con montos
+    const gastosFijosData = {
+      items: GASTOS_FIJOS_LISTA
+        .filter(g => gastosFijos.has(g.id))
+        .map(g => ({
+          id: g.id,
+          nombre: g.nombre,
+          monto: parseFloat((montosGastosFijos[g.id] || "").replace(/,/g, "")) || 0,
+        })),
+      otros: otrosGastosFijos
+        .filter(o => o.nombre.trim())
+        .map(o => ({
+          nombre: o.nombre.trim(),
+          monto: parseFloat((o.monto || "").replace(/,/g, "")) || 0,
+        })),
+    };
+
     // localStorage
     localStorage.setItem("lani_ingreso",           JSON.stringify({ frecuencia: frecuenciaIngreso, monto: ingresoNum }));
     localStorage.setItem("lani_cuentas",            JSON.stringify(Array.from(cuentas)));
-    localStorage.setItem("lani_gastos_fijos",       JSON.stringify(Array.from(gastosFijos)));
+    localStorage.setItem("lani_gastos_fijos",       JSON.stringify(gastosFijosData));
     localStorage.setItem("lani_deudas",             JSON.stringify(Array.from(deudas)));
     localStorage.setItem("lani_meta",               JSON.stringify({ nombre: metaNombre, monto: metaMontoNum, meses: metaMeses }));
     localStorage.setItem("lani_periodo_revision",   periodoRevision);
@@ -1529,7 +1751,7 @@ export default function BienvenidaPage() {
           categorias_activas: cats,
           ingreso:            { frecuencia: frecuenciaIngreso, monto: ingresoNum },
           cuentas:            Array.from(cuentas),
-          gastos_fijos:       Array.from(gastosFijos),
+          gastos_fijos:       gastosFijosData,
           deudas:             Array.from(deudas),
           meta_ahorro:        { nombre: metaNombre, monto: metaMontoNum, meses: metaMeses },
           periodo_revision:   periodoRevision,
@@ -1571,7 +1793,7 @@ export default function BienvenidaPage() {
   if (paso === 2)  return <PasoCuentas      onSiguiente={siguiente} onSaltar={saltar} seleccionadas={cuentas} setSeleccionadas={setCuentas} />;
   if (paso === 3)  return <PasoImportar     onSiguiente={siguiente} onSaltar={saltar} />;
   if (paso === 4)  return <PasoCategoriasStep onSiguiente={siguiente} onSaltar={saltar} seleccionadas={seleccionadas} setSeleccionadas={setSeleccionadas} guardando={guardando} />;
-  if (paso === 5)  return <PasoGastosFijos  onSiguiente={siguiente} onSaltar={saltar} seleccionados={gastosFijos} setSeleccionados={setGastosFijos} />;
+  if (paso === 5)  return <PasoGastosFijos  onSiguiente={siguiente} onSaltar={saltar} seleccionados={gastosFijos} setSeleccionados={setGastosFijos} montos={montosGastosFijos} setMontos={setMontosGastosFijos} otros={otrosGastosFijos} setOtros={setOtrosGastosFijos} />;
   if (paso === 6)  return <PasoDeudas       onSiguiente={siguiente} onSaltar={saltar} seleccionadas={deudas} setSeleccionadas={setDeudas} />;
   if (paso === 7)  return <PasoMeta         onSiguiente={siguiente} onSaltar={saltar} nombre={metaNombre} setNombre={setMetaNombre} monto={metaMonto} setMonto={setMetaMonto} meses={metaMeses} setMeses={setMetaMeses} ingresoMensual={ingresoMensual} />;
   if (paso === 8)  return <PasoPresupuestos  onSiguiente={siguiente} onSaltar={saltar} />;
