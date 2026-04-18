@@ -1514,9 +1514,9 @@ export default function BienvenidaPage() {
 
     // localStorage
     localStorage.setItem("lani_ingreso",           JSON.stringify({ frecuencia: frecuenciaIngreso, monto: ingresoNum }));
-    localStorage.setItem("lani_cuentas",            JSON.stringify([...cuentas]));
-    localStorage.setItem("lani_gastos_fijos",       JSON.stringify([...gastosFijos]));
-    localStorage.setItem("lani_deudas",             JSON.stringify([...deudas]));
+    localStorage.setItem("lani_cuentas",            JSON.stringify(Array.from(cuentas)));
+    localStorage.setItem("lani_gastos_fijos",       JSON.stringify(Array.from(gastosFijos)));
+    localStorage.setItem("lani_deudas",             JSON.stringify(Array.from(deudas)));
     localStorage.setItem("lani_meta",               JSON.stringify({ nombre: metaNombre, monto: metaMontoNum, meses: metaMeses }));
     localStorage.setItem("lani_periodo_revision",   periodoRevision);
     localStorage.setItem("lani_categorias",         JSON.stringify(cats));
@@ -1528,9 +1528,9 @@ export default function BienvenidaPage() {
         data: {
           categorias_activas: cats,
           ingreso:            { frecuencia: frecuenciaIngreso, monto: ingresoNum },
-          cuentas:            [...cuentas],
-          gastos_fijos:       [...gastosFijos],
-          deudas:             [...deudas],
+          cuentas:            Array.from(cuentas),
+          gastos_fijos:       Array.from(gastosFijos),
+          deudas:             Array.from(deudas),
           meta_ahorro:        { nombre: metaNombre, monto: metaMontoNum, meses: metaMeses },
           periodo_revision:   periodoRevision,
         },
