@@ -239,7 +239,7 @@ function calcularNudge(): NudgeDatos | null {
       return {
         emoji: "☕",
         titulo: "¿Cómo quedó el fin de semana?",
-        subtitulo: "Cuéntame qué gastaste. Puedes decir algo como "resto sábado 800".",
+        subtitulo: "Cuéntame qué gastaste. Puedes decir algo como 'resto sábado 800'.",
         sugerencia: "¿Cuánto gasté el fin de semana?",
       };
     }
@@ -249,7 +249,7 @@ function calcularNudge(): NudgeDatos | null {
       return {
         emoji: "🍽",
         titulo: "¿Ya comiste? ¿Cuánto te salió?",
-        subtitulo: "Di algo como "comida 180" y lo anoto al tiro.",
+        subtitulo: "Di algo como 'comida 180' y lo anoto al tiro.",
         sugerencia: "comida ",
       };
     }
