@@ -879,13 +879,91 @@ function PasoCategoriasStep({ onSiguiente, onSaltar, seleccionadas, setSeleccion
   );
 }
 
-// ─── Tipos para gastos fijos ──────────────────────────────────
-type GastoOtro = { nombre: string; monto: string };
+// ─── Tipos y catálogos para gastos fijos ──────────────────────
+type GastoOtro = { nombre: string; monto: string; periodicidad: string };
 
-// FilaToggleMonto — toggle con input de monto inline al activarse
-function FilaToggleMonto({ nombre, desc, activo, monto, onToggle, onMonto, esUltima }: {
-  nombre: string; desc: string; activo: boolean; monto: string;
-  onToggle: () => void; onMonto: (v: string) => void; esUltima: boolean;
+const PERIODICIDADES = [
+  { id: "mensual",   label: "Mensual",   factor: 1       },
+  { id: "bimestral", label: "Bimestral", factor: 0.5     },
+  { id: "quincenal", label: "Quincenal", factor: 2       },
+  { id: "anual",     label: "Anual",     factor: 1 / 12  },
+];
+
+// Convierte monto + periodicidad a su equivalente mensual
+function aEquivalenteMensual(montoStr: string, periodicidad: string): number {
+  const monto = parseFloat(montoStr.replace(/,/g, "")) || 0;
+  const p = PERIODICIDADES.find(p => p.id === periodicidad);
+  return monto * (p?.factor ?? 1);
+}
+
+// SubSección de monto + periodicidad (compartida entre fila predefinida y fila "otro")
+function InputMontoPeriodicidad({ monto, periodicidad, onMonto, onPeriodicidad, placeholder = "Monto" }: {
+  monto: string; periodicidad: string;
+  onMonto: (v: string) => void; onPeriodicidad: (p: string) => void;
+  placeholder?: string;
+}) {
+  const equiv = aEquivalenteMensual(monto, periodicidad);
+  const mostrarEquiv = periodicidad !== "mensual" && equiv > 0;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* Monto */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ color: C.textFaint, fontSize: 15, fontWeight: 500, flexShrink: 0 }}>$</div>
+        <input
+          type="text"
+          inputMode="numeric"
+          placeholder={placeholder}
+          value={monto}
+          onChange={e => onMonto(formatearNumero(e.target.value))}
+          style={{
+            flex: 1, height: 38, borderRadius: 8,
+            border: `0.5px solid ${C.line}`, background: C.surface2,
+            color: C.text, fontFamily: F.sans, fontSize: 15,
+            fontWeight: 500, padding: "0 12px",
+            outline: "none", letterSpacing: -0.3,
+            fontVariantNumeric: "tabular-nums",
+            boxSizing: "border-box" as const,
+          }}
+        />
+      </div>
+
+      {/* Chips de periodicidad */}
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        {PERIODICIDADES.map(p => (
+          <button
+            key={p.id}
+            onClick={() => onPeriodicidad(p.id)}
+            style={{
+              padding: "5px 10px", borderRadius: 99, border: "none",
+              background: periodicidad === p.id ? C.text : C.surface2,
+              boxShadow: `inset 0 0 0 0.5px ${periodicidad === p.id ? "transparent" : C.line}`,
+              color: periodicidad === p.id ? "#FFF" : C.textDim,
+              fontFamily: F.mono, fontSize: 9.5, letterSpacing: 0.5,
+              cursor: "pointer", transition: "all 150ms ease",
+            }}
+          >{p.label}</button>
+        ))}
+        {mostrarEquiv && (
+          <div style={{
+            marginLeft: "auto",
+            fontFamily: F.mono, fontSize: 9.5, color: C.textFaint, letterSpacing: 0.4,
+            fontVariantNumeric: "tabular-nums",
+          }}>
+            ≈ ${Math.round(equiv).toLocaleString("en-US")}/mes
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// FilaToggleMonto — toggle con monto + periodicidad al activarse
+function FilaToggleMonto({ nombre, desc, activo, monto, periodicidad, onToggle, onMonto, onPeriodicidad, esUltima }: {
+  nombre: string; desc: string; activo: boolean;
+  monto: string; periodicidad: string;
+  onToggle: () => void; onMonto: (v: string) => void;
+  onPeriodicidad: (p: string) => void; esUltima: boolean;
 }) {
   return (
     <div style={{ borderBottom: esUltima && !activo ? "none" : `0.5px solid ${C.divider}` }}>
@@ -905,8 +983,7 @@ function FilaToggleMonto({ nombre, desc, activo, monto, onToggle, onMonto, esUlt
         <div style={{
           width: 36, height: 22, borderRadius: 99,
           background: activo ? C.text : "rgba(14,14,16,0.12)",
-          position: "relative", flexShrink: 0,
-          transition: "background 200ms ease",
+          position: "relative", flexShrink: 0, transition: "background 200ms ease",
         }}>
           <div style={{
             position: "absolute", top: 2, left: activo ? 16 : 2,
@@ -918,47 +995,29 @@ function FilaToggleMonto({ nombre, desc, activo, monto, onToggle, onMonto, esUlt
       </button>
 
       {activo && (
-        <div style={{
-          padding: "10px 16px 12px",
-          borderBottom: esUltima ? "none" : "none",
-          display: "flex", alignItems: "center", gap: 8,
-        }}>
-          <div style={{ color: C.textFaint, fontSize: 15, fontWeight: 500, flexShrink: 0 }}>$</div>
-          <input
-            type="text"
-            inputMode="numeric"
-            placeholder="Monto mensual"
-            value={monto}
-            onChange={e => onMonto(formatearNumero(e.target.value))}
-            style={{
-              flex: 1, height: 38, borderRadius: 8,
-              border: `0.5px solid ${C.line}`, background: C.surface2,
-              color: C.text, fontFamily: F.sans, fontSize: 15,
-              fontWeight: 500, padding: "0 12px",
-              outline: "none", letterSpacing: -0.3,
-              fontVariantNumeric: "tabular-nums",
-              boxSizing: "border-box" as const,
-            }}
+        <div style={{ padding: "10px 16px 14px" }}>
+          <InputMontoPeriodicidad
+            monto={monto} periodicidad={periodicidad}
+            onMonto={onMonto} onPeriodicidad={onPeriodicidad}
+            placeholder="Monto del pago"
           />
-          <div style={{ fontFamily: F.mono, fontSize: 10, color: C.textFaint, letterSpacing: 0.5, flexShrink: 0 }}>/mes</div>
         </div>
       )}
     </div>
   );
 }
 
-// FilaOtro — gasto personalizado con nombre + monto
-function FilaOtro({ index, nombre, monto, onNombre, onMonto, onEliminar, esUltima }: {
-  index: number; nombre: string; monto: string;
+// FilaOtro — gasto personalizado con nombre + monto + periodicidad
+function FilaOtro({ index, nombre, monto, periodicidad, onNombre, onMonto, onPeriodicidad, onEliminar }: {
+  index: number; nombre: string; monto: string; periodicidad: string;
   onNombre: (v: string) => void; onMonto: (v: string) => void;
-  onEliminar: () => void; esUltima: boolean;
+  onPeriodicidad: (p: string) => void; onEliminar: () => void;
 }) {
   return (
     <div style={{
-      padding: "12px 16px",
+      padding: "12px 16px 14px",
       borderTop: `0.5px solid ${C.divider}`,
-      borderBottom: esUltima ? "none" : `0.5px solid ${C.divider}`,
-      display: "flex", flexDirection: "column", gap: 8,
+      display: "flex", flexDirection: "column", gap: 10,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <input
@@ -984,58 +1043,48 @@ function FilaOtro({ index, nombre, monto, onNombre, onMonto, onEliminar, esUltim
           }}
         >×</button>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div style={{ color: C.textFaint, fontSize: 15, fontWeight: 500, flexShrink: 0 }}>$</div>
-        <input
-          type="text"
-          inputMode="numeric"
-          placeholder="Monto mensual"
-          value={monto}
-          onChange={e => onMonto(formatearNumero(e.target.value))}
-          style={{
-            flex: 1, height: 36, borderRadius: 8,
-            border: `0.5px solid ${C.line}`, background: C.surface2,
-            color: C.text, fontFamily: F.sans, fontSize: 15,
-            fontWeight: 500, padding: "0 12px",
-            outline: "none", letterSpacing: -0.3,
-            fontVariantNumeric: "tabular-nums",
-            boxSizing: "border-box" as const,
-          }}
-        />
-        <div style={{ fontFamily: F.mono, fontSize: 10, color: C.textFaint, letterSpacing: 0.5, flexShrink: 0 }}>/mes</div>
-      </div>
+      <InputMontoPeriodicidad
+        monto={monto} periodicidad={periodicidad}
+        onMonto={onMonto} onPeriodicidad={onPeriodicidad}
+        placeholder="Monto del pago"
+      />
     </div>
   );
 }
 
 // ─── Paso 06: Gastos fijos ────────────────────────────────────
-function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionados, montos, setMontos, otros, setOtros }: {
+function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionados, montos, setMontos, periodicidades, setPeriodicidades, otros, setOtros }: {
   onSiguiente: () => void; onSaltar: () => void;
   seleccionados: Set<string>; setSeleccionados: (s: Set<string>) => void;
   montos: Record<string, string>; setMontos: (m: Record<string, string>) => void;
+  periodicidades: Record<string, string>; setPeriodicidades: (p: Record<string, string>) => void;
   otros: GastoOtro[]; setOtros: (o: GastoOtro[]) => void;
 }) {
   const toggle = (id: string) => {
     haptico.seleccion();
     const s = new Set(seleccionados);
-    if (s.has(id)) s.delete(id); else s.add(id);
+    if (s.has(id)) {
+      s.delete(id);
+    } else {
+      s.add(id);
+      // Poner "mensual" por defecto si no tiene periodicidad aún
+      if (!periodicidades[id]) setPeriodicidades({ ...periodicidades, [id]: "mensual" });
+    }
     setSeleccionados(s);
   };
 
-  const setMonto = (id: string, valor: string) => {
-    setMontos({ ...montos, [id]: valor });
-  };
+  const setMonto = (id: string, v: string) => setMontos({ ...montos, [id]: v });
+  const setPeriodicidad = (id: string, v: string) => setPeriodicidades({ ...periodicidades, [id]: v });
 
   const agregarOtro = () => {
     haptico.ligero();
-    setOtros([...otros, { nombre: "", monto: "" }]);
+    setOtros([...otros, { nombre: "", monto: "", periodicidad: "mensual" }]);
   };
 
-  const actualizarOtro = (i: number, campo: "nombre" | "monto", valor: string) => {
-    const nueva = otros.map((o, idx) =>
+  const actualizarOtro = (i: number, campo: keyof GastoOtro, valor: string) => {
+    setOtros(otros.map((o, idx) =>
       idx === i ? { ...o, [campo]: campo === "monto" ? formatearNumero(valor) : valor } : o
-    );
-    setOtros(nueva);
+    ));
   };
 
   const eliminarOtro = (i: number) => {
@@ -1043,11 +1092,13 @@ function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionado
     setOtros(otros.filter((_, idx) => idx !== i));
   };
 
-  // Total mensual calculado
-  const total = GASTOS_FIJOS_LISTA
-    .filter(g => seleccionados.has(g.id))
-    .reduce((s, g) => s + (parseFloat((montos[g.id] || "").replace(/,/g, "")) || 0), 0)
-    + otros.reduce((s, o) => s + (parseFloat((o.monto || "").replace(/,/g, "")) || 0), 0);
+  // Total normalizado a equivalente mensual
+  const total = Math.round(
+    GASTOS_FIJOS_LISTA
+      .filter(g => seleccionados.has(g.id))
+      .reduce((s, g) => s + aEquivalenteMensual(montos[g.id] || "", periodicidades[g.id] || "mensual"), 0)
+    + otros.reduce((s, o) => s + aEquivalenteMensual(o.monto, o.periodicidad || "mensual"), 0)
+  );
 
   const hayAlgo = seleccionados.size > 0 || otros.length > 0;
 
@@ -1075,8 +1126,10 @@ function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionado
                 nombre={g.nombre} desc={g.desc}
                 activo={seleccionados.has(g.id)}
                 monto={montos[g.id] || ""}
+                periodicidad={periodicidades[g.id] || "mensual"}
                 onToggle={() => toggle(g.id)}
                 onMonto={v => setMonto(g.id, v)}
+                onPeriodicidad={v => setPeriodicidad(g.id, v)}
                 esUltima={i === GASTOS_FIJOS_LISTA.length - 1}
               />
             ))}
@@ -1086,10 +1139,11 @@ function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionado
               <FilaOtro
                 key={i} index={i}
                 nombre={o.nombre} monto={o.monto}
+                periodicidad={o.periodicidad || "mensual"}
                 onNombre={v => actualizarOtro(i, "nombre", v)}
                 onMonto={v => actualizarOtro(i, "monto", v)}
+                onPeriodicidad={v => actualizarOtro(i, "periodicidad", v)}
                 onEliminar={() => eliminarOtro(i)}
-                esUltima={i === otros.length - 1}
               />
             ))}
           </div>
@@ -1668,9 +1722,10 @@ export default function BienvenidaPage() {
   const [cuentas, setCuentas] = useState<Set<string>>(new Set());
 
   // Gastos fijos (paso 06)
-  const [gastosFijos,       setGastosFijos]       = useState<Set<string>>(new Set());
-  const [montosGastosFijos, setMontosGastosFijos] = useState<Record<string, string>>({});
-  const [otrosGastosFijos,  setOtrosGastosFijos]  = useState<GastoOtro[]>([]);
+  const [gastosFijos,           setGastosFijos]           = useState<Set<string>>(new Set());
+  const [montosGastosFijos,     setMontosGastosFijos]     = useState<Record<string, string>>({});
+  const [periodicidadesGastos,  setPeriodicidadesGastos]  = useState<Record<string, string>>({});
+  const [otrosGastosFijos,      setOtrosGastosFijos]      = useState<GastoOtro[]>([]);
 
   // Deudas (paso 07)
   const [deudas, setDeudas] = useState<Set<string>>(new Set());
@@ -1717,7 +1772,7 @@ export default function BienvenidaPage() {
     const metaMontoNum = parseFloat(metaMonto.replace(/,/g, "")) || 0;
     const cats = Array.from(seleccionadas);
 
-    // Serializar gastos fijos con montos
+    // Serializar gastos fijos con montos y periodicidad
     const gastosFijosData = {
       items: GASTOS_FIJOS_LISTA
         .filter(g => gastosFijos.has(g.id))
@@ -1725,12 +1780,16 @@ export default function BienvenidaPage() {
           id: g.id,
           nombre: g.nombre,
           monto: parseFloat((montosGastosFijos[g.id] || "").replace(/,/g, "")) || 0,
+          periodicidad: periodicidadesGastos[g.id] || "mensual",
+          montoMensual: Math.round(aEquivalenteMensual(montosGastosFijos[g.id] || "", periodicidadesGastos[g.id] || "mensual")),
         })),
       otros: otrosGastosFijos
         .filter(o => o.nombre.trim())
         .map(o => ({
           nombre: o.nombre.trim(),
           monto: parseFloat((o.monto || "").replace(/,/g, "")) || 0,
+          periodicidad: o.periodicidad || "mensual",
+          montoMensual: Math.round(aEquivalenteMensual(o.monto, o.periodicidad || "mensual")),
         })),
     };
 
@@ -1793,7 +1852,7 @@ export default function BienvenidaPage() {
   if (paso === 2)  return <PasoCuentas      onSiguiente={siguiente} onSaltar={saltar} seleccionadas={cuentas} setSeleccionadas={setCuentas} />;
   if (paso === 3)  return <PasoImportar     onSiguiente={siguiente} onSaltar={saltar} />;
   if (paso === 4)  return <PasoCategoriasStep onSiguiente={siguiente} onSaltar={saltar} seleccionadas={seleccionadas} setSeleccionadas={setSeleccionadas} guardando={guardando} />;
-  if (paso === 5)  return <PasoGastosFijos  onSiguiente={siguiente} onSaltar={saltar} seleccionados={gastosFijos} setSeleccionados={setGastosFijos} montos={montosGastosFijos} setMontos={setMontosGastosFijos} otros={otrosGastosFijos} setOtros={setOtrosGastosFijos} />;
+  if (paso === 5)  return <PasoGastosFijos  onSiguiente={siguiente} onSaltar={saltar} seleccionados={gastosFijos} setSeleccionados={setGastosFijos} montos={montosGastosFijos} setMontos={setMontosGastosFijos} periodicidades={periodicidadesGastos} setPeriodicidades={setPeriodicidadesGastos} otros={otrosGastosFijos} setOtros={setOtrosGastosFijos} />;
   if (paso === 6)  return <PasoDeudas       onSiguiente={siguiente} onSaltar={saltar} seleccionadas={deudas} setSeleccionadas={setDeudas} />;
   if (paso === 7)  return <PasoMeta         onSiguiente={siguiente} onSaltar={saltar} nombre={metaNombre} setNombre={setMetaNombre} monto={metaMonto} setMonto={setMetaMonto} meses={metaMeses} setMeses={setMetaMeses} ingresoMensual={ingresoMensual} />;
   if (paso === 8)  return <PasoPresupuestos  onSiguiente={siguiente} onSaltar={saltar} />;
