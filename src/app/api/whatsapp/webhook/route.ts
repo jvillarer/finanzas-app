@@ -39,8 +39,12 @@ export async function POST(req: NextRequest) {
   // Si no hay mensaje (puede ser una notificación de status), responder OK
   if (!mensaje) return Response.json({ ok: true });
 
-  const telefono  = mensaje.from as string;         // número del usuario (ej: "521234567890")
-  console.log("📱 Teléfono recibido de Meta:", telefono);
+  const telefonoRaw = mensaje.from as string;
+  console.log("📱 Teléfono recibido de Meta:", telefonoRaw);
+  // Meta envía números mexicanos como 521XXXXXXXXXX, normalizamos a 52XXXXXXXXXX
+  const telefono = telefonoRaw.startsWith("521") && telefonoRaw.length === 13
+    ? "52" + telefonoRaw.slice(3)
+    : telefonoRaw;
   const messageId = mensaje.id as string;
   const texto     = (mensaje.text?.body ?? "") as string;
   const tipo      = mensaje.type as string;
