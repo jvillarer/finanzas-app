@@ -1,7 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const RUTAS_PUBLICAS = ["/login", "/registro", "/auth/callback"];
+const RUTAS_PUBLICAS = [
+  "/login",
+  "/registro",
+  "/auth/callback",
+  "/api/whatsapp",   // webhook de Meta (sin sesión)
+  "/api/push",       // endpoints de push notifications
+];
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
