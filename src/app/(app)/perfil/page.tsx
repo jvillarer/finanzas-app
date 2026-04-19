@@ -129,7 +129,7 @@ export default function PerfilPage() {
     const telLimpio = telefonoWA.replace(/\s+/g, "").replace(/^(\+?52)?/, "52").replace(/\D/g, "");
 
     // Actualizar auth metadata y tabla perfiles en paralelo
-    await Promise.all([
+    const [, perfilRes] = await Promise.all([
       supabase.auth.updateUser({ data: metadata }),
       supabase.from("perfiles").upsert({
         id: user.id, nombre_completo: nombre, edad: edadNum, sexo, ciudad, estado,
@@ -137,6 +137,13 @@ export default function PerfilPage() {
         telefono_whatsapp: telLimpio || null,
       }),
     ]);
+
+    if (perfilRes.error) {
+      console.error("Error guardando perfil:", perfilRes.error);
+      alert("Error al guardar: " + perfilRes.error.message);
+      setGuardando(false);
+      return;
+    }
 
     setIniciales(nombre ? nombre.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase() : "?");
     setGuardando(false);
