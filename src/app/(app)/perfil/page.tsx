@@ -267,26 +267,43 @@ export default function PerfilPage() {
 
       {/* Notificaciones push */}
       {soportaPush && (
-        <div className="rounded-2xl px-5 py-4 mb-4 flex items-center justify-between"
+        <div className="rounded-2xl px-5 py-4 mb-4"
           style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div>
-            <p className="text-sm font-bold" style={{ color: "var(--text-1)" }}>Notificaciones de Lani</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
-              {pushActivo ? "Activas — recibirás recordatorios quincenales" : "Recibe recordatorios y alertas de presupuesto"}
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold" style={{ color: "var(--text-1)" }}>Notificaciones de Lani</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
+                {pushActivo ? "Activas — recibirás recordatorios y alertas de racha" : "Recibe recordatorios y alertas de presupuesto"}
+              </p>
+            </div>
+            <button
+              onClick={togglePush}
+              disabled={activandoPush}
+              className="relative shrink-0 transition-all active:scale-95 disabled:opacity-40"
+              style={{ width: 48, height: 28 }}
+              aria-label={pushActivo ? "Desactivar notificaciones" : "Activar notificaciones"}
+            >
+              <div className="absolute inset-0 rounded-full transition-colors duration-200"
+                style={{ backgroundColor: pushActivo ? "var(--gold)" : "var(--surface-2)", border: "1px solid var(--border)" }} />
+              <div className="absolute top-0.5 rounded-full transition-all duration-200 bg-white"
+                style={{ width: 24, height: 24, left: pushActivo ? 22 : 2, boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+            </button>
           </div>
-          <button
-            onClick={togglePush}
-            disabled={activandoPush}
-            className="relative shrink-0 transition-all active:scale-95 disabled:opacity-40"
-            style={{ width: 48, height: 28 }}
-            aria-label={pushActivo ? "Desactivar notificaciones" : "Activar notificaciones"}
-          >
-            <div className="absolute inset-0 rounded-full transition-colors duration-200"
-              style={{ backgroundColor: pushActivo ? "var(--gold)" : "var(--surface-2)", border: "1px solid var(--border)" }} />
-            <div className="absolute top-0.5 rounded-full transition-all duration-200 bg-white"
-              style={{ width: 24, height: 24, left: pushActivo ? 22 : 2, boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-          </button>
+          {/* Botón de prueba — solo si push activo */}
+          {pushActivo && (
+            <button
+              onClick={async () => {
+                const res = await fetch("/api/push/test", { method: "POST" });
+                const data = await res.json() as { ok: boolean; enviados?: number; motivo?: string };
+                if (data.ok && data.enviados) alert("✅ Notificación enviada — debería llegar en unos segundos");
+                else alert("⚠️ No se encontró suscripción activa en este dispositivo. Intenta desactivar y volver a activar las notificaciones.");
+              }}
+              className="w-full mt-3 py-2.5 rounded-xl text-xs font-semibold active:opacity-60 transition-opacity"
+              style={{ backgroundColor: "var(--surface-2)", color: "var(--text-2)", border: "1px solid var(--border)" }}
+            >
+              Probar notificación 🔔
+            </button>
+          )}
         </div>
       )}
 
