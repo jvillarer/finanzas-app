@@ -12,6 +12,7 @@ export async function obtenerTransacciones(): Promise<Transaccion[]> {
     .from("transacciones")
     .select("id, monto, descripcion, categoria, tipo, fecha, usuario_id, creado_en")
     .order("fecha", { ascending: false })
+    .order("creado_en", { ascending: false }) // Dentro del mismo día, más reciente primero
     .limit(500); // Evita cargar historiales masivos; 500 txs cubre ~2 años de uso activo
 
   if (error) throw error;
