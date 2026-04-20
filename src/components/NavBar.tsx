@@ -43,12 +43,11 @@ const TABS = [
     ),
   },
   {
-    href: "/estadisticas",
-    // Línea de tendencia (más financiero que barras)
+    href: "/viaje",
+    // Avión — modo viaje
     icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-        <polyline points="3 17 8 11 13 14 21 6" />
-        <polyline points="17 6 21 6 21 10" />
+      <svg viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+        <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 19-7z" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} />
       </svg>
     ),
   },

@@ -109,11 +109,13 @@ const HERRAMIENTAS: Anthropic.Tool[] = [
     input_schema: {
       type: "object" as const,
       properties: {
-        monto: { type: "number", description: "Monto en pesos MXN (positivo)" },
+        monto: { type: "number", description: "Monto en la moneda del viaje (o MXN si no hay viaje activo)" },
         descripcion: { type: "string", description: "Descripción breve" },
         categoria: { type: "string", description: "Categoría del gasto" },
         tipo: { type: "string", enum: ["gasto", "ingreso"] },
         fecha: { type: "string", description: "Fecha YYYY-MM-DD, hoy si no se especifica" },
+        moneda: { type: "string", description: "Moneda: MXN, USD, EUR. Solo si hay viaje activo en otra moneda." },
+        monto_original: { type: "number", description: "Monto en la moneda original del viaje antes de convertir a MXN" },
       },
       required: ["monto", "tipo", "categoria"],
     },
@@ -203,6 +205,8 @@ interface TransaccionInput {
   categoria: string;
   tipo: "gasto" | "ingreso";
   fecha?: string;
+  moneda?: string;
+  monto_original?: number;
 }
 
 interface MultipleTransaccionesInput {
@@ -247,8 +251,8 @@ export async function POST(req: NextRequest) {
     // Contexto de transacciones recientes (incluye IDs para editar/eliminar)
     let contextoTransacciones = "";
     if (incluirContexto) {
-      // Fetch en paralelo: transacciones (200 en formato compacto) + metas activas
-      const [{ data: transacciones }, { data: metas }] = await Promise.all([
+      // Fetch en paralelo: transacciones (200 en formato compacto) + metas activas + viaje activo
+      const [{ data: transacciones }, { data: metas }, { data: viajeActivo }] = await Promise.all([
         supabase
           .from("transacciones")
           .select("id, monto, descripcion, categoria, tipo, fecha")
@@ -259,11 +263,29 @@ export async function POST(req: NextRequest) {
           .select("nombre, emoji, monto_objetivo, monto_actual")
           .order("created_at", { ascending: false })
           .limit(10),
+        supabase
+          .from("viajes")
+          .select("id, nombre, moneda, presupuesto, tipo_cambio, fecha_inicio, fecha_fin")
+          .eq("activo", true)
+          .single(),
       ]);
 
       if (transacciones && transacciones.length > 0) {
         contextoTransacciones = `\n\n--- DATOS FINANCIEROS DEL USUARIO ---\n${construirResumen(transacciones, metas || [])}\n---`;
       }
+
+      if (viajeActivo) {
+        contextoTransacciones += `\n\n--- MODO VIAJE ACTIVO ---\nViaje: ${viajeActivo.nombre}\nMoneda del viaje: ${viajeActivo.moneda}\nTipo de cambio: 1 ${viajeActivo.moneda} = $${viajeActivo.tipo_cambio} MXN\n${viajeActivo.presupuesto ? `Presupuesto: ${viajeActivo.moneda === "MXN" ? "$" : viajeActivo.moneda + " "}${viajeActivo.presupuesto}` : ""}\nFecha inicio: ${viajeActivo.fecha_inicio || "hoy"}\n\nINSTRUCCIONES PARA EL VIAJE:\n- Cuando el usuario mencione un gasto SIN especificar moneda, asume que es en ${viajeActivo.moneda}\n- Usa el campo moneda="${viajeActivo.moneda}" y monto_original=monto_en_${viajeActivo.moneda} en crear_transaccion\n- El campo monto debe ser monto_original × ${viajeActivo.tipo_cambio} (conversión a MXN)\n- Si el usuario dice "pesos" o "MXN" explícitamente, registra en MXN con tipo_cambio=1\n- Ejemplo: "starbucks 8" → monto_original=8, moneda=${viajeActivo.moneda}, monto=${8 * Number(viajeActivo.tipo_cambio)}\n---`;
+      }
+    }
+
+    // Guardar referencia al viaje activo para usarla en las herramientas
+    let viajeIdActivo: string | null = null;
+    let viajeMoneda = "MXN";
+    let viajeTipoCambio = 1;
+    if (incluirContexto) {
+      const { data: v } = await supabase.from("viajes").select("id, moneda, tipo_cambio").eq("activo", true).single();
+      if (v) { viajeIdActivo = v.id; viajeMoneda = v.moneda; viajeTipoCambio = Number(v.tipo_cambio); }
     }
 
     // Nombre del usuario para personalización
@@ -337,9 +359,19 @@ export async function POST(req: NextRequest) {
         const datos = sanitizarTransaccion(datosRaw, hoy);
         const fecha = datos?.fecha || hoy;
 
+        // Si hay viaje activo con moneda extranjera, convertir a MXN para el monto principal
+        const monedaTx = datos?.moneda || viajeMoneda;
+        const montoOriginal = datos?.monto_original ?? (monedaTx !== "MXN" ? datos?.monto : null);
+        const montoMXN = monedaTx !== "MXN" && datos
+          ? (datos.monto_original ?? datos.monto) * viajeTipoCambio
+          : datos?.monto ?? 0;
+
         const { error } = datos ? await supabase.from("transacciones").insert({
           usuario_id: user.id,
-          monto: datos.monto,
+          monto: montoMXN,
+          monto_original: montoOriginal,
+          moneda: monedaTx !== "MXN" ? monedaTx : null,
+          viaje_id: viajeIdActivo,
           descripcion: datos.descripcion || datos.categoria,
           categoria: datos.categoria,
           tipo: datos.tipo,
@@ -396,14 +428,22 @@ export async function POST(req: NextRequest) {
         const txSanitizadas = datosRaw.transacciones
           .map((t) => sanitizarTransaccion(t, hoy))
           .filter((t): t is TransaccionInput => t !== null);
-        const filas = txSanitizadas.map((t) => ({
-          usuario_id: user.id,
-          monto: t.monto,
-          descripcion: t.descripcion || t.categoria,
-          categoria: t.categoria,
-          tipo: t.tipo,
-          fecha: t.fecha || hoy,
-        }));
+        const filas = txSanitizadas.map((t) => {
+          const monedaT = t.moneda || viajeMoneda;
+          const montoOrig = t.monto_original ?? (monedaT !== "MXN" ? t.monto : null);
+          const montoMXNt = monedaT !== "MXN" ? (t.monto_original ?? t.monto) * viajeTipoCambio : t.monto;
+          return {
+            usuario_id: user.id,
+            monto: montoMXNt,
+            monto_original: montoOrig,
+            moneda: monedaT !== "MXN" ? monedaT : null,
+            viaje_id: viajeIdActivo,
+            descripcion: t.descripcion || t.categoria,
+            categoria: t.categoria,
+            tipo: t.tipo,
+            fecha: t.fecha || hoy,
+          };
+        });
 
         const { error } = await supabase.from("transacciones").insert(filas);
 
