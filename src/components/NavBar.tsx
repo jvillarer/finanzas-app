@@ -43,13 +43,14 @@ const TABS = [
     ),
   },
   {
-    href: "/proyectos",
-    // Target / proyecto
+    href: "/estadisticas",
+    // Gráfica de barras — Analytics/Dashboard
     icon: (active: boolean) => (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-        <circle cx="12" cy="12" r="10" />
-        <circle cx="12" cy="12" r="6" />
-        <circle cx="12" cy="12" r="2" fill={active ? "currentColor" : "none"} />
+        <rect x="3" y="12" width="4" height="9" rx="1" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.2 : 0} />
+        <rect x="10" y="7" width="4" height="14" rx="1" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.2 : 0} />
+        <rect x="17" y="3" width="4" height="18" rx="1" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.2 : 0} />
+        <path d="M3 12h4M10 7h4M17 3h4" />
       </svg>
     ),
   },
