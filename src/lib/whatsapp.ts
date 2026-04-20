@@ -43,8 +43,57 @@ export async function marcarLeidoWA(messageId: string): Promise<void> {
 }
 
 // Envía indicador de "escribiendo..." (typing indicator)
-export async function enviarTypingWA(para: string): Promise<void> {
-  // WhatsApp Cloud API no soporta typing indicator directo,
-  // pero podemos simular con una reacción de "visto" inmediata.
-  // Dejamos placeholder por si Meta lo agrega.
+export async function enviarTypingWA(_para: string): Promise<void> {
+  // WhatsApp Cloud API no soporta typing indicator directo todavía.
+}
+
+// ── Descarga un archivo de media de WhatsApp y lo transcribe con Whisper ─────
+// Retorna el texto transcrito, o null si falla.
+export async function transcribirAudioWA(mediaId: string): Promise<string | null> {
+  try {
+    // 1. Obtener la URL de descarga del media
+    const metaRes = await fetch(
+      `https://graph.facebook.com/v21.0/${mediaId}`,
+      { headers: { "Authorization": `Bearer ${process.env.WHATSAPP_TOKEN}` } }
+    );
+    if (!metaRes.ok) {
+      console.error("Error obteniendo media URL:", await metaRes.text());
+      return null;
+    }
+    const { url } = await metaRes.json() as { url: string };
+
+    // 2. Descargar el audio (viene como .ogg/opus)
+    const audioRes = await fetch(url, {
+      headers: { "Authorization": `Bearer ${process.env.WHATSAPP_TOKEN}` },
+    });
+    if (!audioRes.ok) {
+      console.error("Error descargando audio:", audioRes.status);
+      return null;
+    }
+    const audioBuffer = await audioRes.arrayBuffer();
+
+    // 3. Enviar a Whisper (OpenAI)
+    const formData = new FormData();
+    const blob = new Blob([audioBuffer], { type: "audio/ogg" });
+    formData.append("file", blob, "audio.ogg");
+    formData.append("model", "whisper-1");
+    formData.append("language", "es");
+
+    const whisperRes = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: formData,
+    });
+
+    if (!whisperRes.ok) {
+      console.error("Error Whisper:", await whisperRes.text());
+      return null;
+    }
+
+    const { text } = await whisperRes.json() as { text: string };
+    return text?.trim() || null;
+  } catch (err) {
+    console.error("Error en transcribirAudioWA:", err);
+    return null;
+  }
 }

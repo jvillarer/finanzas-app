@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
-import { enviarMensajeWA, marcarLeidoWA } from "@/lib/whatsapp";
+import { enviarMensajeWA, marcarLeidoWA, transcribirAudioWA } from "@/lib/whatsapp";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -65,11 +65,30 @@ export async function POST(req: NextRequest) {
     ? "52" + telefonoRaw.slice(3)
     : telefonoRaw;
 
-  // ── Guard 3: solo mensajes de texto — ignorar audio, stickers, reacciones, etc. sin responder ──
-  if (tipo !== "text" || !texto.trim()) {
-    // Marcar como leído sin responder (no queremos loops)
+  // ── Guard 3: solo texto y audio — ignorar stickers, imágenes, reacciones, etc. ──
+  const esTexto = tipo === "text" && texto.trim().length > 0;
+  const esAudio = tipo === "audio" || tipo === "voice";
+
+  if (!esTexto && !esAudio) {
     await marcarLeidoWA(messageId);
     return Response.json({ ok: true });
+  }
+
+  // Si es audio, transcribir con Whisper antes de continuar
+  let textoFinal_entrada = texto;
+  if (esAudio) {
+    const mediaId = mensaje.audio?.id ?? mensaje.voice?.id ?? "";
+    if (!mediaId) {
+      await marcarLeidoWA(messageId);
+      return Response.json({ ok: true });
+    }
+    const transcripcion = await transcribirAudioWA(mediaId);
+    if (!transcripcion) {
+      await enviarMensajeWA(telefono, "No pude entender el audio 🐑 ¿Puedes escribirlo?");
+      return Response.json({ ok: true });
+    }
+    textoFinal_entrada = transcripcion;
+    console.log(`🎤 Audio transcrito: "${transcripcion}"`);
   }
 
   // ── Guard 4: deduplicación por messageId en Supabase ──────────────────────
@@ -215,13 +234,13 @@ ${contexto}`;
     "Salud", "Servicios", "Ropa", "Hogar", "Educación", "Otros",
   ]);
 
-  // Primera llamada a Claude
+  // Primera llamada a Claude (usa texto transcrito si fue audio)
   const respuesta = await anthropic.messages.create({
     model: "claude-opus-4-5",
     max_tokens: 512,
     system: sistemaWA,
     tools: herramientas,
-    messages: [{ role: "user", content: texto }],
+    messages: [{ role: "user", content: textoFinal_entrada }],
   });
 
   let textoFinal = "";
@@ -247,7 +266,7 @@ ${contexto}`;
 
       const resultado = error ? `Error: ${error.message}` : "Transacción guardada.";
       textoFinal = await segundaLlamadaClaude(anthropic, sistemaWA, herramientas,
-        [{ role: "user", content: texto }], respuesta.content, bloque.id, resultado);
+        [{ role: "user", content: textoFinal_entrada }], respuesta.content, bloque.id, resultado);
 
     } else if (bloque.name === "actualizar_transaccion") {
       const d = bloque.input as { id: string; fecha?: string; monto?: number; descripcion?: string; categoria?: string; tipo?: string };
@@ -263,7 +282,7 @@ ${contexto}`;
 
       const resultado = error ? `Error: ${error.message}` : "Transacción actualizada.";
       textoFinal = await segundaLlamadaClaude(anthropic, sistemaWA, herramientas,
-        [{ role: "user", content: texto }], respuesta.content, bloque.id, resultado);
+        [{ role: "user", content: textoFinal_entrada }], respuesta.content, bloque.id, resultado);
 
     } else if (bloque.name === "eliminar_transaccion") {
       const d = bloque.input as { id: string };
@@ -272,7 +291,7 @@ ${contexto}`;
 
       const resultado = error ? `Error: ${error.message}` : "Transacción eliminada.";
       textoFinal = await segundaLlamadaClaude(anthropic, sistemaWA, herramientas,
-        [{ role: "user", content: texto }], respuesta.content, bloque.id, resultado);
+        [{ role: "user", content: textoFinal_entrada }], respuesta.content, bloque.id, resultado);
     }
   } else {
     textoFinal = (respuesta.content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined)?.text ?? "";
