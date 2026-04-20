@@ -13,8 +13,20 @@ import {
 import type { Transaccion } from "@/lib/supabase";
 import NuevaTransaccion from "@/components/NuevaTransaccion";
 import EditarTransaccion from "@/components/EditarTransaccion";
+import Confetti from "@/components/Confetti";
 import { createClient } from "@/lib/supabase";
 import { registrarServiceWorker, pedirPermisoNotificaciones } from "@/lib/notificaciones";
+import {
+  calcularRacha,
+  calcularXP,
+  obtenerNivel,
+  laniMood,
+  perfilGasto,
+  mejorMes,
+  generarReto,
+  detectarNuevosLogros,
+  CATALOGO_LOGROS,
+} from "@/lib/gamificacion";
 
 const CAT_ICON: Record<string, string> = {
   Comida: "🍽", Supermercado: "🛒", Transporte: "🚗",
@@ -101,11 +113,18 @@ export default function DashboardPage() {
   const [paginaLista, setPaginaLista] = useState(30);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightCargando, setInsightCargando] = useState(false);
-  const [mesOffset, setMesOffset] = useState(0); // 0 = este mes, -1 = mes anterior, etc.
+  const [mesOffset, setMesOffset] = useState(0);
   const [alertasDismissed, setAlertasDismissed] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try { return JSON.parse(localStorage.getItem("lani_alertas_vistas") || "[]"); } catch { return []; }
   });
+
+  // ── Estado gamificación ──────────────────────────────────────────────
+  const [logrosIds, setLogrosIds] = useState<string[]>([]);
+  const [nuevosLogros, setNuevosLogros] = useState<string[]>([]);
+  const [mostrarConfetti, setMostrarConfetti] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const toastTimerRef = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -116,9 +135,23 @@ export default function DashboardPage() {
         setNombre(n.split(" ")[0]);
         setIniciales(n.split(" ").slice(0, 2).map((p: string) => p[0]).join("").toUpperCase());
       }
-      const datos = await obtenerTransacciones();
+
+      // Cargar transacciones y logros en paralelo
+      const [datos, logrosData] = await Promise.all([
+        obtenerTransacciones(),
+        user
+          ? supabase
+              .from("logros_usuario")
+              .select("logro_id")
+              .eq("usuario_id", user.id)
+          : Promise.resolve({ data: [] }),
+      ]);
+
       setTransacciones(datos);
-      // Insight solo si hay transacciones suficientes
+
+      const ids = ((logrosData.data ?? []) as { logro_id: string }[]).map((l) => l.logro_id);
+      setLogrosIds(ids);
+
       if (datos.length >= 5) cargarInsight(datos);
     } catch (e) {
       console.error(e);
@@ -133,7 +166,6 @@ export default function DashboardPage() {
     const hoyStr = new Date().toISOString().split("T")[0];
     const guardado = typeof window !== "undefined" ? localStorage.getItem(cacheKey) : null;
     const [fechaGuardada, insightGuardado] = guardado ? guardado.split("|||") : [];
-    // Reusar insight del mismo día
     if (fechaGuardada === hoyStr && insightGuardado) {
       setInsight(insightGuardado);
       return;
@@ -181,11 +213,67 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // ── Detectar nuevos logros cuando cambian transacciones o logrosIds ──
+  useEffect(() => {
+    if (cargando || transacciones.length === 0) return;
+
+    const racha = calcularRacha(transacciones);
+    const scorePts = (() => {
+      const hoy = new Date();
+      const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+      const txsMes = transacciones.filter((t) => {
+        const f = new Date(t.fecha + "T12:00:00");
+        return f >= inicioMes && f <= finMes;
+      });
+      const ingMes = txsMes.filter((t) => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
+      const gasMes = txsMes.filter((t) => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
+      if (ingMes === 0) return 0;
+      const tasaAhorro = Math.max(0, Math.min(100, ((ingMes - gasMes) / ingMes) * 100));
+      const ptsAhorro = tasaAhorro > 20 ? 30 : tasaAhorro > 10 ? 20 : tasaAhorro > 0 ? 10 : 0;
+      const ratioGasto = gasMes / ingMes;
+      const controlPct = Math.max(0, Math.min(100, (1 - ratioGasto) * 100));
+      const ptsControl = controlPct > 50 ? 40 : controlPct > 30 ? 32 : controlPct > 15 ? 22 : 10;
+      return Math.min(100, ptsControl + ptsAhorro);
+    })();
+
+    const nuevos = detectarNuevosLogros(transacciones, logrosIds, racha.dias, scorePts);
+    if (nuevos.length === 0) return;
+
+    // Guardar en Supabase
+    const guardarLogros = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        await supabase.from("logros_usuario").insert(
+          nuevos.map((id) => ({ usuario_id: user.id, logro_id: id }))
+        );
+
+        setLogrosIds((prev) => [...prev, ...nuevos]);
+        setNuevosLogros(nuevos);
+        setMostrarConfetti(true);
+        setToastVisible(true);
+
+        // Auto-cerrar toast después de 4s
+        const timer = toastTimerRef[0];
+        if (timer) clearTimeout(timer);
+        const nuevoTimer = setTimeout(() => setToastVisible(false), 4000);
+        toastTimerRef[0] = nuevoTimer;
+      } catch (e) {
+        console.error("Error guardando logros:", e);
+      }
+    };
+
+    void guardarLogros();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transacciones, logrosIds, cargando]);
+
   // ── Periodo activo ────────────────────────────────────────────────
   const quinc = useMemo(() => getQuincenaActual(), []);
   const hoyDate = new Date();
 
-  // Mes seleccionado según offset (0 = este mes, -1 = mes anterior, etc.)
   const { mesSeleccionado, inicioMesSel, finMesSel } = useMemo(() => {
     const sel = new Date(hoyDate.getFullYear(), hoyDate.getMonth() + mesOffset, 1);
     return {
@@ -211,15 +299,13 @@ export default function DashboardPage() {
   const spendingPct = ingresos > 0 ? Math.min((gastos / ingresos) * 100, 100) : 0;
   const spendingColor = spendingPct >= 90 ? "var(--danger)" : spendingPct >= 70 ? "var(--warning)" : "var(--gold)";
 
-  // Proyección solo para el mes/quincena actual (O(n) — solo recalcular cuando cambian las txs)
   const proyeccionMes = useMemo(() => calcularProyeccion(transacciones), [transacciones]);
   const proyeccionQ = useMemo(() => calcularProyeccionQuincena(transacciones, quinc), [transacciones, quinc]);
 
-  // detectarRecurrentes es O(n²) — memoizar para que no corra en cada render
   const recurrentes = useMemo(() => detectarRecurrentes(transacciones), [transacciones]);
   const totalSuscripciones = useMemo(() => totalRecurrentes(recurrentes), [recurrentes]);
 
-  // ── Score Financiero con 3 rings ─────────────────────────────────
+  // ── Score Financiero ─────────────────────────────────────────────
   const scoreFinanciero = useMemo(() => {
     const hoy = new Date();
     const ingMes = txsMesActual.filter(t => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
@@ -227,7 +313,6 @@ export default function DashboardPage() {
     if (ingMes === 0 && gasMes === 0) return null;
 
     const sinIngresos = ingMes === 0 && gasMes > 0;
-    // Sin ingresos registrados = 0 de inmediato, no hay nada que evaluar
     if (sinIngresos) {
       return {
         pts: 0, color: "var(--danger)", label: "Crítico",
@@ -238,16 +323,13 @@ export default function DashboardPage() {
       };
     }
 
-    // — Ahorro: % de ingresos guardado (ring izquierdo) —
     const tasaAhorro = ingMes > 0 ? Math.max(0, Math.min(100, ((ingMes - gasMes) / ingMes) * 100)) : 0;
     const ptsAhorro = tasaAhorro > 20 ? 30 : tasaAhorro > 10 ? 20 : tasaAhorro > 0 ? 10 : 0;
 
-    // — Control: margen restante vs ingresos (ring derecho) —
     const ratioGasto = ingMes > 0 ? gasMes / ingMes : (gasMes > 0 ? 1.5 : 0);
     const controlPct = Math.max(0, Math.min(100, (1 - ratioGasto) * 100));
     const ptsControl = controlPct > 50 ? 40 : controlPct > 30 ? 32 : controlPct > 15 ? 22 : controlPct > 0 ? 10 : 0;
 
-    // — Tendencia vs mes anterior (no visible como ring, suma al score) —
     const inicioMesAnt = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
     const finMesAnt = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
     const gasMesAnt = transacciones
@@ -262,7 +344,6 @@ export default function DashboardPage() {
       ptsTendencia = tendenciaPct > 65 ? 15 : tendenciaPct > 50 ? 10 : tendenciaPct > 35 ? 5 : 0;
     }
 
-    // — Diversificación (suma al score) —
     const porCat: Record<string, number> = {};
     txsMesActual.filter(t => t.tipo === "gasto").forEach(t => {
       porCat[t.categoria || "Otros"] = (porCat[t.categoria || "Otros"] || 0) + Number(t.monto);
@@ -272,9 +353,7 @@ export default function DashboardPage() {
     const diversPct = Math.max(0, Math.min(100, (1 - (gasMes > 0 ? maxCat / gasMes : 0)) * 100 * (nCats > 1 ? 1.2 : 1)));
     const ptsDivers = !sinIngresos ? (diversPct > 65 ? 10 : diversPct > 40 ? 7 : diversPct > 20 ? 3 : 0) : 0;
 
-    // — Hábito de registro (solo factor que cuenta sin ingresos) —
     const habitoPct = Math.min(100, (txsMesActual.length / 25) * 100);
-    // Si no hay ingresos, cap en 5 pts para no inflar el score artificialmente
     const ptsHabito = sinIngresos
       ? (habitoPct >= 16 ? 5 : 0)
       : (habitoPct >= 80 ? 15 : habitoPct >= 40 ? 10 : habitoPct >= 16 ? 5 : 0);
@@ -301,6 +380,22 @@ export default function DashboardPage() {
     return { pts, color, label, metricas };
   }, [txsMesActual, transacciones]);
 
+  // ── Gamificación computada ───────────────────────────────────────
+  const racha = useMemo(() => calcularRacha(transacciones), [transacciones]);
+  const xpTotal = useMemo(() => calcularXP(transacciones, logrosIds), [transacciones, logrosIds]);
+  const nivel = useMemo(() => obtenerNivel(xpTotal), [xpTotal]);
+  const mood = useMemo(() => laniMood(scoreFinanciero?.pts ?? 0), [scoreFinanciero]);
+  const perfil = useMemo(() => perfilGasto(txsMesActual), [txsMesActual]);
+  const mejorMesData = useMemo(() => mejorMes(transacciones), [transacciones]);
+  const reto = useMemo(() => generarReto(transacciones), [transacciones]);
+
+  // Mes actual como clave para comparar con mejor mes
+  const mesActualClave = useMemo(() => {
+    const hoy = new Date();
+    return new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+      .toLocaleString("es-MX", { month: "long", year: "numeric" });
+  }, []);
+
   // ── Alertas Inteligentes ─────────────────────────────────────────
   const alertasInteligentes = useMemo(() => {
     const hoy = new Date();
@@ -324,7 +419,6 @@ export default function DashboardPage() {
 
     const alertas: Array<{ id: string; mensaje: string; detalle: string }> = [];
 
-    // Detectar picos por categoría
     for (const cat of Object.keys(catActual)) {
       const actual = catActual[cat];
       const anterior = catAnterior[cat] || 0;
@@ -338,7 +432,6 @@ export default function DashboardPage() {
       }
     }
 
-    // Predicción de dinero acabándose
     const ingMes = txsMesActual.filter(t => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
     const gasMes = txsMesActual.filter(t => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
     const diaHoy = hoy.getDate();
@@ -377,7 +470,6 @@ export default function DashboardPage() {
     ? quinc.label
     : mesSeleccionado.toLocaleString("es-MX", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
 
-  // Lista filtrada por el mes seleccionado
   const listaBase = useMemo(() => txsMesActual.filter((t) =>
     filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
   ), [txsMesActual, filtro]);
@@ -386,8 +478,23 @@ export default function DashboardPage() {
 
   const grupos = useMemo(() => agruparPorFecha(lista), [lista]);
 
+  // Primeros 4 logros desbloqueados para la card resumen
+  const logrosParaMostrar = useMemo(() => {
+    const desbloqueados = CATALOGO_LOGROS.filter((l) => logrosIds.includes(l.id));
+    return desbloqueados.slice(0, 4);
+  }, [logrosIds]);
+
+  // Logro más reciente para el toast
+  const primerNuevoLogro = useMemo(
+    () => CATALOGO_LOGROS.find((l) => l.id === nuevosLogros[0]) ?? null,
+    [nuevosLogros]
+  );
+
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)" }}>
+
+      {/* ── CONFETTI ── */}
+      <Confetti visible={mostrarConfetti} onDone={() => setMostrarConfetti(false)} />
 
       {/* ── HEADER ── */}
       <div style={{ padding: "56px 20px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -396,8 +503,31 @@ export default function DashboardPage() {
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", lineHeight: 1.2, marginTop: 1 }}>
             {cargando ? <Skel w="100px" h="26px" /> : (nombre || "Mis finanzas")}
           </h1>
+          {/* Nivel del usuario */}
+          {!cargando && (
+            <p style={{ fontSize: 10, color: "var(--text-3)", marginTop: 3 }}>
+              {nivel.emoji} {nivel.label}
+            </p>
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Badge de racha */}
+          {!cargando && racha.activa && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 3,
+              padding: "4px 10px", borderRadius: 99,
+              backgroundColor: racha.enRiesgo ? "var(--surface-2)" : "var(--gold-dim)",
+              border: `1px solid ${racha.enRiesgo ? "var(--border)" : "var(--gold-border)"}`,
+            }}>
+              <span style={{ fontSize: 12 }}>🔥</span>
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                color: racha.enRiesgo ? "var(--text-3)" : "var(--gold)",
+              }}>
+                {racha.dias}
+              </span>
+            </div>
+          )}
           <button
             onClick={() => router.push("/buscar")}
             className="active:opacity-50 transition-opacity"
@@ -432,9 +562,7 @@ export default function DashboardPage() {
       {/* ── BALANCE HERO ── */}
       <div style={{ padding: "20px 20px 16px" }}>
 
-        {/* Periodo + navegación + toggle */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          {/* Flechas de mes */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button
               onClick={() => { setMesOffset((o) => o - 1); setPaginaLista(30); }}
@@ -457,7 +585,6 @@ export default function DashboardPage() {
               </svg>
             </button>
           </div>
-          {/* Toggle mes/quincena solo en mes actual */}
           {mesOffset === 0 && (
             <div style={{ display: "flex", gap: 3 }}>
               {(["mes", "quincena"] as Modo[]).map((m) => (
@@ -491,7 +618,6 @@ export default function DashboardPage() {
           </p>
         )}
 
-        {/* Ingresos / Gastos */}
         <div style={{ display: "flex", gap: 20, marginTop: 14 }}>
           <div>
             {cargando ? <Skel w="80px" h="16px" /> : (
@@ -512,7 +638,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Spending rate */}
         {!cargando && ingresos > 0 && (
           <div style={{ marginTop: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -539,7 +664,8 @@ export default function DashboardPage() {
             border: "1px solid var(--gold-border)",
             display: "flex", alignItems: "flex-start", gap: 10,
           }}>
-            <span style={{ fontSize: 16, flexShrink: 0, lineHeight: 1.5 }}>🐑</span>
+            {/* Emoji dinámico según mood */}
+            <span style={{ fontSize: 16, flexShrink: 0, lineHeight: 1.5 }}>{mood.emoji}</span>
             {insightCargando ? (
               <div style={{ display: "flex", gap: 4, alignItems: "center", paddingTop: 4 }}>
                 {[0, 1, 2].map((i) => (
@@ -553,10 +679,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── SCORE FINANCIERO: 3 cards separados ── */}
+      {/* ── SCORE FINANCIERO: 3 cards ── */}
       {!cargando && scoreFinanciero && mesOffset === 0 && (
         <div style={{ padding: "0 20px 8px", display: "flex", gap: 8, alignItems: "stretch" }}>
-          {/* Ahorro */}
           <div style={{
             flex: 1, padding: "14px 10px 12px", borderRadius: 16,
             backgroundColor: "var(--surface)", border: "1px solid var(--border)",
@@ -573,7 +698,6 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Score (centro, más grande) */}
           <div style={{
             flex: 1.4, padding: "14px 10px 12px", borderRadius: 16,
             backgroundColor: "var(--surface)", border: `1px solid ${scoreFinanciero.color}44`,
@@ -591,7 +715,6 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Control */}
           <div style={{
             flex: 1, padding: "14px 10px 12px", borderRadius: 16,
             backgroundColor: "var(--surface)", border: "1px solid var(--border)",
@@ -637,11 +760,175 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ── CARDS DE GAMIFICACIÓN (solo mes actual) ── */}
+      {!cargando && mesOffset === 0 && (
+        <div style={{ padding: "0 20px 4px", display: "flex", flexDirection: "column", gap: 8 }}>
+
+          {/* Reto semanal */}
+          <div style={{
+            padding: "14px", borderRadius: 14,
+            backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+          }}>
+            <p style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: "0.1em",
+              textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6,
+            }}>
+              ⚡ Reto de la semana
+            </p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginBottom: 4 }}>
+              {reto.titulo}
+            </p>
+            <p style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 10 }}>
+              {reto.descripcion}
+            </p>
+
+            {reto.progreso >= reto.meta ? (
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--success)" }}>
+                ¡Reto cumplido! 🎉
+              </p>
+            ) : (
+              <>
+                <div style={{
+                  width: "100%", height: 5, borderRadius: 99,
+                  backgroundColor: "var(--surface-3)", marginBottom: 4,
+                }}>
+                  <div style={{
+                    height: 5, borderRadius: 99,
+                    width: `${Math.min(100, (reto.progreso / reto.meta) * 100)}%`,
+                    backgroundColor: "var(--gold)",
+                    transition: "width 0.8s cubic-bezier(0.22,1,0.36,1)",
+                  }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <p style={{ fontSize: 10, color: "var(--text-3)" }}>
+                    {reto.unidad === "pesos"
+                      ? formatearMonto(reto.progreso)
+                      : `${reto.progreso} ${reto.unidad}`}
+                  </p>
+                  <p style={{ fontSize: 10, color: "var(--text-3)" }}>
+                    meta: {reto.unidad === "pesos"
+                      ? formatearMonto(reto.meta)
+                      : `${reto.meta} ${reto.unidad}`}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Perfil de gasto */}
+          {perfil && (
+            <div style={{
+              padding: "12px 14px", borderRadius: 14,
+              backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+              display: "flex", alignItems: "center", gap: 10,
+            }}>
+              <span style={{ fontSize: 22, flexShrink: 0 }}>{perfil.emoji}</span>
+              <div>
+                <p style={{ fontSize: 10, color: "var(--text-3)", marginBottom: 2 }}>Tu perfil este mes</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{perfil.label}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Mejor mes */}
+          {mejorMesData && !mejorMesData.mes.includes(mesActualClave.split(" ")[0]) && (
+            <div style={{
+              padding: "14px", borderRadius: 14,
+              backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+            }}>
+              <p style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: "0.1em",
+                textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6,
+              }}>
+                🏆 Tu récord
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginBottom: 2 }}>
+                Mejor mes: {mejorMesData.mes}
+              </p>
+              <p className="font-number" style={{ fontSize: 16, fontWeight: 700, color: "var(--success)", marginBottom: 2 }}>
+                {formatearMonto(mejorMesData.monto)} ahorrados
+              </p>
+              {balance > 0 && (
+                <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>
+                  Este mes vas en {formatearMonto(balance)}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Logros */}
+          <button
+            onClick={() => router.push("/logros")}
+            style={{
+              padding: "14px", borderRadius: 14, width: "100%", textAlign: "left",
+              backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+              cursor: "pointer",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <p style={{
+                fontSize: 9, fontWeight: 700, letterSpacing: "0.1em",
+                textTransform: "uppercase", color: "var(--text-3)",
+              }}>
+                🏅 Mis logros
+              </p>
+              <p style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600 }}>Ver todos →</p>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              {logrosParaMostrar.length > 0 ? (
+                <>
+                  {logrosParaMostrar.map((l) => (
+                    <div key={l.id} style={{
+                      width: 36, height: 36, borderRadius: "50%",
+                      backgroundColor: "var(--gold-dim)",
+                      border: "1px solid var(--gold-border)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 16, flexShrink: 0,
+                    }}>
+                      {l.emoji}
+                    </div>
+                  ))}
+                  {logrosIds.length > 4 && (
+                    <div style={{
+                      width: 36, height: 36, borderRadius: "50%",
+                      backgroundColor: "var(--surface-2)",
+                      border: "1px solid var(--border)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 10, fontWeight: 700, color: "var(--text-3)", flexShrink: 0,
+                    }}>
+                      +{logrosIds.length - 4}
+                    </div>
+                  )}
+                </>
+              ) : (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} style={{
+                    width: 36, height: 36, borderRadius: "50%",
+                    backgroundColor: "var(--surface-2)",
+                    border: "1px solid var(--border)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 16, opacity: 0.4, flexShrink: 0,
+                  }}>
+                    🔒
+                  </div>
+                ))
+              )}
+            </div>
+
+            <p style={{ fontSize: 11, color: "var(--text-3)" }}>
+              {logrosIds.length > 0
+                ? `Tienes ${logrosIds.length} de ${CATALOGO_LOGROS.length} logros desbloqueados`
+                : "Aún no tienes logros. ¡Empieza a registrar!"}
+            </p>
+          </button>
+        </div>
+      )}
+
       {/* ── INFO CARDS: Proyección + Recurrentes ── */}
       {!cargando && (
         <div style={{ padding: "0 20px 4px", display: "flex", flexDirection: "column", gap: 8 }}>
 
-          {/* Proyección — mes */}
           {modo === "mes" && proyeccionMes.motivo === "ok" && proyeccionMes.proyectado !== null && (
             <div style={{
               padding: "12px 14px", borderRadius: 14,
@@ -676,7 +963,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Proyección — quincena */}
           {modo === "quincena" && proyeccionQ.motivo === "ok" && proyeccionQ.proyectado !== null && (
             <div style={{
               padding: "12px 14px", borderRadius: 14,
@@ -705,7 +991,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Recurrentes detectados */}
           {recurrentes.length > 0 && (
             <div style={{
               borderRadius: 14,
@@ -886,7 +1171,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Ver más */}
         {!cargando && hayMas && (
           <button
             onClick={() => setPaginaLista((p) => p + 30)}
@@ -928,6 +1212,49 @@ export default function DashboardPage() {
           onGuardado={() => { setTransaccionEditar(null); cargar(); }}
           onEliminado={() => { setTransaccionEditar(null); cargar(); }}
         />
+      )}
+
+      {/* ── TOAST NUEVOS LOGROS ── */}
+      {toastVisible && primerNuevoLogro && (
+        <div
+          className="fade-in"
+          style={{
+            position: "fixed",
+            bottom: 80,
+            left: 16,
+            right: 16,
+            zIndex: 9998,
+            padding: "14px 16px",
+            borderRadius: 16,
+            backgroundColor: "var(--surface)",
+            border: "1px solid var(--gold-border)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          }}
+        >
+          <p style={{ fontSize: 11, fontWeight: 700, color: "var(--gold)", marginBottom: 4 }}>
+            🎉 ¡Nuevo logro desbloqueado!
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22 }}>{primerNuevoLogro.emoji}</span>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>
+                {primerNuevoLogro.titulo}
+              </p>
+              <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>
+                {primerNuevoLogro.descripcion}
+              </p>
+            </div>
+            <p
+              className="font-number"
+              style={{
+                marginLeft: "auto", fontSize: 12, fontWeight: 700,
+                color: "var(--gold)", flexShrink: 0,
+              }}
+            >
+              +{primerNuevoLogro.xp} XP
+            </p>
+          </div>
+        </div>
       )}
     </main>
   );
