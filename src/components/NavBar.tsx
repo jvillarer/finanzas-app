@@ -43,6 +43,15 @@ const TABS = [
     ),
   },
   {
+    href: "/proyectos",
+    // Carpeta — Proyectos para separar gastos
+    icon: (active: boolean) => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+        <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
+      </svg>
+    ),
+  },
+  {
     href: "/estadisticas",
     // Gráfica de barras — Analytics/Dashboard
     icon: (active: boolean) => (
