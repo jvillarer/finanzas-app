@@ -36,24 +36,59 @@ export async function POST(req: NextRequest) {
   const value   = changes?.value;
   const mensaje = value?.messages?.[0];
 
-  // Si no hay mensaje (puede ser una notificación de status), responder OK
+  // Si no hay mensaje (puede ser una notificación de status/delivery), responder OK
   if (!mensaje) return Response.json({ ok: true });
 
   const telefonoRaw = mensaje.from as string;
-  console.log("📱 Teléfono recibido de Meta:", telefonoRaw);
+  const messageId   = mensaje.id as string;
+  const texto       = (mensaje.text?.body ?? "") as string;
+  const tipo        = mensaje.type as string;
+
+  // ── Guard 1: ignorar mensajes propios (echo del business) ──────────────────
+  // Meta puede enviar de vuelta los mensajes que nosotros enviamos
+  const phoneNumberId = value?.metadata?.phone_number_id as string | undefined;
+  const fromPhoneId   = mensaje.from_me === true;
+  if (fromPhoneId || (phoneNumberId && telefonoRaw === phoneNumberId)) {
+    return Response.json({ ok: true });
+  }
+
+  // ── Guard 2: ignorar mensajes antiguos (>90s) — evita reprocessar retries de Vercel ──
+  const timestampMensaje = parseInt(mensaje.timestamp ?? "0", 10);
+  const ahoraEpoch = Math.floor(Date.now() / 1000);
+  if (timestampMensaje > 0 && ahoraEpoch - timestampMensaje > 90) {
+    console.log(`⏱ Mensaje ${messageId} ignorado: llegó ${ahoraEpoch - timestampMensaje}s tarde`);
+    return Response.json({ ok: true, motivo: "mensaje_expirado" });
+  }
+
   // Meta envía números mexicanos como 521XXXXXXXXXX, normalizamos a 52XXXXXXXXXX
   const telefono = telefonoRaw.startsWith("521") && telefonoRaw.length === 13
     ? "52" + telefonoRaw.slice(3)
     : telefonoRaw;
-  const messageId = mensaje.id as string;
-  const texto     = (mensaje.text?.body ?? "") as string;
-  const tipo      = mensaje.type as string;
 
-  // Solo procesar mensajes de texto por ahora (ignorar stickers, audio, etc.)
+  // ── Guard 3: solo mensajes de texto — ignorar audio, stickers, reacciones, etc. sin responder ──
   if (tipo !== "text" || !texto.trim()) {
-    await enviarMensajeWA(telefono, "Solo puedo leer mensajes de texto por el momento 🐑");
+    // Marcar como leído sin responder (no queremos loops)
+    await marcarLeidoWA(messageId);
     return Response.json({ ok: true });
   }
+
+  // ── Guard 4: deduplicación por messageId en Supabase ──────────────────────
+  const supabaseCheck = supabaseAdmin();
+  const { data: yaExiste } = await supabaseCheck
+    .from("webhook_wa_procesados")
+    .select("id")
+    .eq("message_id", messageId)
+    .maybeSingle();
+
+  if (yaExiste) {
+    console.log(`⚠️ Mensaje ${messageId} ya procesado, ignorando`);
+    return Response.json({ ok: true, motivo: "duplicado" });
+  }
+
+  // Registrar messageId ANTES de procesar (evita carrera si Vercel retries en paralelo)
+  await supabaseCheck
+    .from("webhook_wa_procesados")
+    .insert({ message_id: messageId, telefono, created_at: new Date().toISOString() });
 
   // Marcar como leído inmediatamente
   await marcarLeidoWA(messageId);
