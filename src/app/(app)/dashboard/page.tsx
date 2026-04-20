@@ -286,24 +286,6 @@ export default function DashboardPage() {
         display: `${Math.round(controlPct)}%`,
         color: controlPct > 35 ? "var(--success)" : controlPct > 15 ? "#f59e0b" : "var(--danger)",
       },
-      {
-        valor: Math.round(tendenciaPct),
-        label: "Tendencia",
-        display: tendenciaDisplay,
-        color: tendenciaPct > 55 ? "var(--success)" : tendenciaPct < 42 ? "var(--danger)" : "#f59e0b",
-      },
-      {
-        valor: Math.round(diversPct),
-        label: "Diversif.",
-        display: `${Math.round(diversPct)}%`,
-        color: diversPct > 60 ? "var(--success)" : diversPct > 35 ? "#f59e0b" : "var(--danger)",
-      },
-      {
-        valor: Math.round(habitoPct),
-        label: "Hábito",
-        display: `${txsMesActual.length}`,
-        color: habitoPct > 60 ? "var(--success)" : habitoPct > 28 ? "#f59e0b" : "var(--danger)",
-      },
     ];
 
     return { pts, color, label, metricas };
