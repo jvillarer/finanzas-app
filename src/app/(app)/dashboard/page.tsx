@@ -60,6 +60,10 @@ export default function DashboardPage() {
   const [insight, setInsight] = useState<string | null>(null);
   const [insightCargando, setInsightCargando] = useState(false);
   const [mesOffset, setMesOffset] = useState(0); // 0 = este mes, -1 = mes anterior, etc.
+  const [alertasDismissed, setAlertasDismissed] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem("lani_alertas_vistas") || "[]"); } catch { return []; }
+  });
 
   const cargar = useCallback(async () => {
     try {
@@ -172,6 +176,110 @@ export default function DashboardPage() {
   // detectarRecurrentes es O(n²) — memoizar para que no corra en cada render
   const recurrentes = useMemo(() => detectarRecurrentes(transacciones), [transacciones]);
   const totalSuscripciones = useMemo(() => totalRecurrentes(recurrentes), [recurrentes]);
+
+  // ── Score Financiero (0-100) ──────────────────────────────────────
+  const scoreFinanciero = useMemo(() => {
+    const ingMes = txsMesActual.filter(t => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
+    const gasMes = txsMesActual.filter(t => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
+    if (ingMes === 0 && gasMes === 0) return null;
+
+    let pts = 0;
+
+    // Control de gastos (0-40 pts)
+    const ratioGasto = ingMes > 0 ? gasMes / ingMes : (gasMes > 0 ? 1.5 : 0);
+    if (ratioGasto < 0.5) pts += 40;
+    else if (ratioGasto < 0.7) pts += 32;
+    else if (ratioGasto < 0.85) pts += 22;
+    else if (ratioGasto < 1.0) pts += 10;
+
+    // Tasa de ahorro (0-30 pts)
+    if (ingMes > 0) {
+      const ahorro = (ingMes - gasMes) / ingMes;
+      if (ahorro > 0.2) pts += 30;
+      else if (ahorro > 0.1) pts += 20;
+      else if (ahorro > 0) pts += 10;
+    }
+
+    // Balance positivo (0-15 pts)
+    if (ingMes > gasMes) pts += 15;
+
+    // Hábito de registro (0-15 pts)
+    if (txsMesActual.length >= 20) pts += 15;
+    else if (txsMesActual.length >= 10) pts += 10;
+    else if (txsMesActual.length >= 5) pts += 5;
+
+    const color = pts >= 75 ? "var(--success)" : pts >= 50 ? "#f59e0b" : "var(--danger)";
+    const label = pts >= 80 ? "Excelente" : pts >= 65 ? "Bueno" : pts >= 50 ? "Regular" : pts >= 35 ? "En riesgo" : "Crítico";
+    return { pts, color, label };
+  }, [txsMesActual]);
+
+  // ── Alertas Inteligentes ─────────────────────────────────────────
+  const alertasInteligentes = useMemo(() => {
+    const hoy = new Date();
+    const diaSemana = hoy.getDay();
+    const inicioSemanaActual = new Date(hoy);
+    inicioSemanaActual.setDate(hoy.getDate() - diaSemana);
+    inicioSemanaActual.setHours(0, 0, 0, 0);
+    const inicioSemanaAnterior = new Date(inicioSemanaActual);
+    inicioSemanaAnterior.setDate(inicioSemanaActual.getDate() - 7);
+
+    const catActual: Record<string, number> = {};
+    const catAnterior: Record<string, number> = {};
+
+    for (const t of transacciones) {
+      if (t.tipo !== "gasto") continue;
+      const cat = t.categoria || "Otros";
+      const f = new Date(t.fecha + "T12:00:00");
+      if (f >= inicioSemanaActual && f <= hoy) catActual[cat] = (catActual[cat] || 0) + Number(t.monto);
+      if (f >= inicioSemanaAnterior && f < inicioSemanaActual) catAnterior[cat] = (catAnterior[cat] || 0) + Number(t.monto);
+    }
+
+    const alertas: Array<{ id: string; mensaje: string; detalle: string }> = [];
+
+    // Detectar picos por categoría
+    for (const cat of Object.keys(catActual)) {
+      const actual = catActual[cat];
+      const anterior = catAnterior[cat] || 0;
+      if (anterior > 100 && actual > anterior * 1.4 && actual > 250) {
+        const ratio = actual / anterior;
+        alertas.push({
+          id: `spike-${cat}-${inicioSemanaActual.toISOString().split("T")[0]}`,
+          mensaje: `${ratio.toFixed(1)}x más en ${cat} esta semana`,
+          detalle: `${formatearMonto(actual)} vs ${formatearMonto(anterior)} la semana pasada`,
+        });
+      }
+    }
+
+    // Predicción de dinero acabándose
+    const ingMes = txsMesActual.filter(t => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
+    const gasMes = txsMesActual.filter(t => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
+    const diaHoy = hoy.getDate();
+    if (ingMes > 0 && gasMes > 0 && diaHoy >= 5) {
+      const gastoPromDiario = gasMes / diaHoy;
+      const diasRestMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate() - diaHoy;
+      const gastoProyectado = gasMes + gastoPromDiario * diasRestMes;
+      if (gastoProyectado > ingMes * 1.05) {
+        const diasHastaLimite = Math.floor((ingMes - gasMes) / gastoPromDiario);
+        if (diasHastaLimite > 0 && diasHastaLimite <= 18) {
+          const fechaLimite = new Date(hoy);
+          fechaLimite.setDate(hoy.getDate() + diasHastaLimite);
+          alertas.push({
+            id: `limite-${hoy.getFullYear()}-${hoy.getMonth()}`,
+            mensaje: `A este ritmo, el dinero alcanza hasta el día ${fechaLimite.getDate()}`,
+            detalle: `Gasto proyectado: ${formatearMonto(gastoProyectado)} vs ${formatearMonto(ingMes)} de ingresos`,
+          });
+        }
+      }
+    }
+
+    return alertas.filter(a => !alertasDismissed.includes(a.id));
+  }, [transacciones, txsMesActual, alertasDismissed]);
+
+  const dismissAlerta = (id: string) => {
+    const nuevas = [...alertasDismissed, id];
+    setAlertasDismissed(nuevas);
+    localStorage.setItem("lani_alertas_vistas", JSON.stringify(nuevas));
+  };
 
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
@@ -357,6 +465,74 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ── SCORE FINANCIERO ── */}
+      {!cargando && scoreFinanciero && mesOffset === 0 && (
+        <div style={{ padding: "0 20px 8px" }}>
+          <div style={{
+            padding: "14px 16px", borderRadius: 14,
+            backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>
+                Score financiero
+              </p>
+              {/* Barra de score */}
+              <div style={{ width: "100%", height: 5, borderRadius: 99, backgroundColor: "var(--surface-3)", marginBottom: 6 }}>
+                <div style={{
+                  height: 5, borderRadius: 99,
+                  width: `${scoreFinanciero.pts}%`,
+                  backgroundColor: scoreFinanciero.color,
+                  transition: "width 1s cubic-bezier(0.22,1,0.36,1)",
+                }} />
+              </div>
+              <p style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 500 }}>
+                {scoreFinanciero.pts >= 75
+                  ? "Tus finanzas están sanas 💪"
+                  : scoreFinanciero.pts >= 50
+                  ? "Hay margen para mejorar"
+                  : "Atención, tus gastos superan tus ingresos"}
+              </p>
+            </div>
+            <div style={{ textAlign: "right", marginLeft: 16, flexShrink: 0 }}>
+              <p className="font-number" style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.04em", color: scoreFinanciero.color, lineHeight: 1 }}>
+                {scoreFinanciero.pts}
+              </p>
+              <p style={{ fontSize: 10, fontWeight: 700, color: scoreFinanciero.color, marginTop: 2 }}>
+                {scoreFinanciero.label}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ALERTAS INTELIGENTES ── */}
+      {!cargando && alertasInteligentes.length > 0 && mesOffset === 0 && (
+        <div style={{ padding: "0 20px 8px", display: "flex", flexDirection: "column", gap: 6 }}>
+          {alertasInteligentes.map((alerta) => (
+            <div key={alerta.id} style={{
+              padding: "11px 14px", borderRadius: 14,
+              backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+              display: "flex", alignItems: "flex-start", gap: 10,
+            }}>
+              <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1.6 }}>⚡</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.4 }}>{alerta.mensaje}</p>
+                <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{alerta.detalle}</p>
+              </div>
+              <button
+                onClick={() => dismissAlerta(alerta.id)}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 0 0 4px", flexShrink: 0 }}
+              >
+                <svg viewBox="0 0 14 14" fill="none" stroke="var(--text-3)" strokeWidth={1.8} strokeLinecap="round" style={{ width: 13, height: 13 }}>
+                  <path d="M2 2l10 10M12 2L2 12" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── INFO CARDS: Proyección + Recurrentes ── */}
       {!cargando && (
         <div style={{ padding: "0 20px 4px", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -365,7 +541,8 @@ export default function DashboardPage() {
           {modo === "mes" && proyeccionMes.motivo === "ok" && proyeccionMes.proyectado !== null && (
             <div style={{
               padding: "12px 14px", borderRadius: 14,
-              backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+              backgroundColor: "var(--surface)",
+              border: proyeccionMes.proyectado < 0 ? "1px solid var(--danger)" : "1px solid var(--border)",
               display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
               <div>
@@ -378,6 +555,11 @@ export default function DashboardPage() {
                 }}>
                   ~{formatearMonto(proyeccionMes.proyectado)}
                 </p>
+                {proyeccionMes.proyectado < 0 && (
+                  <p style={{ fontSize: 10, color: "var(--danger)", marginTop: 3, fontWeight: 600 }}>
+                    A este ritmo, gastas más de lo que recibes
+                  </p>
+                )}
               </div>
               <div style={{ textAlign: "right" }}>
                 <p style={{ fontSize: 10, color: "var(--text-3)", lineHeight: 1.6 }}>
