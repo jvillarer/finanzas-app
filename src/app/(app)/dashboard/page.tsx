@@ -83,6 +83,131 @@ function MetricaRing({ valor, label, display, color, grande = false }: {
   );
 }
 
+// ── Gráfica de categorías ────────────────────────────────────────────
+const COLORES_CAT = ["#f59e0b", "#3b82f6", "#10b981", "#ef4444", "#8b5cf6", "#ec4899"];
+
+function GraficaCategorias({ txs }: { txs: Transaccion[] }) {
+  const gastos = txs.filter((t) => t.tipo === "gasto");
+  const total = gastos.reduce((s, t) => s + Number(t.monto), 0);
+  if (total === 0) return null;
+
+  const porCat: Record<string, number> = {};
+  for (const t of gastos) {
+    const cat = t.categoria || "Otros";
+    porCat[cat] = (porCat[cat] || 0) + Number(t.monto);
+  }
+  const top = Object.entries(porCat).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  return (
+    <div style={{
+      padding: "14px", borderRadius: 14,
+      backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+    }}>
+      <p style={{
+        fontSize: 9, fontWeight: 700, letterSpacing: "0.1em",
+        textTransform: "uppercase", color: "var(--text-3)", marginBottom: 14,
+      }}>
+        Gastos por categoría
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {top.map(([cat, monto], i) => {
+          const pct = (monto / total) * 100;
+          return (
+            <div key={cat}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>
+                  {CAT_ICON[cat] || "📦"} {cat}
+                </span>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span className="font-number" style={{ fontSize: 11, color: "var(--text-3)" }}>
+                    ${monto >= 1000 ? `${(monto / 1000).toFixed(1)}k` : monto.toFixed(0)}
+                  </span>
+                  <span className="font-number" style={{ fontSize: 11, fontWeight: 700, color: COLORES_CAT[i], minWidth: 30, textAlign: "right" }}>
+                    {pct.toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+              <div style={{ width: "100%", height: 5, borderRadius: 99, backgroundColor: "var(--surface-3)" }}>
+                <div style={{
+                  height: 5, borderRadius: 99, backgroundColor: COLORES_CAT[i],
+                  width: `${pct}%`,
+                  transition: "width 1s cubic-bezier(0.22,1,0.36,1)",
+                }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Gráfica histórica 6 meses ────────────────────────────────────────
+interface DatoMes { label: string; ingresos: number; gastos: number; esActual: boolean; }
+
+function GraficaMensual({ datos }: { datos: DatoMes[] }) {
+  const maxVal = Math.max(...datos.map((m) => Math.max(m.ingresos, m.gastos)), 1);
+  const ALTO = 72;
+
+  return (
+    <div style={{
+      padding: "14px", borderRadius: 14,
+      backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+    }}>
+      <p style={{
+        fontSize: 9, fontWeight: 700, letterSpacing: "0.1em",
+        textTransform: "uppercase", color: "var(--text-3)", marginBottom: 14,
+      }}>
+        Últimos 6 meses
+      </p>
+
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: ALTO + 20 }}>
+        {datos.map((mes, i) => (
+          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: ALTO }}>
+              {/* Barra ingresos */}
+              <div style={{
+                flex: 1, borderRadius: "3px 3px 0 0",
+                backgroundColor: mes.ingresos > 0 ? "var(--success)" : "var(--surface-3)",
+                height: mes.ingresos > 0 ? `${(mes.ingresos / maxVal) * ALTO}px` : "3px",
+                transition: "height 1s cubic-bezier(0.22,1,0.36,1)",
+                opacity: mes.esActual ? 1 : 0.45,
+              }} />
+              {/* Barra gastos */}
+              <div style={{
+                flex: 1, borderRadius: "3px 3px 0 0",
+                backgroundColor: mes.gastos > 0 ? "var(--danger)" : "var(--surface-3)",
+                height: mes.gastos > 0 ? `${(mes.gastos / maxVal) * ALTO}px` : "3px",
+                transition: "height 1s cubic-bezier(0.22,1,0.36,1)",
+                opacity: mes.esActual ? 1 : 0.45,
+              }} />
+            </div>
+            <p style={{
+              fontSize: 9,
+              fontWeight: mes.esActual ? 700 : 400,
+              color: mes.esActual ? "var(--gold)" : "var(--text-3)",
+              textTransform: "capitalize", lineHeight: 1,
+            }}>
+              {mes.label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: 14, marginTop: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: "var(--success)" }} />
+          <p style={{ fontSize: 10, color: "var(--text-3)" }}>Ingresos</p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: "var(--danger)" }} />
+          <p style={{ fontSize: 10, color: "var(--text-3)" }}>Gastos</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function agruparPorFecha(txs: Transaccion[]): [string, Transaccion[]][] {
   const hoy = new Date().toISOString().split("T")[0];
   const ayer = new Date(Date.now() - 86400000).toISOString().split("T")[0];
@@ -388,6 +513,26 @@ export default function DashboardPage() {
   const perfil = useMemo(() => perfilGasto(txsMesActual), [txsMesActual]);
   const mejorMesData = useMemo(() => mejorMes(transacciones), [transacciones]);
   const reto = useMemo(() => generarReto(transacciones), [transacciones]);
+
+  // ── Datos para gráfica histórica 6 meses ────────────────────────────
+  const datosMensuales = useMemo((): DatoMes[] => {
+    const hoy = new Date();
+    return Array.from({ length: 6 }, (_, i) => {
+      const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - (5 - i), 1);
+      const inicio = fecha;
+      const fin = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
+      const txsMes = transacciones.filter((t) => {
+        const f = new Date(t.fecha + "T12:00:00");
+        return f >= inicio && f <= fin;
+      });
+      return {
+        label: fecha.toLocaleString("es-MX", { month: "short" }),
+        ingresos: txsMes.filter((t) => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0),
+        gastos: txsMes.filter((t) => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0),
+        esActual: i === 5,
+      };
+    });
+  }, [transacciones]);
 
   // Mes actual como clave para comparar con mejor mes
   const mesActualClave = useMemo(() => {
@@ -730,6 +875,14 @@ export default function DashboardPage() {
               color={scoreFinanciero.metricas[1].color}
             />
           </div>
+        </div>
+      )}
+
+      {/* ── GRÁFICAS ── */}
+      {!cargando && txsMesActual.length > 0 && (
+        <div style={{ padding: "0 20px 8px", display: "flex", flexDirection: "column", gap: 8 }}>
+          <GraficaCategorias txs={txsMesActual} />
+          <GraficaMensual datos={datosMensuales} />
         </div>
       )}
 
