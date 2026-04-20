@@ -219,23 +219,25 @@ export default function DashboardPage() {
   const recurrentes = useMemo(() => detectarRecurrentes(transacciones), [transacciones]);
   const totalSuscripciones = useMemo(() => totalRecurrentes(recurrentes), [recurrentes]);
 
-  // ── Score Financiero con 5 rings ─────────────────────────────────
+  // ── Score Financiero con 3 rings ─────────────────────────────────
   const scoreFinanciero = useMemo(() => {
     const hoy = new Date();
     const ingMes = txsMesActual.filter(t => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
     const gasMes = txsMesActual.filter(t => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
     if (ingMes === 0 && gasMes === 0) return null;
 
-    // — Ring 1: Ahorro (% de ingresos ahorrado, 0-100) —
+    const sinIngresos = ingMes === 0 && gasMes > 0;
+
+    // — Ahorro: % de ingresos guardado (ring izquierdo) —
     const tasaAhorro = ingMes > 0 ? Math.max(0, Math.min(100, ((ingMes - gasMes) / ingMes) * 100)) : 0;
     const ptsAhorro = tasaAhorro > 20 ? 30 : tasaAhorro > 10 ? 20 : tasaAhorro > 0 ? 10 : 0;
 
-    // — Ring 2: Control de gastos (qué tan lejos estás de gastarte todo, 0-100) —
+    // — Control: margen restante vs ingresos (ring derecho) —
     const ratioGasto = ingMes > 0 ? gasMes / ingMes : (gasMes > 0 ? 1.5 : 0);
     const controlPct = Math.max(0, Math.min(100, (1 - ratioGasto) * 100));
     const ptsControl = controlPct > 50 ? 40 : controlPct > 30 ? 32 : controlPct > 15 ? 22 : controlPct > 0 ? 10 : 0;
 
-    // — Ring 3: Tendencia (gasto proyectado vs mes anterior, >50 = gastando menos) —
+    // — Tendencia vs mes anterior (no visible como ring, suma al score) —
     const inicioMesAnt = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
     const finMesAnt = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
     const gasMesAnt = transacciones
@@ -243,32 +245,29 @@ export default function DashboardPage() {
       .reduce((s, t) => s + Number(t.monto), 0);
     const diaHoy = hoy.getDate();
     const diasMesAnt = finMesAnt.getDate();
-    let tendenciaPct = 50;
-    let tendenciaDisplay = "–";
-    let ptsTendencia = 5;
-    if (gasMesAnt > 0 && diaHoy > 0) {
+    let ptsTendencia = 0;
+    if (!sinIngresos && gasMesAnt > 0 && diaHoy > 0) {
       const gastoProyectado = (gasMes / diaHoy) * diasMesAnt;
-      const cambioPct = ((gastoProyectado - gasMesAnt) / gasMesAnt) * 100;
-      tendenciaPct = Math.max(0, Math.min(100, 50 - cambioPct)); // menos gasto = ring más alto
-      tendenciaDisplay = `${cambioPct > 0 ? "+" : ""}${cambioPct.toFixed(0)}%`;
+      const tendenciaPct = Math.max(0, Math.min(100, 50 - ((gastoProyectado - gasMesAnt) / gasMesAnt) * 100));
       ptsTendencia = tendenciaPct > 65 ? 15 : tendenciaPct > 50 ? 10 : tendenciaPct > 35 ? 5 : 0;
     }
 
-    // — Ring 4: Diversificación (qué tan balanceados están los gastos por categoría) —
+    // — Diversificación (suma al score) —
     const porCat: Record<string, number> = {};
     txsMesActual.filter(t => t.tipo === "gasto").forEach(t => {
-      const c = t.categoria || "Otros";
-      porCat[c] = (porCat[c] || 0) + Number(t.monto);
+      porCat[t.categoria || "Otros"] = (porCat[t.categoria || "Otros"] || 0) + Number(t.monto);
     });
     const nCats = Object.keys(porCat).length;
     const maxCat = gasMes > 0 && nCats > 0 ? Math.max(...Object.values(porCat)) : 0;
-    const concentracion = gasMes > 0 ? maxCat / gasMes : 0; // 1 = todo en 1 cat, 0 = perfecto
-    const diversPct = Math.max(0, Math.min(100, (1 - concentracion) * 100 * (nCats > 1 ? 1.2 : 1)));
-    const ptsDivers = diversPct > 65 ? 10 : diversPct > 40 ? 7 : diversPct > 20 ? 3 : 0;
+    const diversPct = Math.max(0, Math.min(100, (1 - (gasMes > 0 ? maxCat / gasMes : 0)) * 100 * (nCats > 1 ? 1.2 : 1)));
+    const ptsDivers = !sinIngresos ? (diversPct > 65 ? 10 : diversPct > 40 ? 7 : diversPct > 20 ? 3 : 0) : 0;
 
-    // — Ring 5: Hábito de registro —
+    // — Hábito de registro (solo factor que cuenta sin ingresos) —
     const habitoPct = Math.min(100, (txsMesActual.length / 25) * 100);
-    const ptsHabito = habitoPct >= 80 ? 15 : habitoPct >= 40 ? 10 : habitoPct >= 16 ? 5 : 0;
+    // Si no hay ingresos, cap en 5 pts para no inflar el score artificialmente
+    const ptsHabito = sinIngresos
+      ? (habitoPct >= 16 ? 5 : 0)
+      : (habitoPct >= 80 ? 15 : habitoPct >= 40 ? 10 : habitoPct >= 16 ? 5 : 0);
 
     const pts = Math.min(100, ptsControl + ptsAhorro + ptsTendencia + ptsDivers + ptsHabito);
     const color = pts >= 75 ? "var(--success)" : pts >= 50 ? "#f59e0b" : "var(--danger)";
@@ -562,38 +561,59 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── SCORE FINANCIERO ── */}
+      {/* ── SCORE FINANCIERO: 3 cards separados ── */}
       {!cargando && scoreFinanciero && mesOffset === 0 && (
-        <div style={{ padding: "0 20px 8px" }}>
+        <div style={{ padding: "0 20px 8px", display: "flex", gap: 8, alignItems: "stretch" }}>
+          {/* Ahorro */}
           <div style={{
-            padding: "20px 16px 18px", borderRadius: 16,
+            flex: 1, padding: "14px 10px 12px", borderRadius: 16,
             backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
           }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)", textAlign: "center", marginBottom: 18 }}>
-              Score financiero
+            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)" }}>
+              Ahorro
             </p>
-            {/* 3 rings: Ahorro | Score (centro) | Control */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20 }}>
-              <MetricaRing
-                valor={scoreFinanciero.metricas[0].valor}
-                label={scoreFinanciero.metricas[0].label}
-                display={scoreFinanciero.metricas[0].display}
-                color={scoreFinanciero.metricas[0].color}
-              />
-              <MetricaRing
-                valor={scoreFinanciero.pts}
-                label={scoreFinanciero.label}
-                display={`${scoreFinanciero.pts}`}
-                color={scoreFinanciero.color}
-                grande
-              />
-              <MetricaRing
-                valor={scoreFinanciero.metricas[1].valor}
-                label={scoreFinanciero.metricas[1].label}
-                display={scoreFinanciero.metricas[1].display}
-                color={scoreFinanciero.metricas[1].color}
-              />
-            </div>
+            <MetricaRing
+              valor={scoreFinanciero.metricas[0].valor}
+              label=""
+              display={scoreFinanciero.metricas[0].display}
+              color={scoreFinanciero.metricas[0].color}
+            />
+          </div>
+
+          {/* Score (centro, más grande) */}
+          <div style={{
+            flex: 1.4, padding: "14px 10px 12px", borderRadius: 16,
+            backgroundColor: "var(--surface)", border: `1px solid ${scoreFinanciero.color}44`,
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+          }}>
+            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)" }}>
+              Score
+            </p>
+            <MetricaRing
+              valor={scoreFinanciero.pts}
+              label={scoreFinanciero.label}
+              display={`${scoreFinanciero.pts}%`}
+              color={scoreFinanciero.color}
+              grande
+            />
+          </div>
+
+          {/* Control */}
+          <div style={{
+            flex: 1, padding: "14px 10px 12px", borderRadius: 16,
+            backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+          }}>
+            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)" }}>
+              Control
+            </p>
+            <MetricaRing
+              valor={scoreFinanciero.metricas[1].valor}
+              label=""
+              display={scoreFinanciero.metricas[1].display}
+              color={scoreFinanciero.metricas[1].color}
+            />
           </div>
         </div>
       )}
