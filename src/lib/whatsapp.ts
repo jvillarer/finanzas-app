@@ -70,7 +70,23 @@ export async function transcribirAudioWA(mediaId: string): Promise<string | null
       console.error("Error descargando audio:", audioRes.status);
       return null;
     }
+
+    // Guard: rechazar audios >1MB (~1 minuto de voz en WhatsApp)
+    // Evita que un cliente mande un audio de horas y cueste una fortuna en Whisper
+    const MAX_BYTES = 1 * 1024 * 1024; // 1 MB
+    const contentLength = audioRes.headers.get("content-length");
+    if (contentLength && parseInt(contentLength, 10) > MAX_BYTES) {
+      console.warn(`Audio rechazado: ${contentLength} bytes (>${MAX_BYTES})`);
+      return "AUDIO_DEMASIADO_LARGO";
+    }
+
     const audioBuffer = await audioRes.arrayBuffer();
+
+    // Double-check tamaño real del buffer (por si el header no venía)
+    if (audioBuffer.byteLength > MAX_BYTES) {
+      console.warn(`Audio rechazado post-descarga: ${audioBuffer.byteLength} bytes`);
+      return "AUDIO_DEMASIADO_LARGO";
+    }
 
     // 3. Enviar a Whisper (OpenAI)
     const formData = new FormData();

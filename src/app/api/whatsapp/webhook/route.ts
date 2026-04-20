@@ -87,6 +87,10 @@ export async function POST(req: NextRequest) {
       await enviarMensajeWA(telefono, "No pude entender el audio 🐑 ¿Puedes escribirlo?");
       return Response.json({ ok: true });
     }
+    if (transcripcion === "AUDIO_DEMASIADO_LARGO") {
+      await enviarMensajeWA(telefono, "El audio es muy largo 🐑 Manda uno de menos de 1 minuto.");
+      return Response.json({ ok: true });
+    }
     textoFinal_entrada = transcripcion;
     console.log(`🎤 Audio transcrito: "${transcripcion}"`);
   }
