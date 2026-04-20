@@ -244,7 +244,7 @@ function SparklineDiaria({ txs }: { txs: Transaccion[] }) {
           <p style={{ fontSize: 10, color: "var(--text-3)" }}>Gasto diario</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <div style={{ width: 10, height: 2, borderRadius: 99, backgroundColor: "var(--gold)", opacity: 0.7 }} style={{ borderTop: "2px dashed var(--gold)", width: 10, opacity: 0.7 }} />
+          <div style={{ width: 10, height: 2, borderRadius: 99, backgroundColor: "var(--gold)", opacity: 0.7 }} />
           <p style={{ fontSize: 10, color: "var(--text-3)" }}>Promedio {fmt(promDiario)}/día</p>
         </div>
       </div>
