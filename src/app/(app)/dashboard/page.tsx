@@ -29,6 +29,39 @@ function Skel({ w, h, r = "8px" }: { w: string; h: string; r?: string }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: r }} />;
 }
 
+function MetricaRing({ valor, label, display, color }: {
+  valor: number; label: string; display: string; color: string;
+}) {
+  const radio = 22;
+  const circunferencia = 2 * Math.PI * radio;
+  const progreso = Math.min(Math.max(valor, 0), 100) / 100;
+  const offset = circunferencia * (1 - progreso);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+      <div style={{ position: "relative", width: 56, height: 56 }}>
+        <svg width="56" height="56" viewBox="0 0 56 56" style={{ transform: "rotate(-90deg)" }}>
+          <circle cx={28} cy={28} r={radio} fill="none" stroke="var(--surface-3)" strokeWidth={5.5} />
+          <circle
+            cx={28} cy={28} r={radio} fill="none" stroke={color}
+            strokeWidth={5.5} strokeLinecap="round"
+            strokeDasharray={`${circunferencia} ${circunferencia}`}
+            strokeDashoffset={offset}
+            style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.22,1,0.36,1)" }}
+          />
+        </svg>
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <p className="font-number" style={{ fontSize: 11, fontWeight: 800, color, lineHeight: 1, letterSpacing: "-0.02em" }}>
+            {display}
+          </p>
+        </div>
+      </div>
+      <p style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.07em", textAlign: "center", lineHeight: 1.2 }}>
+        {label}
+      </p>
+    </div>
+  );
+}
+
 function agruparPorFecha(txs: Transaccion[]): [string, Transaccion[]][] {
   const hoy = new Date().toISOString().split("T")[0];
   const ayer = new Date(Date.now() - 86400000).toISOString().split("T")[0];
@@ -177,41 +210,96 @@ export default function DashboardPage() {
   const recurrentes = useMemo(() => detectarRecurrentes(transacciones), [transacciones]);
   const totalSuscripciones = useMemo(() => totalRecurrentes(recurrentes), [recurrentes]);
 
-  // ── Score Financiero (0-100) ──────────────────────────────────────
+  // ── Score Financiero con 5 rings ─────────────────────────────────
   const scoreFinanciero = useMemo(() => {
+    const hoy = new Date();
     const ingMes = txsMesActual.filter(t => t.tipo === "ingreso").reduce((s, t) => s + Number(t.monto), 0);
     const gasMes = txsMesActual.filter(t => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
     if (ingMes === 0 && gasMes === 0) return null;
 
-    let pts = 0;
+    // — Ring 1: Ahorro (% de ingresos ahorrado, 0-100) —
+    const tasaAhorro = ingMes > 0 ? Math.max(0, Math.min(100, ((ingMes - gasMes) / ingMes) * 100)) : 0;
+    const ptsAhorro = tasaAhorro > 20 ? 30 : tasaAhorro > 10 ? 20 : tasaAhorro > 0 ? 10 : 0;
 
-    // Control de gastos (0-40 pts)
+    // — Ring 2: Control de gastos (qué tan lejos estás de gastarte todo, 0-100) —
     const ratioGasto = ingMes > 0 ? gasMes / ingMes : (gasMes > 0 ? 1.5 : 0);
-    if (ratioGasto < 0.5) pts += 40;
-    else if (ratioGasto < 0.7) pts += 32;
-    else if (ratioGasto < 0.85) pts += 22;
-    else if (ratioGasto < 1.0) pts += 10;
+    const controlPct = Math.max(0, Math.min(100, (1 - ratioGasto) * 100));
+    const ptsControl = controlPct > 50 ? 40 : controlPct > 30 ? 32 : controlPct > 15 ? 22 : controlPct > 0 ? 10 : 0;
 
-    // Tasa de ahorro (0-30 pts)
-    if (ingMes > 0) {
-      const ahorro = (ingMes - gasMes) / ingMes;
-      if (ahorro > 0.2) pts += 30;
-      else if (ahorro > 0.1) pts += 20;
-      else if (ahorro > 0) pts += 10;
+    // — Ring 3: Tendencia (gasto proyectado vs mes anterior, >50 = gastando menos) —
+    const inicioMesAnt = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+    const finMesAnt = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+    const gasMesAnt = transacciones
+      .filter(t => { const f = new Date(t.fecha + "T12:00:00"); return t.tipo === "gasto" && f >= inicioMesAnt && f <= finMesAnt; })
+      .reduce((s, t) => s + Number(t.monto), 0);
+    const diaHoy = hoy.getDate();
+    const diasMesAnt = finMesAnt.getDate();
+    let tendenciaPct = 50;
+    let tendenciaDisplay = "–";
+    let ptsTendencia = 5;
+    if (gasMesAnt > 0 && diaHoy > 0) {
+      const gastoProyectado = (gasMes / diaHoy) * diasMesAnt;
+      const cambioPct = ((gastoProyectado - gasMesAnt) / gasMesAnt) * 100;
+      tendenciaPct = Math.max(0, Math.min(100, 50 - cambioPct)); // menos gasto = ring más alto
+      tendenciaDisplay = `${cambioPct > 0 ? "+" : ""}${cambioPct.toFixed(0)}%`;
+      ptsTendencia = tendenciaPct > 65 ? 15 : tendenciaPct > 50 ? 10 : tendenciaPct > 35 ? 5 : 0;
     }
 
-    // Balance positivo (0-15 pts)
-    if (ingMes > gasMes) pts += 15;
+    // — Ring 4: Diversificación (qué tan balanceados están los gastos por categoría) —
+    const porCat: Record<string, number> = {};
+    txsMesActual.filter(t => t.tipo === "gasto").forEach(t => {
+      const c = t.categoria || "Otros";
+      porCat[c] = (porCat[c] || 0) + Number(t.monto);
+    });
+    const nCats = Object.keys(porCat).length;
+    const maxCat = gasMes > 0 && nCats > 0 ? Math.max(...Object.values(porCat)) : 0;
+    const concentracion = gasMes > 0 ? maxCat / gasMes : 0; // 1 = todo en 1 cat, 0 = perfecto
+    const diversPct = Math.max(0, Math.min(100, (1 - concentracion) * 100 * (nCats > 1 ? 1.2 : 1)));
+    const ptsDivers = diversPct > 65 ? 10 : diversPct > 40 ? 7 : diversPct > 20 ? 3 : 0;
 
-    // Hábito de registro (0-15 pts)
-    if (txsMesActual.length >= 20) pts += 15;
-    else if (txsMesActual.length >= 10) pts += 10;
-    else if (txsMesActual.length >= 5) pts += 5;
+    // — Ring 5: Hábito de registro —
+    const habitoPct = Math.min(100, (txsMesActual.length / 25) * 100);
+    const ptsHabito = habitoPct >= 80 ? 15 : habitoPct >= 40 ? 10 : habitoPct >= 16 ? 5 : 0;
 
+    const pts = Math.min(100, ptsControl + ptsAhorro + ptsTendencia + ptsDivers + ptsHabito);
     const color = pts >= 75 ? "var(--success)" : pts >= 50 ? "#f59e0b" : "var(--danger)";
     const label = pts >= 80 ? "Excelente" : pts >= 65 ? "Bueno" : pts >= 50 ? "Regular" : pts >= 35 ? "En riesgo" : "Crítico";
-    return { pts, color, label };
-  }, [txsMesActual]);
+
+    const metricas = [
+      {
+        valor: Math.round(tasaAhorro),
+        label: "Ahorro",
+        display: `${Math.round(tasaAhorro)}%`,
+        color: tasaAhorro > 15 ? "var(--success)" : tasaAhorro > 5 ? "#f59e0b" : "var(--danger)",
+      },
+      {
+        valor: Math.round(controlPct),
+        label: "Control",
+        display: `${Math.round(controlPct)}%`,
+        color: controlPct > 35 ? "var(--success)" : controlPct > 15 ? "#f59e0b" : "var(--danger)",
+      },
+      {
+        valor: Math.round(tendenciaPct),
+        label: "Tendencia",
+        display: tendenciaDisplay,
+        color: tendenciaPct > 55 ? "var(--success)" : tendenciaPct < 42 ? "var(--danger)" : "#f59e0b",
+      },
+      {
+        valor: Math.round(diversPct),
+        label: "Diversif.",
+        display: `${Math.round(diversPct)}%`,
+        color: diversPct > 60 ? "var(--success)" : diversPct > 35 ? "#f59e0b" : "var(--danger)",
+      },
+      {
+        valor: Math.round(habitoPct),
+        label: "Hábito",
+        display: `${txsMesActual.length}`,
+        color: habitoPct > 60 ? "var(--success)" : habitoPct > 28 ? "#f59e0b" : "var(--danger)",
+      },
+    ];
+
+    return { pts, color, label, metricas };
+  }, [txsMesActual, transacciones]);
 
   // ── Alertas Inteligentes ─────────────────────────────────────────
   const alertasInteligentes = useMemo(() => {
@@ -469,38 +557,28 @@ export default function DashboardPage() {
       {!cargando && scoreFinanciero && mesOffset === 0 && (
         <div style={{ padding: "0 20px 8px" }}>
           <div style={{
-            padding: "14px 16px", borderRadius: 14,
+            padding: "16px 16px 14px", borderRadius: 16,
             backgroundColor: "var(--surface)", border: "1px solid var(--border)",
-            display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)" }}>
                 Score financiero
               </p>
-              {/* Barra de score */}
-              <div style={{ width: "100%", height: 5, borderRadius: 99, backgroundColor: "var(--surface-3)", marginBottom: 6 }}>
-                <div style={{
-                  height: 5, borderRadius: 99,
-                  width: `${scoreFinanciero.pts}%`,
-                  backgroundColor: scoreFinanciero.color,
-                  transition: "width 1s cubic-bezier(0.22,1,0.36,1)",
-                }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <p className="font-number" style={{ fontSize: 20, fontWeight: 900, color: scoreFinanciero.color, letterSpacing: "-0.04em", lineHeight: 1 }}>
+                  {scoreFinanciero.pts}
+                </p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: scoreFinanciero.color }}>
+                  {scoreFinanciero.label}
+                </p>
               </div>
-              <p style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 500 }}>
-                {scoreFinanciero.pts >= 75
-                  ? "Tus finanzas están sanas 💪"
-                  : scoreFinanciero.pts >= 50
-                  ? "Hay margen para mejorar"
-                  : "Atención, tus gastos superan tus ingresos"}
-              </p>
             </div>
-            <div style={{ textAlign: "right", marginLeft: 16, flexShrink: 0 }}>
-              <p className="font-number" style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-0.04em", color: scoreFinanciero.color, lineHeight: 1 }}>
-                {scoreFinanciero.pts}
-              </p>
-              <p style={{ fontSize: 10, fontWeight: 700, color: scoreFinanciero.color, marginTop: 2 }}>
-                {scoreFinanciero.label}
-              </p>
+            {/* Rings */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "0 4px" }}>
+              {scoreFinanciero.metricas.map((m) => (
+                <MetricaRing key={m.label} valor={m.valor} label={m.label} display={m.display} color={m.color} />
+              ))}
             </div>
           </div>
         </div>
