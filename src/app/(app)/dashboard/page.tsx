@@ -227,6 +227,16 @@ export default function DashboardPage() {
     if (ingMes === 0 && gasMes === 0) return null;
 
     const sinIngresos = ingMes === 0 && gasMes > 0;
+    // Sin ingresos registrados = 0 de inmediato, no hay nada que evaluar
+    if (sinIngresos) {
+      return {
+        pts: 0, color: "var(--danger)", label: "Crítico",
+        metricas: [
+          { valor: 0, label: "Ahorro", display: "0%", color: "var(--danger)" },
+          { valor: 0, label: "Control", display: "0%", color: "var(--danger)" },
+        ],
+      };
+    }
 
     // — Ahorro: % de ingresos guardado (ring izquierdo) —
     const tasaAhorro = ingMes > 0 ? Math.max(0, Math.min(100, ((ingMes - gasMes) / ingMes) * 100)) : 0;
