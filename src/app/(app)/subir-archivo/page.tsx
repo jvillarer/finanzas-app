@@ -224,7 +224,7 @@ export default function SubirArchivoPage() {
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 280 }}>
           <button onClick={() => router.push("/dashboard")}
-            style={{ padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--gold)", color: "#0c0c0e", border: "none", cursor: "pointer" }}>
+            style={{ padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--gold)", color: "#ffffff", border: "none", cursor: "pointer" }}>
             Ver dashboard
           </button>
           <button onClick={reiniciar}

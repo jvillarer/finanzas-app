@@ -168,7 +168,7 @@ function ModalCrear({ onGuardado, onCerrar }: { onGuardado: () => void; onCerrar
           style={{
             width: "100%", padding: "14px 0", borderRadius: 12,
             fontSize: 14, fontWeight: 700,
-            backgroundColor: "var(--gold)", color: "#0c0c0e",
+            backgroundColor: "var(--gold)", color: "#ffffff",
             border: "none", cursor: "pointer", opacity: guardando ? 0.4 : 1,
           }}>
           {guardando ? "Creando..." : "Crear meta"}
@@ -294,7 +294,7 @@ function ModalAbonar({ meta, onGuardado, onCerrar, onEliminar }: {
             />
             <button onClick={handleGuardarEdit} disabled={guardandoEdit}
               className="active:scale-[0.98] transition-transform"
-              style={{ width: "100%", padding: "12px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: "var(--gold)", color: "#0c0c0e", border: "none", cursor: "pointer", opacity: guardandoEdit ? 0.5 : 1 }}>
+              style={{ width: "100%", padding: "12px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: "var(--gold)", color: "#ffffff", border: "none", cursor: "pointer", opacity: guardandoEdit ? 0.5 : 1 }}>
               {guardandoEdit ? "Guardando..." : "Guardar cambios"}
             </button>
           </div>
@@ -335,7 +335,7 @@ function ModalAbonar({ meta, onGuardado, onCerrar, onEliminar }: {
               style={{
                 width: "100%", padding: "14px 0", borderRadius: 12, marginBottom: 10,
                 fontSize: 14, fontWeight: 700,
-                backgroundColor: "var(--gold)", color: "#0c0c0e",
+                backgroundColor: "var(--gold)", color: "#ffffff",
                 border: "none", cursor: "pointer", opacity: (guardando || !monto || Number(monto) <= 0) ? 0.4 : 1,
               }}>
               {guardando ? "Guardando..." : "Abonar"}
@@ -409,7 +409,7 @@ export default function MetasPage() {
             display: "flex", alignItems: "center", gap: 6,
             padding: "8px 14px", borderRadius: 99,
             fontSize: 12, fontWeight: 700,
-            backgroundColor: "var(--gold)", color: "#0c0c0e",
+            backgroundColor: "var(--gold)", color: "#ffffff",
             border: "none", cursor: "pointer",
           }}
         >
@@ -458,7 +458,7 @@ export default function MetasPage() {
           <button onClick={() => setModalCrear(true)}
             style={{
               padding: "10px 20px", borderRadius: 99, fontSize: 13, fontWeight: 700,
-              backgroundColor: "var(--gold)", color: "#0c0c0e", border: "none", cursor: "pointer",
+              backgroundColor: "var(--gold)", color: "#ffffff", border: "none", cursor: "pointer",
             }}>
             Crear mi primera meta
           </button>

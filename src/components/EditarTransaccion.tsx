@@ -190,7 +190,7 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
         <button
           onClick={handleGuardar} disabled={guardando}
           className="w-full font-bold py-3.5 rounded-xl disabled:opacity-40 transition-all active:scale-[0.98] text-sm mb-3"
-          style={{ backgroundColor: "var(--gold)", color: "#0c0c0e" }}
+          style={{ backgroundColor: "var(--gold)", color: "#ffffff" }}
         >
           {guardando ? "Guardando..." : "Guardar cambios"}
         </button>

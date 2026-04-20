@@ -210,7 +210,7 @@ export default function VistaPrevia({
           style={{
             width: "100%", padding: "15px 0", borderRadius: 14,
             fontSize: 14, fontWeight: 700,
-            backgroundColor: "var(--gold)", color: "#0c0c0e",
+            backgroundColor: "var(--gold)", color: "#ffffff",
             border: "none", cursor: "pointer",
             opacity: seleccionadas.size === 0 || guardando ? 0.4 : 1,
           }}

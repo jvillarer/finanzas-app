@@ -2,42 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ═══════════════════════════════════════════
-   OBSIDIAN DESIGN SYSTEM
-   Personal finance · Dark · Editorial · Gold
-   ═══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   LANI DESIGN SYSTEM
+   Personal finance · Light · Editorial · Crema
+   Tokens sincronizados con el onboarding
+   ═══════════════════════════════════════════════ */
 
 :root {
-  /* Foundation */
-  --bg:           #0c0c0e;
-  --surface:      #141417;
-  --surface-2:    #1c1c21;
-  --surface-3:    #242428;
-  --border:       rgba(255, 255, 255, 0.08);
-  --border-2:     rgba(255, 255, 255, 0.04);
+  /* Foundation — paleta crema del onboarding */
+  --bg:           #F5F3EE;
+  --surface:      #FFFFFF;
+  --surface-2:    #F8F6F1;
+  --surface-3:    #EFECE5;
+  --border:       rgba(14, 14, 16, 0.09);
+  --border-2:     rgba(14, 14, 16, 0.05);
 
-  /* Typography — tighter contrast scale */
-  --text-1:       #eeebe4;   /* primary — warm white */
-  --text-2:       #9494a2;   /* secondary — readable */
-  --text-3:       #5c5c6c;   /* tertiary — labels only */
+  /* Typography */
+  --text-1:       #0E0E10;
+  --text-2:       rgba(14, 14, 16, 0.56);
+  --text-3:       rgba(14, 14, 16, 0.38);
 
-  /* Accent — warm gold */
-  --gold:         #c9a84c;
-  --gold-bright:  #d4b45e;
-  --gold-dim:     rgba(201, 168, 76, 0.10);
-  --gold-border:  rgba(201, 168, 76, 0.22);
+  /* Acento principal — teal de Lani */
+  --gold:         #2F8F87;
+  --gold-bright:  #3AA49C;
+  --gold-dim:     rgba(47, 143, 135, 0.08);
+  --gold-border:  rgba(47, 143, 135, 0.22);
 
-  /* Semantic */
-  --success:      #3ecf8e;
-  --success-dim:  rgba(62, 207, 142, 0.08);
-  --danger:       #f06e6e;
-  --danger-dim:   rgba(240, 110, 110, 0.08);
-  --warning:      #e8a838;
+  /* Semánticos financieros */
+  --success:      #1F9D55;
+  --success-dim:  rgba(31, 157, 85, 0.08);
+  --danger:       #D94A4A;
+  --danger-dim:   rgba(217, 74, 74, 0.08);
+  --warning:      #D08B2C;
 
-  /* Shadows */
-  --shadow-sm:    0 1px 3px rgba(0,0,0,0.5);
-  --shadow-md:    0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
-  --shadow-gold:  0 6px 24px rgba(201,168,76,0.22), 0 2px 8px rgba(0,0,0,0.3);
+  /* Sombras suaves para fondo claro */
+  --shadow-sm:    0 1px 4px rgba(0, 0, 0, 0.07);
+  --shadow-md:    0 4px 20px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.05);
+  --shadow-gold:  0 6px 24px rgba(47, 143, 135, 0.18), 0 2px 8px rgba(0, 0, 0, 0.06);
 
   /* Radius */
   --r-sm:  8px;
@@ -76,12 +77,22 @@ body {
   letter-spacing: -0.03em;
 }
 
-/* ─── Label — use sparingly ─── */
 .label {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* ─── Inputs — base light ─── */
+input, textarea, select {
+  background-color: var(--surface);
+  color: var(--text-1);
+}
+
+input::placeholder,
+textarea::placeholder {
   color: var(--text-3);
 }
 
@@ -113,19 +124,19 @@ body {
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--surface)   0%,
-    var(--surface-2) 45%,
-    var(--surface)   80%
+    var(--surface-2) 0%,
+    var(--surface-3) 45%,
+    var(--surface-2) 80%
   );
   background-size: 300% 100%;
   animation: shimmer 1.9s ease-in-out infinite;
   border-radius: var(--r-sm);
 }
 
-/* ─── Focus ─── */
+/* ─── Focus — teal de Lani ─── */
 input:focus-visible,
 textarea:focus-visible {
   outline: none;
-  border-color: rgba(201, 168, 76, 0.5) !important;
-  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.10);
+  border-color: rgba(47, 143, 135, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(47, 143, 135, 0.10);
 }

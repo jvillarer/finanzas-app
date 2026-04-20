@@ -123,7 +123,7 @@ export default function ViajePage() {
           </p>
           <button onClick={() => setCreando(true)}
             className="px-6 py-3 rounded-xl text-sm font-bold"
-            style={{ backgroundColor: "var(--gold)", color: "#0c0c0e" }}>
+            style={{ backgroundColor: "var(--gold)", color: "#ffffff" }}>
             Crear viaje
           </button>
         </div>
@@ -200,7 +200,7 @@ export default function ViajePage() {
             </button>
             <button onClick={crearViaje} disabled={guardando || !nombre.trim()}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50"
-              style={{ backgroundColor: "var(--gold)", color: "#0c0c0e" }}>
+              style={{ backgroundColor: "var(--gold)", color: "#ffffff" }}>
               {guardando ? "Creando..." : "Activar viaje ✈️"}
             </button>
           </div>

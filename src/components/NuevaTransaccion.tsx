@@ -208,7 +208,7 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
           className="active:scale-[0.98] transition-transform"
           style={{
             width: "100%", fontWeight: 700, padding: "14px 0", borderRadius: 12,
-            fontSize: 14, backgroundColor: "var(--gold)", color: "#0c0c0e",
+            fontSize: 14, backgroundColor: "var(--gold)", color: "#ffffff",
             border: "none", cursor: "pointer", opacity: guardando ? 0.4 : 1,
           }}
         >

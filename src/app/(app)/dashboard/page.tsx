@@ -1067,7 +1067,7 @@ export default function DashboardPage() {
               No
             </button>
             <button onClick={async () => { await pedirPermisoNotificaciones(); setMostrarBannerNotif(false); }}
-              style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 99, backgroundColor: "var(--gold)", color: "#0c0c0e", border: "none", cursor: "pointer" }}>
+              style={{ fontSize: 11, fontWeight: 700, padding: "6px 10px", borderRadius: 99, backgroundColor: "var(--gold)", color: "#ffffff", border: "none", cursor: "pointer" }}>
               Activar
             </button>
           </div>
@@ -1192,7 +1192,7 @@ export default function DashboardPage() {
         style={{
           position: "fixed", bottom: 76, right: 20,
           width: 50, height: 50, borderRadius: 16,
-          backgroundColor: "var(--gold)", color: "#0c0c0e",
+          backgroundColor: "var(--gold)", color: "#ffffff",
           border: "none", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
           boxShadow: "var(--shadow-gold)",

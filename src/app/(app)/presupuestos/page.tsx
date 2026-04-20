@@ -66,7 +66,7 @@ function ModalPresupuesto({ categoria, emoji, limiteActual, onGuardar, onElimina
         <button
           onClick={() => { if (Number(valor) > 0) onGuardar(Number(valor)); }}
           className="w-full font-bold py-3.5 rounded-xl text-sm mb-3"
-          style={{ backgroundColor: "var(--gold)", color: "#0c0c0e" }}
+          style={{ backgroundColor: "var(--gold)", color: "#ffffff" }}
         >
           Guardar presupuesto
         </button>

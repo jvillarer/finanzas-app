@@ -4,8 +4,8 @@
   "description": "Registra, analiza y controla tus finanzas hablando con Lani",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0c0c0e",
-  "theme_color": "#0c0c0e",
+  "background_color": "#F5F3EE",
+  "theme_color": "#F5F3EE",
   "orientation": "portrait",
   "categories": ["finance", "productivity"],
   "icons": [

@@ -397,7 +397,7 @@ export default function PerfilPage() {
             </button>
             <button onClick={guardar} disabled={guardando}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50"
-              style={{ backgroundColor: "var(--gold)", color: "#0c0c0e" }}>
+              style={{ backgroundColor: "var(--gold)", color: "#ffffff" }}>
               {guardando ? "Guardando..." : "Guardar"}
             </button>
           </div>
@@ -438,7 +438,7 @@ export default function PerfilPage() {
             </button>
             <button onClick={borrarDatos} disabled={borrandoDatos}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50"
-              style={{ backgroundColor: "var(--gold)", color: "#0c0c0e" }}>
+              style={{ backgroundColor: "var(--gold)", color: "#ffffff" }}>
               {borrandoDatos ? "Borrando..." : "Sí, borrar"}
             </button>
           </div>
