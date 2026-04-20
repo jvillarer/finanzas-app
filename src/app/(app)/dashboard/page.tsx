@@ -29,35 +29,44 @@ function Skel({ w, h, r = "8px" }: { w: string; h: string; r?: string }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: r }} />;
 }
 
-function MetricaRing({ valor, label, display, color }: {
-  valor: number; label: string; display: string; color: string;
+function MetricaRing({ valor, label, display, color, grande = false }: {
+  valor: number; label: string; display: string; color: string; grande?: boolean;
 }) {
-  const radio = 22;
+  const radio = grande ? 34 : 22;
+  const grosor = grande ? 7 : 5.5;
+  const tam = grande ? 84 : 56;
+  const cx = tam / 2;
   const circunferencia = 2 * Math.PI * radio;
-  const progreso = Math.min(Math.max(valor, 0), 100) / 100;
-  const offset = circunferencia * (1 - progreso);
+  const offset = circunferencia * (1 - Math.min(Math.max(valor, 0), 100) / 100);
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-      <div style={{ position: "relative", width: 56, height: 56 }}>
-        <svg width="56" height="56" viewBox="0 0 56 56" style={{ transform: "rotate(-90deg)" }}>
-          <circle cx={28} cy={28} r={radio} fill="none" stroke="var(--surface-3)" strokeWidth={5.5} />
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+      <div style={{ position: "relative", width: tam, height: tam }}>
+        <svg width={tam} height={tam} viewBox={`0 0 ${tam} ${tam}`} style={{ transform: "rotate(-90deg)" }}>
+          <circle cx={cx} cy={cx} r={radio} fill="none" stroke="var(--surface-3)" strokeWidth={grosor} />
           <circle
-            cx={28} cy={28} r={radio} fill="none" stroke={color}
-            strokeWidth={5.5} strokeLinecap="round"
+            cx={cx} cy={cx} r={radio} fill="none" stroke={color}
+            strokeWidth={grosor} strokeLinecap="round"
             strokeDasharray={`${circunferencia} ${circunferencia}`}
             strokeDashoffset={offset}
             style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.22,1,0.36,1)" }}
           />
         </svg>
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <p className="font-number" style={{ fontSize: 11, fontWeight: 800, color, lineHeight: 1, letterSpacing: "-0.02em" }}>
+        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
+          <p className="font-number" style={{ fontSize: grande ? 22 : 12, fontWeight: 900, color, lineHeight: 1, letterSpacing: "-0.03em" }}>
             {display}
           </p>
+          {grande && (
+            <p style={{ fontSize: 9, fontWeight: 700, color, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+              {label}
+            </p>
+          )}
         </div>
       </div>
-      <p style={{ fontSize: 8.5, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.07em", textAlign: "center", lineHeight: 1.2 }}>
-        {label}
-      </p>
+      {!grande && (
+        <p style={{ fontSize: 9, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.07em", textAlign: "center" }}>
+          {label}
+        </p>
+      )}
     </div>
   );
 }
@@ -557,28 +566,33 @@ export default function DashboardPage() {
       {!cargando && scoreFinanciero && mesOffset === 0 && (
         <div style={{ padding: "0 20px 8px" }}>
           <div style={{
-            padding: "16px 16px 14px", borderRadius: 16,
+            padding: "20px 16px 18px", borderRadius: 16,
             backgroundColor: "var(--surface)", border: "1px solid var(--border)",
           }}>
-            {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)" }}>
-                Score financiero
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <p className="font-number" style={{ fontSize: 20, fontWeight: 900, color: scoreFinanciero.color, letterSpacing: "-0.04em", lineHeight: 1 }}>
-                  {scoreFinanciero.pts}
-                </p>
-                <p style={{ fontSize: 10, fontWeight: 700, color: scoreFinanciero.color }}>
-                  {scoreFinanciero.label}
-                </p>
-              </div>
-            </div>
-            {/* Rings */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "0 4px" }}>
-              {scoreFinanciero.metricas.map((m) => (
-                <MetricaRing key={m.label} valor={m.valor} label={m.label} display={m.display} color={m.color} />
-              ))}
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)", textAlign: "center", marginBottom: 18 }}>
+              Score financiero
+            </p>
+            {/* 3 rings: Ahorro | Score (centro) | Control */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 20 }}>
+              <MetricaRing
+                valor={scoreFinanciero.metricas[0].valor}
+                label={scoreFinanciero.metricas[0].label}
+                display={scoreFinanciero.metricas[0].display}
+                color={scoreFinanciero.metricas[0].color}
+              />
+              <MetricaRing
+                valor={scoreFinanciero.pts}
+                label={scoreFinanciero.label}
+                display={`${scoreFinanciero.pts}`}
+                color={scoreFinanciero.color}
+                grande
+              />
+              <MetricaRing
+                valor={scoreFinanciero.metricas[1].valor}
+                label={scoreFinanciero.metricas[1].label}
+                display={scoreFinanciero.metricas[1].display}
+                color={scoreFinanciero.metricas[1].color}
+              />
             </div>
           </div>
         </div>
