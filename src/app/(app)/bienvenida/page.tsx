@@ -84,8 +84,9 @@ type Frecuencia      = "quincenal" | "mensual" | "semanal";
 type PeriodoRevision = "diario" | "semanal" | "quincenal" | "mensual";
 
 // ─── Constantes de flujo ──────────────────────────────────────
-const TOTAL_PASOS    = 11;
+const TOTAL_PASOS    = 12;
 const PASO_CATEGORIAS = 4; // índice donde se guardan categorías en el flujo
+const PASO_WHATSAPP   = 10; // índice del paso de WhatsApp
 
 // ─── Primitivos de UI ─────────────────────────────────────────
 
@@ -1594,16 +1595,156 @@ function PasoPeriodo({ onSiguiente, onSaltar, periodo, setPeriodo }: {
   );
 }
 
-// ─── Paso 11: Dashboard preview ───────────────────────────────
+// ─── Paso 11: WhatsApp ────────────────────────────────────────
+function PasoWhatsApp({ onSiguiente, onSaltar, telefono, setTelefono }: {
+  onSiguiente: () => void; onSaltar: () => void;
+  telefono: string; setTelefono: (t: string) => void;
+}) {
+  const [error, setError] = useState("");
+
+  // Formatea a XXX XXX XXXX mientras escribe (solo dígitos, máx 10)
+  const handleChange = (raw: string) => {
+    const digitos = raw.replace(/\D/g, "").slice(0, 10);
+    let formateado = digitos;
+    if (digitos.length > 6) formateado = digitos.slice(0, 3) + " " + digitos.slice(3, 6) + " " + digitos.slice(6);
+    else if (digitos.length > 3) formateado = digitos.slice(0, 3) + " " + digitos.slice(3);
+    setTelefono(formateado);
+    setError("");
+  };
+
+  const digitos = telefono.replace(/\D/g, "");
+  const listo   = digitos.length === 10;
+
+  const handleSiguiente = () => {
+    if (!listo && digitos.length > 0) { setError("Necesito los 10 dígitos de tu número"); return; }
+    onSiguiente();
+  };
+
+  return (
+    <Chrome paso={10} onSaltar={onSaltar} esUltimo={false}>
+      <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "0 24px" }}>
+          <Eyebrow>Paso 11 · WhatsApp</Eyebrow>
+          <Titulo>Registra gastos<br />desde WhatsApp.</Titulo>
+          <Descripcion>
+            Mándame un mensaje y lo anoto al instante. Sin abrir la app.
+          </Descripcion>
+        </div>
+
+        {/* Preview de conversación */}
+        <div style={{ padding: "20px 20px 0" }}>
+          <div style={{
+            background: C.surface, borderRadius: 18, border: `0.5px solid ${C.line}`,
+            overflow: "hidden", boxShadow: "0 1px 2px rgba(14,14,16,0.03)",
+          }}>
+            {/* Header tipo WhatsApp */}
+            <div style={{
+              padding: "12px 16px", borderBottom: `0.5px solid ${C.line}`,
+              display: "flex", alignItems: "center", gap: 10,
+              background: "rgba(47,143,135,0.06)",
+            }}>
+              <div style={{ width: 32, height: 32, borderRadius: 99, background: C.accentSoft, border: `0.5px solid ${C.accentLine}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🐑</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.text, letterSpacing: -0.1 }}>Lani</div>
+                <div style={{ fontFamily: F.mono, fontSize: 9, color: C.accent, letterSpacing: 0.8 }}>● EN LÍNEA</div>
+              </div>
+            </div>
+
+            {/* Mensajes */}
+            <div style={{ padding: "14px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {/* Mensaje usuario */}
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <div style={{ maxWidth: "72%", padding: "8px 12px", borderRadius: "14px 14px 4px 14px", background: C.text }}>
+                  <div style={{ fontSize: 13, color: "#fff", letterSpacing: -0.1 }}>uber 95</div>
+                </div>
+              </div>
+              {/* Respuesta Lani */}
+              <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <div style={{ maxWidth: "78%", padding: "8px 12px", borderRadius: "4px 14px 14px 14px", background: C.surface2, border: `0.5px solid ${C.line}` }}>
+                  <div style={{ fontSize: 13, color: C.text, letterSpacing: -0.1 }}>✓ Uber <span style={{ fontWeight: 600 }}>$95</span> anotado · Transporte</div>
+                </div>
+              </div>
+              {/* Mensaje usuario */}
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <div style={{ maxWidth: "72%", padding: "8px 12px", borderRadius: "14px 14px 4px 14px", background: C.text }}>
+                  <div style={{ fontSize: 13, color: "#fff", letterSpacing: -0.1 }}>¿cuánto llevo hoy?</div>
+                </div>
+              </div>
+              {/* Respuesta Lani */}
+              <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <div style={{ maxWidth: "78%", padding: "8px 12px", borderRadius: "4px 14px 14px 14px", background: C.surface2, border: `0.5px solid ${C.line}` }}>
+                  <div style={{ fontSize: 13, color: C.text, letterSpacing: -0.1 }}>Llevas <span style={{ color: C.red, fontWeight: 600 }}>$430</span> hoy. Tu promedio es $380.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Input teléfono */}
+        <div style={{ padding: "20px 20px 0" }}>
+          <div style={{
+            fontFamily: F.mono, fontSize: 10, letterSpacing: 2, color: C.textFaint,
+            textTransform: "uppercase", marginBottom: 10, padding: "0 2px",
+          }}>Tu número de WhatsApp</div>
+
+          <div style={{ position: "relative" }}>
+            <div style={{
+              position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
+              fontFamily: F.sans, fontSize: 15, fontWeight: 500, color: C.textFaint,
+              pointerEvents: "none", display: "flex", alignItems: "center", gap: 6,
+            }}>
+              <span style={{ fontSize: 18 }}>🇲🇽</span>
+              <span>+52</span>
+            </div>
+            <input
+              type="tel"
+              inputMode="numeric"
+              value={telefono}
+              onChange={(e) => handleChange(e.target.value)}
+              placeholder="55 1234 5678"
+              style={{
+                width: "100%", height: 54, borderRadius: 14, border: "none",
+                paddingLeft: 88, paddingRight: 16,
+                fontFamily: F.sans, fontSize: 22, fontWeight: 500,
+                background: C.surface,
+                boxShadow: `inset 0 0 0 1.5px ${error ? C.red : listo ? C.accent : C.line}`,
+                color: C.text, letterSpacing: 0.5, outline: "none",
+                transition: "box-shadow 200ms",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          {error && (
+            <div style={{ marginTop: 8, fontSize: 12, color: C.red, fontFamily: F.sans, padding: "0 2px" }}>{error}</div>
+          )}
+
+          <div style={{ marginTop: 10, fontSize: 11.5, color: C.textFaint, fontFamily: F.sans, lineHeight: 1.5, padding: "0 2px" }}>
+            Solo número mexicano. Tu número es privado y solo lo uso para identificarte.
+          </div>
+        </div>
+      </div>
+
+      <Pie>
+        <LaniNote pose="wave">Mándame un mensaje en WhatsApp y lo registro al tiro.</LaniNote>
+        <BotonPrimario onClick={handleSiguiente} disabled={digitos.length > 0 && !listo}>
+          {digitos.length === 0 ? "Saltar por ahora" : "Activar WhatsApp"}
+        </BotonPrimario>
+      </Pie>
+    </Chrome>
+  );
+}
+
+// ─── Paso 12: Dashboard preview ───────────────────────────────
 function PasoDashboard({ onFinalizar, onSaltar, nombre, cargando }: {
   onFinalizar: () => void; onSaltar: () => void;
   nombre: string; cargando?: boolean;
 }) {
   return (
-    <Chrome paso={10} onSaltar={onSaltar} esUltimo>
+    <Chrome paso={11} onSaltar={onSaltar} esUltimo>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 11 · Listo</Eyebrow>
+          <Eyebrow>Paso 12 · Listo</Eyebrow>
           <Titulo>Todo en un<br />vistazo.</Titulo>
           <Descripcion>
             Balance, proyección, suscripciones olvidadas y análisis semanal.
@@ -1738,6 +1879,9 @@ export default function BienvenidaPage() {
   // Periodo de revisión (paso 10)
   const [periodoRevision, setPeriodoRevision] = useState<PeriodoRevision>("quincenal");
 
+  // WhatsApp (paso 11)
+  const [telefonoWA, setTelefonoWA] = useState("");
+
   // ── Carga del nombre del usuario ─────────────────────────────
   useEffect(() => {
     (async () => {
@@ -1829,6 +1973,23 @@ export default function BienvenidaPage() {
       setGuardando(false);
     }
 
+    if (paso === PASO_WHATSAPP) {
+      const digitos = telefonoWA.replace(/\D/g, "");
+      if (digitos.length === 10) {
+        try {
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const telefono = "52" + digitos;
+            await supabase.from("perfiles").upsert(
+              { id: user.id, telefono_whatsapp: telefono },
+              { onConflict: "id" }
+            );
+          }
+        } catch { /* no bloqueamos el flujo */ }
+      }
+    }
+
     if (paso < TOTAL_PASOS - 1) {
       setPaso((p) => p + 1);
     } else {
@@ -1857,5 +2018,6 @@ export default function BienvenidaPage() {
   if (paso === 7)  return <PasoMeta         onSiguiente={siguiente} onSaltar={saltar} nombre={metaNombre} setNombre={setMetaNombre} monto={metaMonto} setMonto={setMetaMonto} meses={metaMeses} setMeses={setMetaMeses} ingresoMensual={ingresoMensual} />;
   if (paso === 8)  return <PasoPresupuestos  onSiguiente={siguiente} onSaltar={saltar} />;
   if (paso === 9)  return <PasoPeriodo      onSiguiente={siguiente} onSaltar={saltar} periodo={periodoRevision} setPeriodo={setPeriodoRevision} />;
+  if (paso === 10) return <PasoWhatsApp     onSiguiente={siguiente} onSaltar={saltar} telefono={telefonoWA} setTelefono={setTelefonoWA} />;
   return                  <PasoDashboard    onFinalizar={siguiente} onSaltar={saltar} nombre={nombre} cargando={guardando} />;
 }
