@@ -89,19 +89,26 @@ export default function PerfilPage() {
       if (user) {
         const m = user.user_metadata || {};
         setCorreo(user.email || "");
-        setNombre(m.nombre_completo || "");
-        setEdad(m.edad ? String(m.edad) : "");
-        setSexo(m.sexo || "");
-        setCiudad(m.ciudad || "");
-        setEstado(m.estado || "");
-        setOcupacion(m.ocupacion || "");
-        setIngresoRango(m.ingreso_mensual || "");
-        setObjetivo(m.objetivo_financiero || "");
-        // WhatsApp — leer de tabla perfiles
-        const { data: perfil } = await supabase.from("perfiles").select("telefono_whatsapp").eq("id", user.id).single();
-        setTelefonoWA(perfil?.telefono_whatsapp || "");
-        const n = m.nombre_completo || "";
-        setIniciales(n ? n.split(" ").slice(0, 2).map((p: string) => p[0]).join("").toUpperCase() : "?");
+
+        // Leer de tabla perfiles (fuente principal — registro guarda ahí)
+        const { data: p } = await supabase
+          .from("perfiles")
+          .select("nombre_completo, edad, sexo, ciudad, estado, ocupacion, ingreso_mensual_rango, objetivo_financiero, telefono_whatsapp")
+          .eq("id", user.id)
+          .single();
+
+        // Preferir perfiles DB, caer en user_metadata como fallback
+        const nom = p?.nombre_completo || m.nombre_completo || "";
+        setNombre(nom);
+        setEdad(p?.edad ? String(p.edad) : m.edad ? String(m.edad) : "");
+        setSexo(p?.sexo || m.sexo || "");
+        setCiudad(p?.ciudad || m.ciudad || "");
+        setEstado(p?.estado || m.estado || "");
+        setOcupacion(p?.ocupacion || m.ocupacion || "");
+        setIngresoRango(p?.ingreso_mensual_rango || m.ingreso_mensual || "");
+        setObjetivo(p?.objetivo_financiero || m.objetivo_financiero || "");
+        setTelefonoWA(p?.telefono_whatsapp || "");
+        setIniciales(nom ? nom.split(" ").slice(0, 2).map((s: string) => s[0]).join("").toUpperCase() : "?");
       }
       const txs = await obtenerTransacciones();
       setResumen(calcularResumen(txs));

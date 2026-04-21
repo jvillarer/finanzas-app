@@ -208,14 +208,21 @@ function BotonPrimario({ children, onClick, disabled, cargando }: {
 
 function Pie({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{
-      padding: "16px 24px",
-      paddingBottom: "calc(16px + env(safe-area-inset-bottom, 20px))",
-      marginTop: "auto",
-      position: "sticky",
-      bottom: 0,
-      backgroundColor: C.bg,
-    }}>{children}</div>
+    <>
+      {/* Espacio para que el contenido no quede tapado por el Pie fijo */}
+      <div style={{ height: "calc(16px + 52px + 20px + env(safe-area-inset-bottom, 20px))", flexShrink: 0 }} />
+      <div style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: "12px 24px",
+        paddingBottom: "calc(12px + env(safe-area-inset-bottom, 16px))",
+        backgroundColor: C.bg,
+        borderTop: `0.5px solid ${C.line}`,
+        zIndex: 50,
+      }}>{children}</div>
+    </>
   );
 }
 
