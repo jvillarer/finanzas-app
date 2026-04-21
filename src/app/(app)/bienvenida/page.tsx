@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { haptico } from "@/lib/haptics";
+import { suscribirAPush } from "@/lib/notificaciones";
 
 // ─── Tokens de diseño ─────────────────────────────────────────
 const C = {
@@ -84,9 +85,10 @@ type Frecuencia      = "quincenal" | "mensual" | "semanal";
 type PeriodoRevision = "diario" | "semanal" | "quincenal" | "mensual";
 
 // ─── Constantes de flujo ──────────────────────────────────────
-const TOTAL_PASOS    = 12;
-const PASO_CATEGORIAS = 4; // índice donde se guardan categorías en el flujo
-const PASO_WHATSAPP   = 10; // índice del paso de WhatsApp
+const TOTAL_PASOS        = 13;
+const PASO_CATEGORIAS    = 4;  // índice donde se guardan categorías en el flujo
+const PASO_WHATSAPP      = 10; // índice del paso de WhatsApp
+const PASO_NOTIFICACIONES = 11; // índice del paso de notificaciones push
 
 // ─── Primitivos de UI ─────────────────────────────────────────
 
@@ -1651,29 +1653,42 @@ function PasoWhatsApp({ onSiguiente, onSaltar, telefono, setTelefono }: {
             </div>
 
             {/* Mensajes */}
-            <div style={{ padding: "14px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-              {/* Mensaje usuario */}
+            <div style={{ padding: "14px 14px", display: "flex", flexDirection: "column", gap: 7 }}>
+              {/* Turn 1 — usuario */}
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <div style={{ maxWidth: "72%", padding: "8px 12px", borderRadius: "14px 14px 4px 14px", background: C.text }}>
-                  <div style={{ fontSize: 13, color: "#fff", letterSpacing: -0.1 }}>uber 95</div>
+                  <div style={{ fontSize: 13, color: "#fff", letterSpacing: -0.1 }}>gasté 500 en taxi</div>
                 </div>
               </div>
-              {/* Respuesta Lani */}
+              {/* Turn 1 — Lani */}
               <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                <div style={{ maxWidth: "78%", padding: "8px 12px", borderRadius: "4px 14px 14px 14px", background: C.surface2, border: `0.5px solid ${C.line}` }}>
-                  <div style={{ fontSize: 13, color: C.text, letterSpacing: -0.1 }}>✓ Uber <span style={{ fontWeight: 600 }}>$95</span> anotado · Transporte</div>
+                <div style={{ maxWidth: "82%", padding: "8px 12px", borderRadius: "4px 14px 14px 14px", background: C.surface2, border: `0.5px solid ${C.line}` }}>
+                  <div style={{ fontSize: 13, color: C.text, letterSpacing: -0.1 }}>
+                    ✓ Taxi <span style={{ fontWeight: 700 }}>$500</span> anotado 🐑{" "}
+                    <span style={{ color: C.textFaint }}>Ya van $1,240 este mes en rides, ojo.</span>
+                  </div>
                 </div>
               </div>
-              {/* Mensaje usuario */}
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              {/* Turn 2 — usuario */}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
                 <div style={{ maxWidth: "72%", padding: "8px 12px", borderRadius: "14px 14px 4px 14px", background: C.text }}>
-                  <div style={{ fontSize: 13, color: "#fff", letterSpacing: -0.1 }}>¿cuánto llevo hoy?</div>
+                  <div style={{ fontSize: 13, color: "#fff", letterSpacing: -0.1 }}>cuánto he gastado en transporte?</div>
                 </div>
               </div>
-              {/* Respuesta Lani */}
+              {/* Turn 2 — Lani burbuja 1 */}
               <div style={{ display: "flex", justifyContent: "flex-start" }}>
                 <div style={{ maxWidth: "78%", padding: "8px 12px", borderRadius: "4px 14px 14px 14px", background: C.surface2, border: `0.5px solid ${C.line}` }}>
-                  <div style={{ fontSize: 13, color: C.text, letterSpacing: -0.1 }}>Llevas <span style={{ color: C.red, fontWeight: 600 }}>$430</span> hoy. Tu promedio es $380.</div>
+                  <div style={{ fontSize: 13, color: C.text, letterSpacing: -0.1 }}>
+                    Este mes: <span style={{ fontWeight: 700, color: C.red }}>$1,240</span> en Transporte 🚗
+                  </div>
+                </div>
+              </div>
+              {/* Turn 2 — Lani burbuja 2 */}
+              <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <div style={{ maxWidth: "86%", padding: "8px 12px", borderRadius: "4px 14px 14px 14px", background: C.surface2, border: `0.5px solid ${C.line}` }}>
+                  <div style={{ fontSize: 13, color: C.text, letterSpacing: -0.1 }}>
+                    El Uber se está comiendo el 70% de eso 💀 ¿Le pongo un límite de <span style={{ fontWeight: 600 }}>$1,500</span> y te aviso?
+                  </div>
                 </div>
               </div>
             </div>
@@ -1735,16 +1750,106 @@ function PasoWhatsApp({ onSiguiente, onSaltar, telefono, setTelefono }: {
   );
 }
 
-// ─── Paso 12: Dashboard preview ───────────────────────────────
+// ─── Paso 12: Notificaciones push ─────────────────────────────
+function PasoNotificaciones({ onSiguiente, onSaltar }: {
+  onSiguiente: () => void; onSaltar: () => void;
+}) {
+  const [estado, setEstado] = useState<"idle" | "cargando" | "ok" | "denegado">("idle");
+
+  const activar = async () => {
+    setEstado("cargando");
+    const ok = await suscribirAPush();
+    setEstado(ok ? "ok" : "denegado");
+    if (ok) setTimeout(onSiguiente, 900);
+  };
+
+  const ALERTAS = [
+    { icono: "⚠️", titulo: "Transporte: 80% del límite",  sub: "Llevas $1,200 de $1,500 este mes", color: C.amber },
+    { icono: "🐑", titulo: "Lani detectó una suscripción", sub: "Pagaste $219 en algo que no usas",  color: C.accent },
+    { icono: "✅", titulo: "¡Meta cumplida!",              sub: "Llegaste a tu fondo de emergencia", color: C.green },
+  ];
+
+  return (
+    <Chrome paso={11} onSaltar={onSaltar} esUltimo={false}>
+      <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "0 24px" }}>
+          <Eyebrow>Paso 12 · Notificaciones</Eyebrow>
+          <Titulo>Avísame cuando<br />algo importe.</Titulo>
+          <Descripcion>
+            Te mando una notificación cuando te acerques a un límite, llegues a una meta o detecte algo raro.
+          </Descripcion>
+        </div>
+
+        {/* Mock de notificaciones del sistema */}
+        <div style={{ padding: "20px 20px 0", display: "flex", flexDirection: "column", gap: 8 }}>
+          {ALERTAS.map((a, i) => (
+            <div key={i} style={{
+              background: C.surface, borderRadius: 16, border: `0.5px solid ${C.line}`,
+              padding: "13px 14px", display: "flex", alignItems: "center", gap: 12,
+              boxShadow: "0 1px 3px rgba(14,14,16,0.04)",
+            }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                background: `${a.color}18`,
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+              }}>{a.icono}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.text, letterSpacing: -0.1, marginBottom: 2 }}>{a.titulo}</div>
+                <div style={{ fontSize: 11.5, color: C.textFaint, letterSpacing: -0.05 }}>{a.sub}</div>
+              </div>
+              <div style={{ fontFamily: F.mono, fontSize: 9, color: C.textFaint, flexShrink: 0 }}>ahora</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Estado después de respuesta del browser */}
+        {estado === "ok" && (
+          <div style={{ margin: "16px 20px 0", padding: "12px 16px", borderRadius: 12, background: `${C.green}14`, border: `0.5px solid ${C.green}40`, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 18 }}>✅</span>
+            <p style={{ fontSize: 13, fontWeight: 600, color: C.green, letterSpacing: -0.1 }}>¡Notificaciones activadas!</p>
+          </div>
+        )}
+        {estado === "denegado" && (
+          <div style={{ margin: "16px 20px 0", padding: "12px 16px", borderRadius: 12, background: `${C.amber}14`, border: `0.5px solid ${C.amber}40` }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: C.amber, letterSpacing: -0.1 }}>
+              Sin permiso por ahora. Puedes activarlas después en Perfil.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <Pie>
+        <LaniNote pose="happy">Te aviso cuando algo merece tu atención — sin spam.</LaniNote>
+        {estado === "denegado" ? (
+          <BotonPrimario onClick={onSiguiente}>Continuar sin notificaciones</BotonPrimario>
+        ) : (
+          <BotonPrimario onClick={activar} cargando={estado === "cargando" || estado === "ok"} disabled={estado === "ok"}>
+            Activar avisos
+          </BotonPrimario>
+        )}
+        {estado === "idle" && (
+          <button
+            onClick={onSiguiente}
+            style={{ width: "100%", marginTop: 10, padding: "12px 0", background: "none", border: "none", cursor: "pointer", fontFamily: F.sans, fontSize: 13, color: C.textFaint, letterSpacing: -0.1 }}
+          >
+            Ahora no
+          </button>
+        )}
+      </Pie>
+    </Chrome>
+  );
+}
+
+// ─── Paso 13: Dashboard preview ───────────────────────────────
 function PasoDashboard({ onFinalizar, onSaltar, nombre, cargando }: {
   onFinalizar: () => void; onSaltar: () => void;
   nombre: string; cargando?: boolean;
 }) {
   return (
-    <Chrome paso={11} onSaltar={onSaltar} esUltimo>
+    <Chrome paso={12} onSaltar={onSaltar} esUltimo>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 12 · Listo</Eyebrow>
+          <Eyebrow>Paso 13 · Listo</Eyebrow>
           <Titulo>Todo en un<br />vistazo.</Titulo>
           <Descripcion>
             Balance, proyección, suscripciones olvidadas y análisis semanal.
@@ -2018,6 +2123,7 @@ export default function BienvenidaPage() {
   if (paso === 7)  return <PasoMeta         onSiguiente={siguiente} onSaltar={saltar} nombre={metaNombre} setNombre={setMetaNombre} monto={metaMonto} setMonto={setMetaMonto} meses={metaMeses} setMeses={setMetaMeses} ingresoMensual={ingresoMensual} />;
   if (paso === 8)  return <PasoPresupuestos  onSiguiente={siguiente} onSaltar={saltar} />;
   if (paso === 9)  return <PasoPeriodo      onSiguiente={siguiente} onSaltar={saltar} periodo={periodoRevision} setPeriodo={setPeriodoRevision} />;
-  if (paso === 10) return <PasoWhatsApp     onSiguiente={siguiente} onSaltar={saltar} telefono={telefonoWA} setTelefono={setTelefonoWA} />;
-  return                  <PasoDashboard    onFinalizar={siguiente} onSaltar={saltar} nombre={nombre} cargando={guardando} />;
+  if (paso === 10) return <PasoWhatsApp        onSiguiente={siguiente} onSaltar={saltar} telefono={telefonoWA} setTelefono={setTelefonoWA} />;
+  if (paso === 11) return <PasoNotificaciones  onSiguiente={siguiente} onSaltar={saltar} />;
+  return                  <PasoDashboard       onFinalizar={siguiente} onSaltar={saltar} nombre={nombre} cargando={guardando} />;
 }
