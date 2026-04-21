@@ -834,11 +834,12 @@ export default function ChatPage() {
                   </ReactMarkdown>
                 )
               ) : (
-                <span className="flex gap-1 items-center">
-                  {[0, 1, 2].map((j) => (
-                    <span key={j} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: "#6b7280", animationDelay: `${j * 0.15}s` }} />
-                  ))}
-                </span>
+                <img
+                  src="/lani-typing.png"
+                  alt="Lani escribiendo..."
+                  style={{ width: 36, height: 36, objectFit: "cover", borderRadius: "50%", display: "block" }}
+                  className="animate-pulse"
+                />
               )}
             </div>
           </div>

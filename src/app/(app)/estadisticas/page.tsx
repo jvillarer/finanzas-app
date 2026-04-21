@@ -466,7 +466,7 @@ export default function EstadisticasPage() {
 
         {cargando ? (
           <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <img src="/lani-hi.png" alt="Lani" className="animate-pulse" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", margin: "0 auto 12px" }} />
+            <img src="/lani-thinking.png" alt="Lani" className="animate-pulse" style={{ width: 64, height: 64, objectFit: "contain", margin: "0 auto 12px" }} />
             <p style={{ fontSize: 13, color: "var(--text-3)" }}>Calculando...</p>
           </div>
         ) : (
