@@ -5,6 +5,12 @@ import { enviarMensajeWA, marcarLeidoWA, transcribirAudioWA } from "@/lib/whatsa
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
+// Cuántos mensajes de historial enviamos a Claude (5 intercambios = 10 filas)
+const MAX_HISTORIAL = 10;
+// Máximo de mensajes por teléfono por ventana de tiempo
+const RATE_LIMIT_MAX    = 5;
+const RATE_LIMIT_VENTANA = 60; // segundos
+
 // Supabase admin para buscar usuarios por teléfono
 function supabaseAdmin() {
   return createClient(
@@ -36,7 +42,7 @@ export async function POST(req: NextRequest) {
   const value   = changes?.value;
   const mensaje = value?.messages?.[0];
 
-  // Si no hay mensaje (puede ser una notificación de status/delivery), responder OK
+  // Si no hay mensaje (notificación de status/delivery), responder OK
   if (!mensaje) return Response.json({ ok: true });
 
   const telefonoRaw = mensaje.from as string;
@@ -45,27 +51,26 @@ export async function POST(req: NextRequest) {
   const tipo        = mensaje.type as string;
 
   // ── Guard 1: ignorar mensajes propios (echo del business) ──────────────────
-  // Meta puede enviar de vuelta los mensajes que nosotros enviamos
   const phoneNumberId = value?.metadata?.phone_number_id as string | undefined;
   const fromPhoneId   = mensaje.from_me === true;
   if (fromPhoneId || (phoneNumberId && telefonoRaw === phoneNumberId)) {
     return Response.json({ ok: true });
   }
 
-  // ── Guard 2: ignorar mensajes antiguos (>90s) — evita reprocessar retries de Vercel ──
+  // ── Guard 2: ignorar mensajes antiguos (>90s) — evita reprocessar retries ──
   const timestampMensaje = parseInt(mensaje.timestamp ?? "0", 10);
   const ahoraEpoch = Math.floor(Date.now() / 1000);
   if (timestampMensaje > 0 && ahoraEpoch - timestampMensaje > 90) {
-    console.log(`⏱ Mensaje ${messageId} ignorado: llegó ${ahoraEpoch - timestampMensaje}s tarde`);
+    console.log(`⏱ Mensaje ${messageId} ignorado: ${ahoraEpoch - timestampMensaje}s tarde`);
     return Response.json({ ok: true, motivo: "mensaje_expirado" });
   }
 
-  // Meta envía números mexicanos como 521XXXXXXXXXX, normalizamos a 52XXXXXXXXXX
+  // Normalizar número mexicano 521XXXXXXXXXX → 52XXXXXXXXXX
   const telefono = telefonoRaw.startsWith("521") && telefonoRaw.length === 13
     ? "52" + telefonoRaw.slice(3)
     : telefonoRaw;
 
-  // ── Guard 3: solo texto y audio — ignorar stickers, imágenes, reacciones, etc. ──
+  // ── Guard 3: solo texto y audio — ignorar stickers, imágenes, reacciones ──
   const esTexto = tipo === "text" && texto.trim().length > 0;
   const esAudio = tipo === "audio" || tipo === "voice";
 
@@ -95,9 +100,10 @@ export async function POST(req: NextRequest) {
     console.log(`🎤 Audio transcrito: "${transcripcion}"`);
   }
 
-  // ── Guard 4: deduplicación por messageId en Supabase ──────────────────────
-  const supabaseCheck = supabaseAdmin();
-  const { data: yaExiste } = await supabaseCheck
+  const supabase = supabaseAdmin();
+
+  // ── Guard 4: deduplicación por messageId ──────────────────────────────────
+  const { data: yaExiste } = await supabase
     .from("webhook_wa_procesados")
     .select("id")
     .eq("message_id", messageId)
@@ -108,8 +114,26 @@ export async function POST(req: NextRequest) {
     return Response.json({ ok: true, motivo: "duplicado" });
   }
 
+  // ── Guard 5: rate limiting — máximo N mensajes por minuto por teléfono ────
+  const ventanaDesde = new Date(Date.now() - RATE_LIMIT_VENTANA * 1000).toISOString();
+  const { count: mensajesRecientes } = await supabase
+    .from("webhook_wa_procesados")
+    .select("id", { count: "exact", head: true })
+    .eq("telefono", telefono)
+    .gte("created_at", ventanaDesde);
+
+  if ((mensajesRecientes ?? 0) >= RATE_LIMIT_MAX) {
+    console.warn(`🚫 Rate limit alcanzado para ${telefono}`);
+    // Registrar para no procesar de nuevo, pero no responder (evita bucle de mensajes)
+    await supabase
+      .from("webhook_wa_procesados")
+      .insert({ message_id: messageId, telefono, created_at: new Date().toISOString() });
+    await enviarMensajeWA(telefono, "Vamos más despacio 🐑 Espera un momento antes de mandarme más mensajes.");
+    return Response.json({ ok: true, motivo: "rate_limit" });
+  }
+
   // Registrar messageId ANTES de procesar (evita carrera si Vercel retries en paralelo)
-  await supabaseCheck
+  await supabase
     .from("webhook_wa_procesados")
     .insert({ message_id: messageId, telefono, created_at: new Date().toISOString() });
 
@@ -117,7 +141,6 @@ export async function POST(req: NextRequest) {
   await marcarLeidoWA(messageId);
 
   // Buscar el usuario vinculado a este número
-  const supabase = supabaseAdmin();
   const { data: perfil } = await supabase
     .from("perfiles")
     .select("id, nombre_completo")
@@ -141,8 +164,18 @@ export async function POST(req: NextRequest) {
   const nombre    = (perfil.nombre_completo as string ?? "").split(" ")[0];
   const hoy       = new Date().toISOString().split("T")[0];
 
-  // Obtener contexto financiero del usuario
-  const [{ data: transacciones }, { data: metas }] = await Promise.all([
+  // ── Cargar historial conversacional + contexto financiero en paralelo ──────
+  const [
+    { data: historialRows },
+    { data: transacciones },
+    { data: metas },
+  ] = await Promise.all([
+    supabase
+      .from("mensajes_wa")
+      .select("rol, contenido")
+      .eq("telefono", telefono)
+      .order("created_at", { ascending: false })
+      .limit(MAX_HISTORIAL),
     supabase
       .from("transacciones")
       .select("id, monto, descripcion, categoria, tipo, fecha")
@@ -156,9 +189,17 @@ export async function POST(req: NextRequest) {
       .limit(5),
   ]);
 
+  // El historial viene en orden DESC; lo invertimos para orden cronológico
+  const historial: Anthropic.MessageParam[] = (historialRows ?? [])
+    .reverse()
+    .map((r) => ({
+      role: r.rol as "user" | "assistant",
+      content: r.contenido as string,
+    }));
+
   const contexto = construirContextoWA(transacciones ?? [], metas ?? []);
 
-  // Prompt de Lani adaptado para WhatsApp (sin markdown complejo)
+  // Prompt de Lani adaptado para WhatsApp
   const sistemaWA = `Eres Lani 🐑, asistente financiera personal.
 El nombre del usuario es ${nombre || "amigo"}.
 Fecha de hoy: ${hoy}.
@@ -181,13 +222,14 @@ REGLAS:
 1. Registra cualquier gasto/ingreso mencionado sin pedir confirmación
 2. Si pide info financiera, responde con datos reales del contexto
 3. Si pide modificar o borrar una transacción, hazlo con la herramienta correcta
-4. Nunca menciones que eres IA o Claude
+4. Tienes acceso al historial de esta conversación — úsalo para entender referencias como "la última", "esa", "bórrala", etc.
+5. Nunca menciones que eres IA o Claude
 
 Categorías válidas: Comida, Supermercado, Transporte, Entretenimiento, Salud, Servicios, Ropa, Hogar, Educación, Otros
 
 ${contexto}`;
 
-  // Herramientas disponibles (mismo esquema que el chat)
+  // Herramientas disponibles
   const herramientas: Anthropic.Tool[] = [
     {
       name: "crear_transaccion",
@@ -238,13 +280,19 @@ ${contexto}`;
     "Salud", "Servicios", "Ropa", "Hogar", "Educación", "Otros",
   ]);
 
-  // Primera llamada a Claude (usa texto transcrito si fue audio)
+  // Mensajes con historial + mensaje actual
+  const mensajesParaClaude: Anthropic.MessageParam[] = [
+    ...historial,
+    { role: "user", content: textoFinal_entrada },
+  ];
+
+  // Primera llamada a Claude
   const respuesta = await anthropic.messages.create({
     model: "claude-opus-4-5",
     max_tokens: 512,
     system: sistemaWA,
     tools: herramientas,
-    messages: [{ role: "user", content: textoFinal_entrada }],
+    messages: mensajesParaClaude,
   });
 
   let textoFinal = "";
@@ -254,39 +302,43 @@ ${contexto}`;
 
     if (bloque.name === "crear_transaccion") {
       const d = bloque.input as { monto: number; descripcion?: string; categoria: string; tipo: string; fecha?: string };
-      const monto    = Math.abs(Number(d.monto));
-      const tipo     = d.tipo === "ingreso" ? "ingreso" : "gasto";
+      const monto     = Math.abs(Number(d.monto));
+      const tipoTx    = d.tipo === "ingreso" ? "ingreso" : "gasto";
       const categoria = CATEGORIAS_VALIDAS.has(d.categoria) ? d.categoria : "Otros";
-      const fecha    = d.fecha || hoy;
+      const fecha     = d.fecha || hoy;
 
       const { error } = await supabase.from("transacciones").insert({
         usuario_id:  usuarioId,
         monto,
         descripcion: d.descripcion || categoria,
         categoria,
-        tipo,
+        tipo: tipoTx,
         fecha,
       });
 
       const resultado = error ? `Error: ${error.message}` : "Transacción guardada.";
-      textoFinal = await segundaLlamadaClaude(anthropic, sistemaWA, herramientas,
-        [{ role: "user", content: textoFinal_entrada }], respuesta.content, bloque.id, resultado);
+      textoFinal = await segundaLlamadaClaude(
+        anthropic, sistemaWA, herramientas,
+        mensajesParaClaude, respuesta.content, bloque.id, resultado
+      );
 
     } else if (bloque.name === "actualizar_transaccion") {
       const d = bloque.input as { id: string; fecha?: string; monto?: number; descripcion?: string; categoria?: string; tipo?: string };
       const cambios: Record<string, unknown> = {};
-      if (d.fecha) cambios.fecha = d.fecha;
-      if (d.monto) cambios.monto = d.monto;
+      if (d.fecha)       cambios.fecha       = d.fecha;
+      if (d.monto)       cambios.monto       = d.monto;
       if (d.descripcion) cambios.descripcion = d.descripcion;
-      if (d.categoria) cambios.categoria = d.categoria;
-      if (d.tipo) cambios.tipo = d.tipo;
+      if (d.categoria)   cambios.categoria   = d.categoria;
+      if (d.tipo)        cambios.tipo        = d.tipo;
 
       const { error } = await supabase.from("transacciones")
         .update(cambios).eq("id", d.id).eq("usuario_id", usuarioId);
 
       const resultado = error ? `Error: ${error.message}` : "Transacción actualizada.";
-      textoFinal = await segundaLlamadaClaude(anthropic, sistemaWA, herramientas,
-        [{ role: "user", content: textoFinal_entrada }], respuesta.content, bloque.id, resultado);
+      textoFinal = await segundaLlamadaClaude(
+        anthropic, sistemaWA, herramientas,
+        mensajesParaClaude, respuesta.content, bloque.id, resultado
+      );
 
     } else if (bloque.name === "eliminar_transaccion") {
       const d = bloque.input as { id: string };
@@ -294,8 +346,10 @@ ${contexto}`;
         .delete().eq("id", d.id).eq("usuario_id", usuarioId);
 
       const resultado = error ? `Error: ${error.message}` : "Transacción eliminada.";
-      textoFinal = await segundaLlamadaClaude(anthropic, sistemaWA, herramientas,
-        [{ role: "user", content: textoFinal_entrada }], respuesta.content, bloque.id, resultado);
+      textoFinal = await segundaLlamadaClaude(
+        anthropic, sistemaWA, herramientas,
+        mensajesParaClaude, respuesta.content, bloque.id, resultado
+      );
     }
   } else {
     textoFinal = (respuesta.content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined)?.text ?? "";
@@ -304,6 +358,15 @@ ${contexto}`;
   // Enviar respuesta al usuario por WhatsApp
   if (textoFinal) {
     await enviarMensajeWA(telefono, textoFinal);
+  }
+
+  // ── Guardar intercambio en historial conversacional ───────────────────────
+  // Solo guardamos si tenemos respuesta válida (no guardamos errores silenciosos)
+  if (textoFinal) {
+    await supabase.from("mensajes_wa").insert([
+      { telefono, rol: "user",      contenido: textoFinal_entrada },
+      { telefono, rol: "assistant", contenido: textoFinal },
+    ]);
   }
 
   return Response.json({ ok: true });

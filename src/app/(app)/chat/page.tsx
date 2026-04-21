@@ -374,6 +374,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+  const [ultimoMensajeFallido, setUltimoMensajeFallido] = useState<string>("");
   const [notificacion, setNotificacion] = useState<string | null>(null);
   const [imagenPendiente, setImagenPendiente] = useState<{
     base64: string; mediaType: string; previewUrl: string;
@@ -580,6 +581,7 @@ export default function ChatPage() {
     const textoFinal = pregunta || "Analiza este ticket y registra cada producto";
     setInput("");
     setError("");
+    setUltimoMensajeFallido("");
 
     const nuevosMensajes: Mensaje[] = [
       ...mensajes,
@@ -638,6 +640,7 @@ export default function ChatPage() {
       }
     } catch {
       setError("No se pudo enviar. Verifica tu conexión.");
+      setUltimoMensajeFallido(textoFinal);
       setMensajes((prev) => prev.filter((m, i) => !(i === prev.length - 1 && m.contenido === "")));
     } finally {
       setCargando(false);
@@ -862,7 +865,20 @@ export default function ChatPage() {
         )}
       </div>
 
-      {error && <p className="text-center text-xs px-4 py-2 shrink-0" style={{ color: "#ef4444" }}>{error}</p>}
+      {error && (
+        <div className="px-4 py-2 shrink-0 flex items-center gap-3" style={{ borderTop: "1px solid rgba(217,74,74,0.15)", backgroundColor: "rgba(217,74,74,0.06)" }}>
+          <p className="flex-1 text-xs font-medium" style={{ color: "#D94A4A" }}>⚠ {error}</p>
+          {ultimoMensajeFallido && (
+            <button
+              onClick={() => { setError(""); enviar(ultimoMensajeFallido); setUltimoMensajeFallido(""); }}
+              className="text-xs font-bold px-3 py-1.5 rounded-lg shrink-0"
+              style={{ backgroundColor: "#D94A4A", color: "#fff" }}
+            >
+              Reintentar
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Preview imagen */}
       {imagenPendiente && (

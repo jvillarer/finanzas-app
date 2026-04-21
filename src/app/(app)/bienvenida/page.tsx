@@ -85,10 +85,10 @@ type Frecuencia      = "quincenal" | "mensual" | "semanal";
 type PeriodoRevision = "diario" | "semanal" | "quincenal" | "mensual";
 
 // ─── Constantes de flujo ──────────────────────────────────────
-const TOTAL_PASOS        = 13;
-const PASO_CATEGORIAS    = 4;  // índice donde se guardan categorías en el flujo
-const PASO_WHATSAPP      = 10; // índice del paso de WhatsApp
-const PASO_NOTIFICACIONES = 11; // índice del paso de notificaciones push
+const TOTAL_PASOS        = 12;
+const PASO_CATEGORIAS    = 3;  // índice donde se guardan categorías en el flujo
+const PASO_WHATSAPP      = 9; // índice del paso de WhatsApp
+const PASO_NOTIFICACIONES = 10; // índice del paso de notificaciones push
 
 // ─── Primitivos de UI ─────────────────────────────────────────
 
@@ -670,119 +670,7 @@ function PasoCuentas({ onSiguiente, onSaltar, seleccionadas, setSeleccionadas }:
   );
 }
 
-// ─── Paso 04: Importa tu banco ────────────────────────────────
-function PasoImportar({ onSiguiente, onSaltar }: {
-  onSiguiente: () => void; onSaltar: () => void;
-}) {
-  const txns = [
-    { n: "Uber",    cat: "Transporte",      a: -280 },
-    { n: "Netflix", cat: "Entretenimiento", a: -219 },
-    { n: "Nómina",  cat: "Ingreso",         a: 18000, ingreso: true },
-    { n: "CFE",     cat: "Servicios",       a: -640 },
-  ];
-
-  return (
-    <Chrome paso={3} onSaltar={onSaltar} esUltimo={false}>
-      <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 04 · Importación</Eyebrow>
-          <Titulo>Importa tu banco.</Titulo>
-          <Descripcion>
-            Sube el PDF de tu estado de cuenta. Yo extraigo todas las transacciones.
-          </Descripcion>
-        </div>
-
-        <div style={{ padding: "22px 20px 0" }}>
-          {/* Tarjeta de archivo */}
-          <div style={{
-            background: C.surface, borderRadius: 16,
-            border: `0.5px solid ${C.line}`, padding: "14px",
-            boxShadow: "0 1px 2px rgba(14,14,16,0.03)",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{
-                width: 40, height: 48, borderRadius: 6,
-                background: C.surface2, border: `0.5px solid ${C.line}`,
-                position: "relative", display: "flex",
-                alignItems: "flex-end", justifyContent: "center", paddingBottom: 6,
-              }}>
-                <div style={{
-                  position: "absolute", top: 0, right: 0,
-                  width: 10, height: 10, background: C.bg,
-                  borderLeft: `0.5px solid ${C.line}`,
-                  borderBottom: `0.5px solid ${C.line}`,
-                }} />
-                <div style={{ fontFamily: F.mono, fontSize: 8, color: C.textFaint }}>PDF</div>
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 500, color: C.text }}>
-                  BBVA_Enero_2026.pdf
-                </div>
-                <div style={{ fontFamily: F.mono, fontSize: 10.5, color: C.textFaint, marginTop: 3 }}>
-                  2.3 MB · Estado de cuenta
-                </div>
-              </div>
-              <div style={{ fontSize: 11.5, color: C.green, fontWeight: 500, display: "flex", alignItems: "center", gap: 4 }}>
-                <svg width="11" height="11" viewBox="0 0 12 12">
-                  <path d="M2.5 6l2.5 2.5 4.5-5" stroke={C.green} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Listo
-              </div>
-            </div>
-            <div style={{
-              marginTop: 12, height: 2.5, borderRadius: 99,
-              background: "rgba(31,157,85,0.12)", overflow: "hidden",
-            }}>
-              <div style={{ width: "100%", height: "100%", background: C.green }} />
-            </div>
-          </div>
-
-          {/* Encabezado de extracción */}
-          <div style={{
-            marginTop: 20, marginBottom: 2,
-            display: "flex", justifyContent: "space-between", alignItems: "baseline",
-          }}>
-            <div style={{ fontFamily: F.mono, fontSize: 10, color: C.textFaint, letterSpacing: 2, textTransform: "uppercase" }}>
-              Extracción
-            </div>
-            <div style={{ fontFamily: F.mono, fontSize: 10, color: C.textFaint, letterSpacing: 1.2 }}>
-              47 transacciones
-            </div>
-          </div>
-
-          {/* Lista de transacciones */}
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {txns.map((t, i) => (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", padding: "11px 2px",
-                borderBottom: i < txns.length - 1 ? `0.5px solid ${C.divider}` : "none",
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13.5, color: C.text, fontWeight: 500 }}>{t.n}</div>
-                  <div style={{ fontSize: 11, color: C.textFaint, marginTop: 2 }}>{t.cat}</div>
-                </div>
-                <div style={{
-                  fontFamily: F.sans, fontSize: 13.5, fontWeight: 500,
-                  fontVariantNumeric: "tabular-nums",
-                  color: t.ingreso ? C.green : C.text,
-                }}>
-                  {t.ingreso ? "+" : "−"}${Math.abs(t.a).toLocaleString("en-US")}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <Pie>
-        <LaniNote pose="happy">Listo. Revisé 47 movimientos y los categoricé por ti.</LaniNote>
-        <BotonPrimario onClick={onSiguiente}>Continuar</BotonPrimario>
-      </Pie>
-    </Chrome>
-  );
-}
-
-// ─── Paso 05: Categorías (toggle list iOS-style) ──────────────
+// ─── Paso 04: Categorías (toggle list iOS-style) ──────────────
 function FilaCategoria({ cat, activa, onToggle, puedeDesactivar, esUltima }: {
   cat: typeof CATEGORIAS[0]; activa: boolean;
   onToggle: () => void; puedeDesactivar: boolean; esUltima: boolean;
@@ -834,10 +722,10 @@ function PasoCategoriasStep({ onSiguiente, onSaltar, seleccionadas, setSeleccion
   };
 
   return (
-    <Chrome paso={4} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={3} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 05 · Categorías</Eyebrow>
+          <Eyebrow>Paso 04 · Categorías</Eyebrow>
           <Titulo>Elige tus<br />categorías.</Titulo>
           <Descripcion>Activa las que aplican a tu vida. Puedes cambiarlas después.</Descripcion>
         </div>
@@ -1106,10 +994,10 @@ function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionado
   const hayAlgo = seleccionados.size > 0 || otros.length > 0;
 
   return (
-    <Chrome paso={5} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={4} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 06 · Gastos fijos</Eyebrow>
+          <Eyebrow>Paso 05 · Gastos fijos</Eyebrow>
           <Titulo>¿Cuáles son tus<br />gastos fijos?</Titulo>
           <Descripcion>
             Los que salen sin falta cada mes. Actívalos y escribe el monto.
@@ -1211,10 +1099,10 @@ function PasoDeudas({ onSiguiente, onSaltar, seleccionadas, setSeleccionadas }: 
   };
 
   return (
-    <Chrome paso={6} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={5} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 07 · Deudas</Eyebrow>
+          <Eyebrow>Paso 06 · Deudas</Eyebrow>
           <Titulo>¿Tienes deudas<br />activas?</Titulo>
           <Descripcion>
             Sin montos por ahora, solo para que las considere al analizar tu situación.
@@ -1296,10 +1184,10 @@ function PasoMeta({ onSiguiente, onSaltar, nombre, setNombre, monto, setMonto, m
   const opcionesMeses = [3, 6, 12, 18, 24, 36];
 
   return (
-    <Chrome paso={7} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={6} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 08 · Meta</Eyebrow>
+          <Eyebrow>Paso 07 · Meta</Eyebrow>
           <Titulo>¿Para qué estás<br />ahorrando?</Titulo>
           <Descripcion>
             Una meta concreta hace toda la diferencia. Puedes cambiarla después.
@@ -1483,10 +1371,10 @@ function PasoPresupuestos({ onSiguiente, onSaltar }: {
   onSiguiente: () => void; onSaltar: () => void;
 }) {
   return (
-    <Chrome paso={8} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={7} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 09 · Presupuestos</Eyebrow>
+          <Eyebrow>Paso 08 · Presupuestos</Eyebrow>
           <Titulo>Límites por<br />categoría.</Titulo>
           <Descripcion>
             Define un límite mensual por categoría. Te aviso cuando te acerques al tope.
@@ -1533,10 +1421,10 @@ function PasoPeriodo({ onSiguiente, onSaltar, periodo, setPeriodo }: {
   ];
 
   return (
-    <Chrome paso={9} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={8} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 10 · Revisión</Eyebrow>
+          <Eyebrow>Paso 09 · Revisión</Eyebrow>
           <Titulo>¿Cada cuándo<br />revisas?</Titulo>
           <Descripcion>
             Adapto mis resúmenes y alertas a tu ritmo. Puedes cambiarlo después.
@@ -1623,10 +1511,10 @@ function PasoWhatsApp({ onSiguiente, onSaltar, telefono, setTelefono }: {
   };
 
   return (
-    <Chrome paso={10} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={9} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 11 · WhatsApp</Eyebrow>
+          <Eyebrow>Paso 10 · WhatsApp</Eyebrow>
           <Titulo>Registra gastos<br />desde WhatsApp.</Titulo>
           <Descripcion>
             Mándame un mensaje y lo anoto al instante. Sin abrir la app.
@@ -1770,10 +1658,10 @@ function PasoNotificaciones({ onSiguiente, onSaltar }: {
   ];
 
   return (
-    <Chrome paso={11} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={10} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 12 · Notificaciones</Eyebrow>
+          <Eyebrow>Paso 11 · Notificaciones</Eyebrow>
           <Titulo>Avísame cuando<br />algo importe.</Titulo>
           <Descripcion>
             Te mando una notificación cuando te acerques a un límite, llegues a una meta o detecte algo raro.
@@ -1846,10 +1734,10 @@ function PasoDashboard({ onFinalizar, onSaltar, nombre, cargando }: {
   nombre: string; cargando?: boolean;
 }) {
   return (
-    <Chrome paso={12} onSaltar={onSaltar} esUltimo>
+    <Chrome paso={11} onSaltar={onSaltar} esUltimo>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 13 · Listo</Eyebrow>
+          <Eyebrow>Paso 12 · Listo</Eyebrow>
           <Titulo>Todo en un<br />vistazo.</Titulo>
           <Descripcion>
             Balance, proyección, suscripciones olvidadas y análisis semanal.
@@ -2116,14 +2004,13 @@ export default function BienvenidaPage() {
   if (paso === 0)  return <Paso1            onSiguiente={siguiente} onSaltar={saltar} nombre={nombre} />;
   if (paso === 1)  return <PasoIngresos     onSiguiente={siguiente} onSaltar={saltar} frecuencia={frecuenciaIngreso} setFrecuencia={setFrecuenciaIngreso} monto={montoIngreso} setMonto={setMontoIngreso} />;
   if (paso === 2)  return <PasoCuentas      onSiguiente={siguiente} onSaltar={saltar} seleccionadas={cuentas} setSeleccionadas={setCuentas} />;
-  if (paso === 3)  return <PasoImportar     onSiguiente={siguiente} onSaltar={saltar} />;
-  if (paso === 4)  return <PasoCategoriasStep onSiguiente={siguiente} onSaltar={saltar} seleccionadas={seleccionadas} setSeleccionadas={setSeleccionadas} guardando={guardando} />;
-  if (paso === 5)  return <PasoGastosFijos  onSiguiente={siguiente} onSaltar={saltar} seleccionados={gastosFijos} setSeleccionados={setGastosFijos} montos={montosGastosFijos} setMontos={setMontosGastosFijos} periodicidades={periodicidadesGastos} setPeriodicidades={setPeriodicidadesGastos} otros={otrosGastosFijos} setOtros={setOtrosGastosFijos} />;
-  if (paso === 6)  return <PasoDeudas       onSiguiente={siguiente} onSaltar={saltar} seleccionadas={deudas} setSeleccionadas={setDeudas} />;
-  if (paso === 7)  return <PasoMeta         onSiguiente={siguiente} onSaltar={saltar} nombre={metaNombre} setNombre={setMetaNombre} monto={metaMonto} setMonto={setMetaMonto} meses={metaMeses} setMeses={setMetaMeses} ingresoMensual={ingresoMensual} />;
-  if (paso === 8)  return <PasoPresupuestos  onSiguiente={siguiente} onSaltar={saltar} />;
-  if (paso === 9)  return <PasoPeriodo      onSiguiente={siguiente} onSaltar={saltar} periodo={periodoRevision} setPeriodo={setPeriodoRevision} />;
-  if (paso === 10) return <PasoWhatsApp        onSiguiente={siguiente} onSaltar={saltar} telefono={telefonoWA} setTelefono={setTelefonoWA} />;
-  if (paso === 11) return <PasoNotificaciones  onSiguiente={siguiente} onSaltar={saltar} />;
+  if (paso === 3)  return <PasoCategoriasStep onSiguiente={siguiente} onSaltar={saltar} seleccionadas={seleccionadas} setSeleccionadas={setSeleccionadas} guardando={guardando} />;
+  if (paso === 4)  return <PasoGastosFijos  onSiguiente={siguiente} onSaltar={saltar} seleccionados={gastosFijos} setSeleccionados={setGastosFijos} montos={montosGastosFijos} setMontos={setMontosGastosFijos} periodicidades={periodicidadesGastos} setPeriodicidades={setPeriodicidadesGastos} otros={otrosGastosFijos} setOtros={setOtrosGastosFijos} />;
+  if (paso === 5)  return <PasoDeudas       onSiguiente={siguiente} onSaltar={saltar} seleccionadas={deudas} setSeleccionadas={setDeudas} />;
+  if (paso === 6)  return <PasoMeta         onSiguiente={siguiente} onSaltar={saltar} nombre={metaNombre} setNombre={setMetaNombre} monto={metaMonto} setMonto={setMetaMonto} meses={metaMeses} setMeses={setMetaMeses} ingresoMensual={ingresoMensual} />;
+  if (paso === 7)  return <PasoPresupuestos  onSiguiente={siguiente} onSaltar={saltar} />;
+  if (paso === 8)  return <PasoPeriodo      onSiguiente={siguiente} onSaltar={saltar} periodo={periodoRevision} setPeriodo={setPeriodoRevision} />;
+  if (paso === 9)  return <PasoWhatsApp        onSiguiente={siguiente} onSaltar={saltar} telefono={telefonoWA} setTelefono={setTelefonoWA} />;
+  if (paso === 10) return <PasoNotificaciones  onSiguiente={siguiente} onSaltar={saltar} />;
   return                  <PasoDashboard       onFinalizar={siguiente} onSaltar={saltar} nombre={nombre} cargando={guardando} />;
 }
