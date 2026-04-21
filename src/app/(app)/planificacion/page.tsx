@@ -42,7 +42,26 @@ function lbl(txt: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SECCIÓN: METAS
 // ─────────────────────────────────────────────────────────────────────────────
+// Bloquea el scroll del body mientras un modal está abierto (fix iOS)
+function useLockBodyScroll() {
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+}
+
 function ModalCrearMeta({ onGuardado, onCerrar }: { onGuardado: () => void; onCerrar: () => void }) {
+  useLockBodyScroll();
   const [emoji, setEmoji] = useState("🎯");
   const [nombre, setNombre] = useState("");
   const [montoObjetivo, setMontoObjetivo] = useState("");
@@ -113,6 +132,7 @@ function ModalCrearMeta({ onGuardado, onCerrar }: { onGuardado: () => void; onCe
 }
 
 function ModalAbonarMeta({ meta, onGuardado, onCerrar, onEliminar }: { meta: Meta; onGuardado: () => void; onCerrar: () => void; onEliminar: () => void }) {
+  useLockBodyScroll();
   const [monto, setMonto] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
@@ -509,15 +529,25 @@ function SeccionProyectos() {
     setProyectoActivo(null); setTransacciones([]);
   };
 
-  const gastosTotales = transacciones.filter(t => t.tipo === "gasto").reduce((s, t) => {
-    if (proyectoActivo?.moneda !== "MXN" && t.monto_original != null) return s + Number(t.monto_original);
-    return s + Number(t.monto);
-  }, 0);
+  // Totales agrupados por moneda — soporta gastos mixtos USD/MXN/etc.
+  const gastosPorMoneda: Record<string, number> = {};
+  transacciones.filter(t => t.tipo === "gasto").forEach(t => {
+    const mon = t.moneda || proyectoActivo?.moneda || "MXN";
+    const monto = (mon !== "MXN" && t.monto_original != null) ? Number(t.monto_original) : Number(t.monto);
+    gastosPorMoneda[mon] = (gastosPorMoneda[mon] || 0) + monto;
+  });
 
-  const simbolo = proyectoActivo ? (SIMBOLOS[proyectoActivo.moneda] || "$") : "$";
+  // Total en la moneda base del proyecto (para la barra de presupuesto)
+  const monedaBase = proyectoActivo?.moneda || "MXN";
+  const tc = proyectoActivo?.tipo_cambio || 1;
+  const gastosTotalesMXN = transacciones.filter(t => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
+  const gastosTotalesBase = monedaBase === "MXN" ? gastosTotalesMXN : gastosTotalesMXN / tc;
+
+  const simbolo = SIMBOLOS[monedaBase] || "$";
   const presupuestoNum = proyectoActivo?.presupuesto || 0;
-  const pctGastado = presupuestoNum > 0 ? Math.min((gastosTotales / presupuestoNum) * 100, 100) : 0;
-  const restante = Math.max(0, presupuestoNum - gastosTotales);
+  const pctGastado = presupuestoNum > 0 ? Math.min((gastosTotalesBase / presupuestoNum) * 100, 100) : 0;
+  const restante = Math.max(0, presupuestoNum - gastosTotalesBase);
+  const esMultimoneda = Object.keys(gastosPorMoneda).length > 1;
 
   const inputStyle = { backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" };
 
@@ -595,7 +625,23 @@ function SeccionProyectos() {
 
             <div className="mb-4">
               <p className="text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: "var(--text-3)" }}>Total gastado</p>
-              <p className="text-4xl font-bold font-number" style={{ color: "var(--text-1)" }}>{simbolo}{gastosTotales.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</p>
+              {esMultimoneda ? (
+                // Desglose por moneda cuando hay mezcla
+                <div className="flex flex-wrap gap-3 mb-1">
+                  {Object.entries(gastosPorMoneda).map(([mon, total]) => (
+                    <div key={mon}>
+                      <p className="text-3xl font-bold font-number" style={{ color: "var(--text-1)" }}>
+                        {SIMBOLOS[mon] || "$"}{total.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: "var(--text-3)" }}>{mon}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-4xl font-bold font-number" style={{ color: "var(--text-1)" }}>
+                  {simbolo}{gastosTotalesBase.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                </p>
+              )}
               {presupuestoNum > 0 && <p className="text-xs mt-1" style={{ color: "var(--text-3)" }}>de {simbolo}{presupuestoNum.toLocaleString("es-MX")} presupuestados</p>}
             </div>
 
@@ -615,21 +661,32 @@ function SeccionProyectos() {
           </div>
 
           <div className="rounded-xl px-4 py-3 mb-4 text-xs leading-relaxed" style={{ backgroundColor: "var(--gold-dim)", border: "1px solid var(--gold-border)", color: "var(--gold)" }}>
-            💬 Dile a Lani cualquier gasto y lo anota automáticamente en este proyecto{proyectoActivo.moneda !== "MXN" && ` en ${proyectoActivo.moneda}`}
+            💬 Dile a Lani cualquier gasto en MXN o USD — lo anota en el proyecto con su moneda. Ej: <span style={{ fontWeight: 700 }}>"50 dólares de comida"</span>
           </div>
 
           {transacciones.length > 0 ? (
             <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="px-5 py-3.5 text-sm font-bold" style={{ color: "var(--text-1)", borderBottom: "1px solid var(--border)" }}>Gastos del proyecto ({transacciones.length})</p>
+              <p className="px-5 py-3.5 text-sm font-bold" style={{ color: "var(--text-1)", borderBottom: "1px solid var(--border)" }}>
+                Gastos del proyecto ({transacciones.length})
+                {esMultimoneda && <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--gold-dim)", color: "var(--gold)", border: "1px solid var(--gold-border)" }}>MULTIMONEDA</span>}
+              </p>
               {transacciones.map((tx) => {
-                const montoMostrar = proyectoActivo.moneda !== "MXN" && tx.monto_original != null
-                  ? `${simbolo}${Number(tx.monto_original).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+                const txMoneda = tx.moneda || monedaBase;
+                const txSimbolo = SIMBOLOS[txMoneda] || "$";
+                const montoOriginal = tx.monto_original != null ? Number(tx.monto_original) : null;
+                const montoMostrar = montoOriginal != null && txMoneda !== "MXN"
+                  ? `${txSimbolo}${montoOriginal.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
                   : `$${Number(tx.monto).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
                 return (
                   <div key={tx.id} className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: "1px solid var(--border-2)" }}>
                     <div className="flex-1 min-w-0 mr-3">
                       <p className="text-sm font-semibold truncate" style={{ color: "var(--text-1)" }}>{tx.descripcion}</p>
-                      <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>{tx.categoria} · {tx.fecha}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-xs" style={{ color: "var(--text-3)" }}>{tx.categoria} · {tx.fecha}</p>
+                        {txMoneda !== "MXN" && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--gold-dim)", color: "var(--gold)" }}>{txMoneda}</span>
+                        )}
+                      </div>
                     </div>
                     <p className="text-sm font-bold font-number shrink-0" style={{ color: tx.tipo === "gasto" ? "var(--danger)" : "var(--success)" }}>{tx.tipo === "gasto" ? "-" : "+"}{montoMostrar}</p>
                   </div>
