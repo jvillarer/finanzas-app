@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createClient as createClientBrowser } from "@/lib/supabase";
+import { createServerSupabase } from "@/lib/supabase-server";
 
 export async function DELETE() {
-  // Obtener el usuario autenticado con el cliente normal (cookie-based)
-  const supabaseBrowser = createClientBrowser();
-  const { data: { user }, error: userError } = await supabaseBrowser.auth.getUser();
+  // Obtener el usuario autenticado con el cliente server-side (cookie-based)
+  const supabaseServer = await createServerSupabase();
+  const { data: { user }, error: userError } = await supabaseServer.auth.getUser();
 
   if (userError || !user) {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
