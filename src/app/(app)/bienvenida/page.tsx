@@ -85,10 +85,10 @@ type Frecuencia      = "quincenal" | "mensual" | "semanal";
 type PeriodoRevision = "diario" | "semanal" | "quincenal" | "mensual";
 
 // ─── Constantes de flujo ──────────────────────────────────────
-const TOTAL_PASOS        = 12;
-const PASO_CATEGORIAS    = 3;  // índice donde se guardan categorías en el flujo
-const PASO_WHATSAPP      = 9; // índice del paso de WhatsApp
-const PASO_NOTIFICACIONES = 10; // índice del paso de notificaciones push
+const TOTAL_PASOS        = 11; // sin el paso de cuentas bancarias
+const PASO_CATEGORIAS    = 2;  // índice donde se guardan categorías en el flujo
+const PASO_WHATSAPP      = 8;  // índice del paso de WhatsApp
+const PASO_NOTIFICACIONES = 9; // índice del paso de notificaciones push
 
 // ─── Primitivos de UI ─────────────────────────────────────────
 
@@ -212,6 +212,9 @@ function Pie({ children }: { children: React.ReactNode }) {
       padding: "16px 24px",
       paddingBottom: "calc(16px + env(safe-area-inset-bottom, 20px))",
       marginTop: "auto",
+      position: "sticky",
+      bottom: 0,
+      backgroundColor: C.bg,
     }}>{children}</div>
   );
 }
@@ -722,10 +725,10 @@ function PasoCategoriasStep({ onSiguiente, onSaltar, seleccionadas, setSeleccion
   };
 
   return (
-    <Chrome paso={3} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={2} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 04 · Categorías</Eyebrow>
+          <Eyebrow>Paso 03 · Categorías</Eyebrow>
           <Titulo>Elige tus<br />categorías.</Titulo>
           <Descripcion>Activa las que aplican a tu vida. Puedes cambiarlas después.</Descripcion>
         </div>
@@ -994,10 +997,10 @@ function PasoGastosFijos({ onSiguiente, onSaltar, seleccionados, setSeleccionado
   const hayAlgo = seleccionados.size > 0 || otros.length > 0;
 
   return (
-    <Chrome paso={4} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={3} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 05 · Gastos fijos</Eyebrow>
+          <Eyebrow>Paso 04 · Gastos fijos</Eyebrow>
           <Titulo>¿Cuáles son tus<br />gastos fijos?</Titulo>
           <Descripcion>
             Los que salen sin falta cada mes. Actívalos y escribe el monto.
@@ -1099,10 +1102,10 @@ function PasoDeudas({ onSiguiente, onSaltar, seleccionadas, setSeleccionadas }: 
   };
 
   return (
-    <Chrome paso={5} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={4} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 06 · Deudas</Eyebrow>
+          <Eyebrow>Paso 05 · Deudas</Eyebrow>
           <Titulo>¿Tienes deudas<br />activas?</Titulo>
           <Descripcion>
             Sin montos por ahora, solo para que las considere al analizar tu situación.
@@ -1184,10 +1187,10 @@ function PasoMeta({ onSiguiente, onSaltar, nombre, setNombre, monto, setMonto, m
   const opcionesMeses = [3, 6, 12, 18, 24, 36];
 
   return (
-    <Chrome paso={6} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={5} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 07 · Meta</Eyebrow>
+          <Eyebrow>Paso 06 · Meta</Eyebrow>
           <Titulo>¿Para qué estás<br />ahorrando?</Titulo>
           <Descripcion>
             Una meta concreta hace toda la diferencia. Puedes cambiarla después.
@@ -1367,42 +1370,79 @@ function TarjetaPresupuesto({ nombre, gastado, limite, pct, tono, excedido }: {
   );
 }
 
-function PasoPresupuestos({ onSiguiente, onSaltar }: {
+function PasoPresupuestos({ onSiguiente, onSaltar, categorias, limites, setLimites, guardando }: {
   onSiguiente: () => void; onSaltar: () => void;
+  categorias: Set<string>;
+  limites: Record<string, string>;
+  setLimites: (l: Record<string, string>) => void;
+  guardando: boolean;
 }) {
+  const cats = CATEGORIAS.filter(c => categorias.has(c.id)).slice(0, 6);
+  const setLimite = (id: string, valor: string) => {
+    setLimites({ ...limites, [id]: formatearNumero(valor) });
+  };
+  const tieneAlguno = cats.some(c => (limites[c.id] || "").replace(/,/g, "").length > 0);
+
   return (
-    <Chrome paso={7} onSaltar={onSaltar} esUltimo={false}>
-      <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
+    <Chrome paso={6} onSaltar={onSaltar} esUltimo={false}>
+      <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 08 · Presupuestos</Eyebrow>
+          <Eyebrow>Paso 07 · Presupuestos</Eyebrow>
           <Titulo>Límites por<br />categoría.</Titulo>
           <Descripcion>
-            Define un límite mensual por categoría. Te aviso cuando te acerques al tope.
+            Define cuánto quieres gastar cada mes. Te aviso antes de que te pases.
           </Descripcion>
         </div>
 
-        <div style={{ padding: "22px 20px 0", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <div style={{
-              fontFamily: F.mono, fontSize: 10, color: C.textFaint,
-              letterSpacing: 2, textTransform: "uppercase",
-              padding: "0 2px 10px",
-              display: "flex", justifyContent: "space-between",
-            }}>
-              <span>Presupuestos</span><span>Abril</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <TarjetaPresupuesto nombre="Comida"          gastado={1800} limite={3000} pct={60}  tono="ok" />
-              <TarjetaPresupuesto nombre="Transporte"      gastado={2200} limite={2500} pct={88}  tono="warn" />
-              <TarjetaPresupuesto nombre="Entretenimiento" gastado={1100} limite={800}  pct={100} tono="over" excedido />
-            </div>
+        <div style={{ padding: "20px 20px 0", flex: 1, overflowY: "auto" }}>
+          <div style={{
+            background: C.surface, borderRadius: 16,
+            border: `0.5px solid ${C.line}`, overflow: "hidden",
+            boxShadow: "0 1px 2px rgba(14,14,16,0.03)",
+          }}>
+            {cats.map((cat, i) => {
+              const limite = limites[cat.id] || "";
+              return (
+                <div key={cat.id} style={{
+                  padding: "13px 16px",
+                  borderBottom: i < cats.length - 1 ? `0.5px solid ${C.divider}` : "none",
+                  display: "flex", alignItems: "center", gap: 12,
+                }}>
+                  <div style={{ flex: 1, fontSize: 14, fontWeight: 500, color: C.text, letterSpacing: -0.1 }}>
+                    {cat.nombre}
+                  </div>
+                  <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                    <span style={{
+                      position: "absolute", left: 10, fontSize: 15,
+                      color: C.textFaint, pointerEvents: "none",
+                    }}>$</span>
+                    <input
+                      type="text" inputMode="numeric"
+                      value={limite}
+                      placeholder="0"
+                      onChange={e => setLimite(cat.id, e.target.value)}
+                      style={{
+                        width: 115, height: 40, borderRadius: 10,
+                        border: `0.5px solid ${C.line}`, background: C.surface2,
+                        color: C.text, fontFamily: F.sans, fontSize: 15, fontWeight: 500,
+                        padding: "0 10px 0 24px", outline: "none",
+                        letterSpacing: -0.3, boxSizing: "border-box",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
       <Pie>
-        <LaniNote pose="shy">Vas bien, pero te avisaré si te pasas del límite.</LaniNote>
-        <BotonPrimario onClick={onSiguiente}>Continuar</BotonPrimario>
+        <LaniNote pose="shy">Te aviso antes de que te pases 🐑</LaniNote>
+        <BotonPrimario onClick={onSiguiente} cargando={guardando}>
+          {tieneAlguno ? "Guardar límites" : "Omitir por ahora"}
+        </BotonPrimario>
       </Pie>
     </Chrome>
   );
@@ -1421,10 +1461,10 @@ function PasoPeriodo({ onSiguiente, onSaltar, periodo, setPeriodo }: {
   ];
 
   return (
-    <Chrome paso={8} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={7} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 09 · Revisión</Eyebrow>
+          <Eyebrow>Paso 08 · Revisión</Eyebrow>
           <Titulo>¿Cada cuándo<br />revisas?</Titulo>
           <Descripcion>
             Adapto mis resúmenes y alertas a tu ritmo. Puedes cambiarlo después.
@@ -1511,10 +1551,10 @@ function PasoWhatsApp({ onSiguiente, onSaltar, telefono, setTelefono }: {
   };
 
   return (
-    <Chrome paso={9} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={8} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
-          <Eyebrow>Paso 10 · WhatsApp</Eyebrow>
+          <Eyebrow>Paso 09 · WhatsApp</Eyebrow>
           <Titulo>Registra gastos<br />desde WhatsApp.</Titulo>
           <Descripcion>
             Mándame un mensaje y lo anoto al instante. Sin abrir la app.
@@ -1658,7 +1698,7 @@ function PasoNotificaciones({ onSiguiente, onSaltar }: {
   ];
 
   return (
-    <Chrome paso={10} onSaltar={onSaltar} esUltimo={false}>
+    <Chrome paso={9} onSaltar={onSaltar} esUltimo={false}>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
           <Eyebrow>Paso 11 · Notificaciones</Eyebrow>
@@ -1734,7 +1774,7 @@ function PasoDashboard({ onFinalizar, onSaltar, nombre, cargando }: {
   nombre: string; cargando?: boolean;
 }) {
   return (
-    <Chrome paso={11} onSaltar={onSaltar} esUltimo>
+    <Chrome paso={10} onSaltar={onSaltar} esUltimo>
       <div style={{ padding: "28px 0 0", flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "0 24px" }}>
           <Eyebrow>Paso 12 · Listo</Eyebrow>
@@ -1869,10 +1909,13 @@ export default function BienvenidaPage() {
   const [metaMonto,  setMetaMonto]  = useState("");
   const [metaMeses,  setMetaMeses]  = useState(12);
 
-  // Periodo de revisión (paso 10)
+  // Periodo de revisión (paso 08)
   const [periodoRevision, setPeriodoRevision] = useState<PeriodoRevision>("quincenal");
 
-  // WhatsApp (paso 11)
+  // Presupuestos (paso 07) — mapa de categoriaId → monto límite
+  const [limitesPresupuesto, setLimitesPresupuesto] = useState<Record<string, string>>({});
+
+  // WhatsApp (paso 09)
   const [telefonoWA, setTelefonoWA] = useState("");
 
   // ── Carga del nombre del usuario ─────────────────────────────
@@ -1905,9 +1948,23 @@ export default function BienvenidaPage() {
 
   // ── Guardar todo (al finalizar) ───────────────────────────────
   const guardarTodo = async () => {
-    const ingresoNum  = parseFloat(montoIngreso.replace(/,/g, "")) || 0;
+    const ingresoNum   = parseFloat(montoIngreso.replace(/,/g, "")) || 0;
     const metaMontoNum = parseFloat(metaMonto.replace(/,/g, "")) || 0;
-    const cats = Array.from(seleccionadas);
+    const cats         = Array.from(seleccionadas);
+    const hoy          = new Date().toISOString().split("T")[0];
+
+    // Mapeo de ID de gasto fijo → categoría de transacción
+    const categoriaGastoFijo: Record<string, string> = {
+      renta:     "Hogar",
+      luz:       "Servicios",
+      agua:      "Servicios",
+      internet:  "Servicios",
+      celular:   "Servicios",
+      streaming: "Entretenimiento",
+      gym:       "Salud",
+      seguro:    "Servicios",
+      colegio:   "Educación",
+    };
 
     // Serializar gastos fijos con montos y periodicidad
     const gastosFijosData = {
@@ -1931,29 +1988,106 @@ export default function BienvenidaPage() {
     };
 
     // localStorage
-    localStorage.setItem("lani_ingreso",           JSON.stringify({ frecuencia: frecuenciaIngreso, monto: ingresoNum }));
-    localStorage.setItem("lani_cuentas",            JSON.stringify(Array.from(cuentas)));
-    localStorage.setItem("lani_gastos_fijos",       JSON.stringify(gastosFijosData));
-    localStorage.setItem("lani_deudas",             JSON.stringify(Array.from(deudas)));
-    localStorage.setItem("lani_meta",               JSON.stringify({ nombre: metaNombre, monto: metaMontoNum, meses: metaMeses }));
-    localStorage.setItem("lani_periodo_revision",   periodoRevision);
-    localStorage.setItem("lani_categorias",         JSON.stringify(cats));
+    localStorage.setItem("lani_ingreso",         JSON.stringify({ frecuencia: frecuenciaIngreso, monto: ingresoNum }));
+    localStorage.setItem("lani_gastos_fijos",     JSON.stringify(gastosFijosData));
+    localStorage.setItem("lani_deudas",           JSON.stringify(Array.from(deudas)));
+    localStorage.setItem("lani_meta",             JSON.stringify({ nombre: metaNombre, monto: metaMontoNum, meses: metaMeses }));
+    localStorage.setItem("lani_periodo_revision", periodoRevision);
+    localStorage.setItem("lani_categorias",       JSON.stringify(cats));
 
-    // Supabase — un solo llamado con todo el perfil
     try {
       const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // 1. Guardar metadata en auth
       await supabase.auth.updateUser({
         data: {
           categorias_activas: cats,
           ingreso:            { frecuencia: frecuenciaIngreso, monto: ingresoNum },
-          cuentas:            Array.from(cuentas),
           gastos_fijos:       gastosFijosData,
           deudas:             Array.from(deudas),
           meta_ahorro:        { nombre: metaNombre, monto: metaMontoNum, meses: metaMeses },
           periodo_revision:   periodoRevision,
         },
       });
-    } catch { /* no bloqueamos */ }
+
+      // 2. Crear transacciones reales desde gastos fijos (para que el dashboard no quede en $0)
+      const txFijos: {
+        usuario_id: string; monto: number; descripcion: string;
+        categoria: string; tipo: string; fecha: string;
+      }[] = [];
+
+      for (const item of gastosFijosData.items) {
+        const montoTx = item.montoMensual || item.monto;
+        if (montoTx > 0) {
+          txFijos.push({
+            usuario_id:  user.id,
+            monto:       montoTx,
+            descripcion: item.nombre,
+            categoria:   categoriaGastoFijo[item.id] || "Servicios",
+            tipo:        "gasto",
+            fecha:       hoy,
+          });
+        }
+      }
+      for (const otro of gastosFijosData.otros) {
+        const montoTx = otro.montoMensual || otro.monto;
+        if (montoTx > 0) {
+          txFijos.push({
+            usuario_id:  user.id,
+            monto:       montoTx,
+            descripcion: otro.nombre,
+            categoria:   "Servicios",
+            tipo:        "gasto",
+            fecha:       hoy,
+          });
+        }
+      }
+      if (txFijos.length > 0) {
+        await supabase.from("transacciones").insert(txFijos);
+      }
+
+      // 3. Crear transacción de ingreso mensual si lo especificó
+      if (ingresoMensual > 0) {
+        await supabase.from("transacciones").insert({
+          usuario_id:  user.id,
+          monto:       ingresoMensual,
+          descripcion: "Ingreso mensual",
+          categoria:   "Otros",
+          tipo:        "ingreso",
+          fecha:       hoy,
+        });
+      }
+
+      // 4. Guardar presupuestos en DB
+      const presupuestosAGuardar = CATEGORIAS
+        .filter(c => seleccionadas.has(c.id) && (limitesPresupuesto[c.id] || "").replace(/,/g, "").length > 0)
+        .map(c => ({
+          usuario_id: user.id,
+          categoria:  c.nombre,
+          limite:     parseFloat((limitesPresupuesto[c.id] || "").replace(/,/g, "")) || 0,
+          periodo:    "mensual",
+        }))
+        .filter(p => p.limite > 0);
+
+      if (presupuestosAGuardar.length > 0) {
+        await supabase.from("presupuestos").insert(presupuestosAGuardar);
+      }
+
+      // 5. Crear meta de ahorro en DB si la definió
+      if (metaMontoNum > 0 && metaNombre.trim()) {
+        await supabase.from("metas").insert({
+          usuario_id:     user.id,
+          nombre:         metaNombre.trim(),
+          emoji:          "🎯",
+          monto_objetivo: metaMontoNum,
+          monto_actual:   0,
+        });
+      }
+    } catch (err) {
+      console.error("Error guardando onboarding:", err);
+    }
   };
 
   // ── Navegación ────────────────────────────────────────────────
@@ -2001,16 +2135,15 @@ export default function BienvenidaPage() {
   };
 
   // ── Render ────────────────────────────────────────────────────
-  if (paso === 0)  return <Paso1            onSiguiente={siguiente} onSaltar={saltar} nombre={nombre} />;
-  if (paso === 1)  return <PasoIngresos     onSiguiente={siguiente} onSaltar={saltar} frecuencia={frecuenciaIngreso} setFrecuencia={setFrecuenciaIngreso} monto={montoIngreso} setMonto={setMontoIngreso} />;
-  if (paso === 2)  return <PasoCuentas      onSiguiente={siguiente} onSaltar={saltar} seleccionadas={cuentas} setSeleccionadas={setCuentas} />;
-  if (paso === 3)  return <PasoCategoriasStep onSiguiente={siguiente} onSaltar={saltar} seleccionadas={seleccionadas} setSeleccionadas={setSeleccionadas} guardando={guardando} />;
-  if (paso === 4)  return <PasoGastosFijos  onSiguiente={siguiente} onSaltar={saltar} seleccionados={gastosFijos} setSeleccionados={setGastosFijos} montos={montosGastosFijos} setMontos={setMontosGastosFijos} periodicidades={periodicidadesGastos} setPeriodicidades={setPeriodicidadesGastos} otros={otrosGastosFijos} setOtros={setOtrosGastosFijos} />;
-  if (paso === 5)  return <PasoDeudas       onSiguiente={siguiente} onSaltar={saltar} seleccionadas={deudas} setSeleccionadas={setDeudas} />;
-  if (paso === 6)  return <PasoMeta         onSiguiente={siguiente} onSaltar={saltar} nombre={metaNombre} setNombre={setMetaNombre} monto={metaMonto} setMonto={setMetaMonto} meses={metaMeses} setMeses={setMetaMeses} ingresoMensual={ingresoMensual} />;
-  if (paso === 7)  return <PasoPresupuestos  onSiguiente={siguiente} onSaltar={saltar} />;
-  if (paso === 8)  return <PasoPeriodo      onSiguiente={siguiente} onSaltar={saltar} periodo={periodoRevision} setPeriodo={setPeriodoRevision} />;
-  if (paso === 9)  return <PasoWhatsApp        onSiguiente={siguiente} onSaltar={saltar} telefono={telefonoWA} setTelefono={setTelefonoWA} />;
-  if (paso === 10) return <PasoNotificaciones  onSiguiente={siguiente} onSaltar={saltar} />;
-  return                  <PasoDashboard       onFinalizar={siguiente} onSaltar={saltar} nombre={nombre} cargando={guardando} />;
+  if (paso === 0)  return <Paso1              onSiguiente={siguiente} onSaltar={saltar} nombre={nombre} />;
+  if (paso === 1)  return <PasoIngresos       onSiguiente={siguiente} onSaltar={saltar} frecuencia={frecuenciaIngreso} setFrecuencia={setFrecuenciaIngreso} monto={montoIngreso} setMonto={setMontoIngreso} />;
+  if (paso === 2)  return <PasoCategoriasStep onSiguiente={siguiente} onSaltar={saltar} seleccionadas={seleccionadas} setSeleccionadas={setSeleccionadas} guardando={guardando} />;
+  if (paso === 3)  return <PasoGastosFijos    onSiguiente={siguiente} onSaltar={saltar} seleccionados={gastosFijos} setSeleccionados={setGastosFijos} montos={montosGastosFijos} setMontos={setMontosGastosFijos} periodicidades={periodicidadesGastos} setPeriodicidades={setPeriodicidadesGastos} otros={otrosGastosFijos} setOtros={setOtrosGastosFijos} />;
+  if (paso === 4)  return <PasoDeudas         onSiguiente={siguiente} onSaltar={saltar} seleccionadas={deudas} setSeleccionadas={setDeudas} />;
+  if (paso === 5)  return <PasoMeta           onSiguiente={siguiente} onSaltar={saltar} nombre={metaNombre} setNombre={setMetaNombre} monto={metaMonto} setMonto={setMetaMonto} meses={metaMeses} setMeses={setMetaMeses} ingresoMensual={ingresoMensual} />;
+  if (paso === 6)  return <PasoPresupuestos   onSiguiente={siguiente} onSaltar={saltar} categorias={seleccionadas} limites={limitesPresupuesto} setLimites={setLimitesPresupuesto} guardando={guardando} />;
+  if (paso === 7)  return <PasoPeriodo        onSiguiente={siguiente} onSaltar={saltar} periodo={periodoRevision} setPeriodo={setPeriodoRevision} />;
+  if (paso === 8)  return <PasoWhatsApp       onSiguiente={siguiente} onSaltar={saltar} telefono={telefonoWA} setTelefono={setTelefonoWA} />;
+  if (paso === 9)  return <PasoNotificaciones onSiguiente={siguiente} onSaltar={saltar} />;
+  return                  <PasoDashboard      onFinalizar={siguiente} onSaltar={saltar} nombre={nombre} cargando={guardando} />;
 }
