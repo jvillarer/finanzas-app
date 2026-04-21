@@ -713,7 +713,7 @@ export default function ChatPage() {
         style={{ backgroundColor: "#fff", borderBottom: "1px solid rgba(0,0,0,0.06)" }}
       >
         <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden">
-          <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img src="/lani-typing.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </div>
         <div className="flex-1">
           <p className="text-base font-black text-gray-900">Lani</p>
@@ -847,15 +847,6 @@ export default function ChatPage() {
 
         {mensajes.length === 1 && (
           <div className="pt-2">
-            {/* Nudge contextual — recordatorio de PDF o inactividad */}
-            {nudge && (
-              <NudgeContextual
-                nudge={nudge}
-                onEnviar={(texto) => { setNudge(null); enviar(texto); }}
-                onNavegar={(url) => router.push(url)}
-              />
-            )}
-
             <p className="text-xs mb-2 text-center" style={{ color: "#6b7280" }}>Prueba diciendo:</p>
             <div className="flex flex-wrap gap-2 justify-center">
               {SUGERENCIAS.map((s) => (
