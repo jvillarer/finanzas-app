@@ -16,7 +16,11 @@ const TABS = [
   {
     href: "/chat",
     icon: (active: boolean) => (
-      <span style={{ fontSize: 22, lineHeight: 1, opacity: active ? 1 : 0.35 }}>🐑</span>
+      <img
+        src="/lani-wave.png"
+        alt="Lani"
+        style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", opacity: active ? 1 : 0.35 }}
+      />
     ),
   },
   {

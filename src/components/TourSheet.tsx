@@ -92,8 +92,10 @@ export default function TourSheet({ tourKey, titulo, subtitulo, pasos, abierto, 
               backgroundColor: "var(--gold-dim)",
               border: "1px solid var(--gold-border)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 20, flexShrink: 0,
-            }}>🐑</div>
+              flexShrink: 0, overflow: "hidden",
+            }}>
+              <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </div>
             <div>
               <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>{titulo}</p>
               {subtitulo && <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{subtitulo}</p>}

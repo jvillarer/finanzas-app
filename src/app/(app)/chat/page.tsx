@@ -107,9 +107,8 @@ function ModoVoz({
       {/* Avatar Lani */}
       <div className="flex flex-col items-center gap-6">
         <div
-          className="w-28 h-28 rounded-full flex items-center justify-center text-6xl transition-all"
+          className="w-28 h-28 rounded-full transition-all overflow-hidden"
           style={{
-            backgroundColor: hablando ? "#22c55e" : grabando ? "rgba(239,68,68,0.15)" : "#1c1c1c",
             border: hablando
               ? "3px solid #22c55e"
               : grabando
@@ -122,7 +121,11 @@ function ModoVoz({
               : "none",
           }}
         >
-          🐑
+          <img
+            src={hablando ? "/lani-happy.png" : grabando ? "/lani-hi.png" : "/lani-wave.png"}
+            alt="Lani"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
         </div>
 
         {/* Estado */}
@@ -709,8 +712,8 @@ export default function ChatPage() {
         className="flex items-center gap-3 px-5 pt-14 pb-4 shrink-0"
         style={{ backgroundColor: "#fff", borderBottom: "1px solid rgba(0,0,0,0.06)" }}
       >
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: "#000" }}>
-          🐑
+        <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden">
+          <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </div>
         <div className="flex-1">
           <p className="text-base font-black text-gray-900">Lani</p>
@@ -790,8 +793,8 @@ export default function ChatPage() {
         {mensajes.map((msg, i) => (
           <div key={i} className={`flex ${msg.rol === "user" ? "justify-end" : "justify-start"}`}>
             {msg.rol === "assistant" && (
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-base shrink-0 mr-2 mt-1" style={{ backgroundColor: "#000" }}>
-                🐑
+              <div className="w-8 h-8 rounded-full shrink-0 mr-2 mt-1 overflow-hidden">
+                <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
             )}
             <div

@@ -200,7 +200,9 @@ export default function RegistroPage() {
   if (exito) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center" style={{ backgroundColor: "#f2f2f7" }}>
-        <div className="w-20 h-20 rounded-2xl bg-black flex items-center justify-center text-4xl mb-6 shadow-lg">🐑</div>
+        <div className="w-20 h-20 rounded-2xl mb-6 shadow-lg overflow-hidden">
+          <img src="/lani-happy.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
         <h1 className="text-2xl font-black text-gray-900 mb-2">¡Ya somos equipo, {nombre.split(" ")[0]}!</h1>
         <p className="text-sm text-gray-500 leading-relaxed mb-1 max-w-xs">
           Te mandé un link de confirmación a
@@ -248,7 +250,9 @@ export default function RegistroPage() {
             </svg>
           </button>
         ) : (
-          <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-lg shrink-0">🐑</div>
+          <div className="w-9 h-9 rounded-full shrink-0 overflow-hidden">
+            <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
         )}
         <div>
           <p className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">Paso {paso} de 3</p>
@@ -260,7 +264,7 @@ export default function RegistroPage() {
 
       {/* Hint de Lani */}
       <div className="bg-white rounded-2xl px-4 py-3.5 mb-5 flex items-start gap-3" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-        <span className="text-base shrink-0 mt-0.5">🐑</span>
+        <img src="/lani-hi.png" alt="Lani" className="shrink-0 mt-0.5" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover" }} />
         <p className="text-xs text-gray-500 leading-relaxed">{subtitulos[paso - 1]}</p>
       </div>
 

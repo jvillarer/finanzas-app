@@ -40,8 +40,8 @@ export default function LoginPage() {
 
         {/* Branding */}
         <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 rounded-2xl bg-black flex items-center justify-center text-3xl mb-4 shadow-lg">
-            🐑
+          <div className="w-16 h-16 rounded-2xl mb-4 shadow-lg overflow-hidden">
+            <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <h1 className="text-2xl font-black text-gray-900 tracking-tight">Bienvenido de vuelta</h1>
           <p className="text-sm text-gray-400 mt-1">Entra a tu cuenta de Lani</p>

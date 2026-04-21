@@ -1075,7 +1075,7 @@ export default function DashboardPage() {
           backgroundColor: "var(--surface)", border: "1px solid var(--border)",
           display: "flex", alignItems: "center", gap: 10,
         }}>
-          <span style={{ fontSize: 16, flexShrink: 0 }}>🐑</span>
+          <img src="/lani-hi.png" alt="Lani" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
           <p style={{ fontSize: 12, color: "var(--text-2)", flex: 1, lineHeight: 1.4 }}>
             Activa alertas y Lani te avisa si te pasas de un límite
           </p>

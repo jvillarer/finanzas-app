@@ -69,12 +69,8 @@ export default function Home() {
       <div style={{ padding: "64px 24px 36px" }}>
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 40 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 14,
-            backgroundColor: ACCENT,
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
-          }}>
-            🐑
+          <div style={{ width: 44, height: 44, borderRadius: 14, overflow: "hidden" }}>
+            <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div>
             <p style={{ fontSize: 18, fontWeight: 800, color: TEXT1, letterSpacing: "-0.02em" }}>Lani</p>
@@ -145,7 +141,9 @@ export default function Home() {
 
         {/* Lani insight */}
         <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, display: "flex", gap: 10, alignItems: "flex-start" }}>
-          <div style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: SURFACE2, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>🐑</div>
+          <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
+            <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
           <div>
             <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: ACCENT, marginBottom: 3 }}>● LANI REVISÓ TU MES</p>
             <p style={{ fontSize: 12, color: TEXT2, lineHeight: 1.5 }}>
@@ -196,7 +194,9 @@ export default function Home() {
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: SURFACE2, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>🐑</div>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
+            <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
             <div style={{ backgroundColor: SURFACE2, borderRadius: "14px 14px 14px 4px", padding: "10px 14px", maxWidth: "80%", border: `1px solid ${BORDER}` }}>
               <p style={{ fontSize: 12, color: TEXT1, fontWeight: 500 }}>Hola! Cuéntame un gasto o ingreso 👋</p>
             </div>
@@ -207,7 +207,9 @@ export default function Home() {
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: SURFACE2, border: `1px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, flexShrink: 0 }}>🐑</div>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
+            <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
             <div style={{ backgroundColor: SURFACE2, borderRadius: "14px 14px 14px 4px", padding: "10px 14px", maxWidth: "80%", border: `1px solid ${BORDER}` }}>
               <p style={{ fontSize: 12, color: TEXT1, fontWeight: 500 }}>
                 Listo ✓ <span style={{ color: SUCCESS, fontWeight: 700 }}>$500</span> en Supermercado. Llevas <span style={{ color: DANGER }}>$7,770</span> de gastos este mes.
