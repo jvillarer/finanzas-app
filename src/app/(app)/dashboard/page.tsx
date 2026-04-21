@@ -15,6 +15,7 @@ import NuevaTransaccion from "@/components/NuevaTransaccion";
 import EditarTransaccion from "@/components/EditarTransaccion";
 import Confetti from "@/components/Confetti";
 import { createClient } from "@/lib/supabase";
+import TourSheet, { TourBoton } from "@/components/TourSheet";
 import { registrarServiceWorker, pedirPermisoNotificaciones } from "@/lib/notificaciones";
 import {
   calcularRacha,
@@ -125,6 +126,7 @@ export default function DashboardPage() {
   const [mostrarConfetti, setMostrarConfetti] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimerRef = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [showTour, setShowTour] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -493,6 +495,21 @@ export default function DashboardPage() {
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)" }}>
 
+      {/* ── TOUR ── */}
+      <TourSheet
+        tourKey="lani_tour_dashboard"
+        titulo="Tu Dashboard financiero"
+        subtitulo="Todo lo que necesitas saber de tu dinero, aquí"
+        pasos={[
+          { icono: "💰", titulo: "Balance del mes", desc: "Ve tus ingresos, gastos y balance en tiempo real. Desliza ← → para ver meses anteriores." },
+          { icono: "✏️", titulo: "Registra en segundos", desc: "Toca el botón + para anotar un gasto o ingreso. También puedes decírselo a Lani en el chat." },
+          { icono: "📋", titulo: "Tus transacciones", desc: "Toca cualquier movimiento para editarlo o eliminarlo. Filtra por tipo arriba de la lista." },
+          { icono: "🤖", titulo: "Insight de Lani", desc: "Cada día Lani analiza tus patrones y te da un tip personalizado sobre tus finanzas." },
+        ]}
+        abierto={showTour}
+        onCerrar={() => setShowTour(false)}
+      />
+
       {/* ── CONFETTI ── */}
       <Confetti visible={mostrarConfetti} onDone={() => setMostrarConfetti(false)} />
 
@@ -511,6 +528,7 @@ export default function DashboardPage() {
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <TourBoton onClick={() => setShowTour(true)} />
           {/* Badge de racha */}
           {!cargando && racha.activa && (
             <div style={{

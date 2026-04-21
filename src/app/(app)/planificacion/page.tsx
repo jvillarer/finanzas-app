@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import TourSheet, { TourBoton } from "@/components/TourSheet";
 import { createClient } from "@/lib/supabase";
 import { obtenerTransacciones, formatearMonto } from "@/lib/transacciones";
 import { verificarPresupuestos } from "@/lib/notificaciones";
@@ -715,13 +716,29 @@ const TABS: { key: Tab; label: string }[] = [
 
 export default function PlanificacionPage() {
   const [tabActiva, setTabActiva] = useState<Tab>("metas");
+  const [showTour, setShowTour] = useState(false);
 
   return (
     <main className="min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
+      {/* ── TOUR ── */}
+      <TourSheet
+        tourKey="lani_tour_planificacion"
+        titulo="Planificación financiera"
+        subtitulo="Tres herramientas para controlar tu dinero"
+        pasos={[
+          { icono: "🎯", titulo: "Metas de ahorro", desc: "Define para qué estás ahorrando (vacaciones, iPhone, emergencias) y lleva el progreso con abonos." },
+          { icono: "📊", titulo: "Presupuestos", desc: "Pon límites de gasto por categoría cada mes. Lani te manda alerta antes de que te pases del tope." },
+          { icono: "🎒", titulo: "Proyectos", desc: "Separa los gastos de un viaje, boda o evento. Soporta USD y MXN mezclados en el mismo proyecto." },
+        ]}
+        abierto={showTour}
+        onCerrar={() => setShowTour(false)}
+      />
+
       {/* Header fijo */}
       <div style={{ position: "sticky", top: 0, zIndex: 40, backgroundColor: "var(--bg)", borderBottom: "1px solid var(--border-2)", paddingTop: 52 }}>
-        <div style={{ padding: "0 20px 0" }}>
+        <div style={{ padding: "0 20px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", marginBottom: 14 }}>Planificación</h1>
+          <div style={{ marginBottom: 14 }}><TourBoton onClick={() => setShowTour(true)} /></div>
         </div>
         {/* Tab bar */}
         <div style={{ display: "flex", padding: "0 20px", gap: 4 }}>

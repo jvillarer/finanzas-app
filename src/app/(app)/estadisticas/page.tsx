@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { obtenerTransacciones, formatearMonto } from "@/lib/transacciones";
 import type { Transaccion } from "@/lib/supabase";
+import TourSheet, { TourBoton } from "@/components/TourSheet";
 
 // ═══════════════════════════════════════════════════════════
 // CONSTANTES
@@ -296,10 +297,18 @@ function HeatmapSemana({ txs }: { txs: Transaccion[] }) {
 // ═══════════════════════════════════════════════════════════
 // PÁGINA PRINCIPAL
 // ═══════════════════════════════════════════════════════════
+const TOUR_PASOS = [
+  { icono: "📊", titulo: "Ingresos vs Gastos", desc: "Compara mes a mes cuánto entra y cuánto sale. Las barras verdes son ingresos, las rojas son gastos." },
+  { icono: "🍩", titulo: "¿En qué gastas más?", desc: "La dona muestra el reparto de tus gastos por categoría. La más grande aparece resaltada al centro." },
+  { icono: "📅", titulo: "Gasto diario del mes", desc: "Ve cuáles días del mes gastaste más. Los días pico aparecen en rojo para que los identifiques rápido." },
+  { icono: "🏆", titulo: "Top 5 gastos", desc: "Los 5 movimientos más grandes del periodo seleccionado. Útil para detectar gastos hormiga o imprevistos grandes." },
+];
+
 export default function EstadisticasPage() {
   const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
   const [cargando, setCargando] = useState(true);
   const [periodo, setPeriodo] = useState<Periodo>("mes");
+  const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
     obtenerTransacciones().then(setTransacciones).finally(() => setCargando(false));
@@ -408,14 +417,26 @@ export default function EstadisticasPage() {
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)", paddingBottom: 120 }}>
 
+      <TourSheet
+        tourKey="lani_tour_estadisticas"
+        titulo="Tus estadísticas"
+        subtitulo="Visualiza en qué se va tu dinero"
+        pasos={TOUR_PASOS}
+        abierto={showTour}
+        onCerrar={() => setShowTour(false)}
+      />
+
       {/* ── HEADER ── */}
       <div style={{ padding: "56px 20px 16px" }}>
         <p style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
           Análisis
         </p>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.03em" }}>
-          Dashboard
-        </h1>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.03em" }}>
+            Dashboard
+          </h1>
+          <TourBoton onClick={() => setShowTour(true)} />
+        </div>
       </div>
 
       <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 12 }}>

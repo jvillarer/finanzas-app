@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import TourSheet, { TourBoton } from "@/components/TourSheet";
 
 interface Mensaje {
   rol: "user" | "assistant";
@@ -388,6 +389,7 @@ export default function ChatPage() {
   const [vozActiva, setVozActiva] = useState(true);
   const [modoVoz, setModoVoz] = useState(false);
   const [soportaVoz, setSoportaVoz] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
   // Ref para evitar stale closure en callbacks async
@@ -687,6 +689,21 @@ export default function ChatPage() {
   return (
     <main className="flex flex-col h-screen" style={{ backgroundColor: "#f2f2f7" }}>
 
+      {/* ── TOUR ── */}
+      <TourSheet
+        tourKey="lani_tour_chat"
+        titulo="Chatea con Lani"
+        subtitulo="Tu asistente financiera personal"
+        pasos={[
+          { icono: "💬", titulo: "Habla natural", desc: "Di 'gasté 200 en tacos' o 'recibí 15,000 de nómina' y Lani lo registra al instante, sin formularios." },
+          { icono: "🔍", titulo: "Pregunta lo que sea", desc: "'¿Cuánto llevo en Uber este mes?' · '¿Cuál es mi categoría más cara?' · 'Muéstrame mis gastos de comida'." },
+          { icono: "🎙️", titulo: "Voz y audio", desc: "Toca el micrófono para dictar. También puedes mandarle un audio desde WhatsApp y Lani lo procesa." },
+          { icono: "✏️", titulo: "Edita o borra", desc: "Dile 'borra el último gasto' o 'cambia el taxi de ayer a $180' y lo hace sin que toques nada." },
+        ]}
+        abierto={showTour}
+        onCerrar={() => setShowTour(false)}
+      />
+
       {/* ── HEADER ── */}
       <div
         className="flex items-center gap-3 px-5 pt-14 pb-4 shrink-0"
@@ -704,6 +721,7 @@ export default function ChatPage() {
             }
           </p>
         </div>
+        <TourBoton onClick={() => setShowTour(true)} />
 
         {/* Nueva conversación */}
         <button
