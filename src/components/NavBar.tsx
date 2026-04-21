@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const TABS = [
   {
     href: "/dashboard",
-    // Casa con techo redondeado y ventanita
     icon: (active: boolean) => (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
         <path d="M3 10.5L12 3l9 7.5" />
@@ -15,45 +14,25 @@ const TABS = [
     ),
   },
   {
-    href: "/metas",
-    // Bandera de meta (más aspiracional que target)
-    icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-        <path d="M5 3v18" />
-        <path d="M5 5h13l-3.5 4L18 13H5" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
-      </svg>
-    ),
-  },
-  {
-    href: "/presupuestos",
-    // Cartera / wallet
-    icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-        <rect x="2" y="7" width="20" height="14" rx="2" />
-        <path d="M16 14a1 1 0 100-2 1 1 0 000 2z" fill="currentColor" stroke="none" />
-        <path d="M6 7V5a2 2 0 012-2h8a2 2 0 012 2v2" />
-      </svg>
-    ),
-  },
-  {
     href: "/chat",
-    // Lani 🐑 — se queda, es la identidad de la app
     icon: (active: boolean) => (
-      <span style={{ fontSize: 20, lineHeight: 1, opacity: active ? 1 : 0.3 }}>🐑</span>
+      <span style={{ fontSize: 22, lineHeight: 1, opacity: active ? 1 : 0.35 }}>🐑</span>
     ),
   },
   {
-    href: "/proyectos",
-    // Carpeta — Proyectos para separar gastos
+    href: "/planificacion",
+    // Capas apiladas — representa metas, presupuestos y proyectos
     icon: (active: boolean) => (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-        <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
+        <path d="M12 2L2 7l10 5 10-5-10-5z" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.15 : 0} />
+        <path d="M2 17l10 5 10-5" />
+        <path d="M2 12l10 5 10-5" />
       </svg>
     ),
   },
   {
     href: "/estadisticas",
-    // Gráfica de barras — Analytics/Dashboard
+    // Gráfica de barras — Analytics
     icon: (active: boolean) => (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
         <rect x="3" y="12" width="4" height="9" rx="1" fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.2 : 0} />
