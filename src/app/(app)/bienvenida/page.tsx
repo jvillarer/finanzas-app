@@ -121,13 +121,15 @@ function Chrome({ paso, onSaltar, esUltimo, children }: {
 }) {
   return (
     <div style={{
-      minHeight: "100dvh", display: "flex", flexDirection: "column",
+      height: "100dvh", display: "flex", flexDirection: "column",
+      overflow: "hidden",
       backgroundColor: C.bg, color: C.text, fontFamily: F.sans,
       paddingTop: "env(safe-area-inset-top, 44px)",
     }}>
+      {/* Cabecera fija: puntos de progreso + botón saltar */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "18px 24px 0",
+        padding: "18px 24px 0", flexShrink: 0,
       }}>
         <ProgressDots paso={paso} />
         {!esUltimo ? (
@@ -138,7 +140,13 @@ function Chrome({ paso, onSaltar, esUltimo, children }: {
           }}>Saltar</button>
         ) : <div style={{ width: 30 }} />}
       </div>
-      {children}
+      {/* Área de contenido desplazable */}
+      <div style={{
+        flex: 1, overflowY: "auto", display: "flex", flexDirection: "column",
+        WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
+      }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -210,17 +218,16 @@ function Pie({ children }: { children: React.ReactNode }) {
   return (
     <>
       {/* Espacio para que el contenido no quede tapado por el Pie fijo */}
-      <div style={{ height: "calc(16px + 52px + 20px + env(safe-area-inset-bottom, 20px))", flexShrink: 0 }} />
+      <div style={{ height: "calc(12px + 52px + 20px)", flexShrink: 0 }} />
       <div style={{
         position: "fixed",
-        bottom: 0,
+        bottom: 60,          /* sobre el NavBar (60 px) */
         left: 0,
         right: 0,
-        padding: "12px 24px",
-        paddingBottom: "calc(12px + env(safe-area-inset-bottom, 16px))",
+        padding: "12px 24px 20px",
         backgroundColor: C.bg,
         borderTop: `0.5px solid ${C.line}`,
-        zIndex: 50,
+        zIndex: 100,         /* por encima del NavBar (z-50) */
       }}>{children}</div>
     </>
   );
