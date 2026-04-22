@@ -25,6 +25,7 @@ Tu rol es ayudar al usuario a:
 - Dar consejos financieros personalizados
 - Registrar nuevas transacciones cuando el usuario mencione un gasto o ingreso
 - Analizar fotos de tickets/recibos y registrar cada producto automáticamente
+- Registrar compras a meses sin intereses (MSI) con seguimiento mensual automático
 
 REGLAS IMPORTANTES:
 1. Cuando el usuario mencione que gastó o recibió dinero (ej: "gasté $500 en comida", "me pagaron $10,000"),
@@ -47,6 +48,13 @@ REGLAS IMPORTANTES:
    usa actualizar_transaccion con el ID correcto del contexto. NUNCA crees una nueva.
 5. Si el usuario pide BORRAR o ELIMINAR una transacción, usa eliminar_transaccion con su ID.
    Hazlo directo sin pedir confirmación, solo avisa que la borraste.
+6. MESES SIN INTERESES (MSI): Cuando el usuario mencione una compra a meses sin intereses
+   (ej: "compré laptop $18,000 a 12 meses sin intereses", "samsung 6000 a 6 msi", "tv 9000 a 18 meses"),
+   usa SIEMPRE registrar_msi — NUNCA crear_transaccion para compras a meses.
+   - Calcula mensualidad = monto_total / meses_total si no la dice explícitamente
+   - Si el usuario solo dice la mensualidad sin el total: total = mensualidad × meses
+   - Si no menciona cuántos meses, pregunta antes de registrar
+   - Confirmación exacta: "✓ [item] — 1er pago $[mensualidad] anotado. Lani registrará los [meses-1] pagos restantes automáticamente ($[restante] comprometidos)"
 
 Categorías disponibles (SOLO estas 10, no uses ninguna otra):
 1. Comida (restaurantes, tacos, cafeterías, comida rápida)
@@ -177,6 +185,23 @@ const HERRAMIENTAS: Anthropic.Tool[] = [
       required: ["id"],
     },
   },
+  {
+    name: "registrar_msi",
+    description:
+      "Registra una compra a meses sin intereses (MSI). Crea el primer pago como transacción y guarda el compromiso de pagos futuros que se procesarán automáticamente cada mes. Úsala SIEMPRE que el usuario mencione compras a meses o MSI.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        descripcion:  { type: "string",  description: "Nombre del artículo o tienda (ej: 'Laptop HP', 'Samsung TV')" },
+        categoria:    { type: "string",  description: "Categoría del gasto (de la lista de 10 categorías disponibles)" },
+        monto_total:  { type: "number",  description: "Monto total de la compra en MXN" },
+        mensualidad:  { type: "number",  description: "Pago mensual en MXN (monto_total / meses_total)" },
+        meses_total:  { type: "integer", description: "Número de meses del plan (3, 6, 9, 12, 18, 24...)" },
+        fecha_inicio: { type: "string",  description: "Fecha de la compra YYYY-MM-DD, hoy si no se especifica" },
+      },
+      required: ["descripcion", "monto_total", "mensualidad", "meses_total"],
+    },
+  },
 ];
 
 const CATEGORIAS_VALIDAS = new Set([
@@ -251,8 +276,8 @@ export async function POST(req: NextRequest) {
     // Contexto de transacciones recientes (incluye IDs para editar/eliminar)
     let contextoTransacciones = "";
     if (incluirContexto) {
-      // Fetch en paralelo: transacciones (200 en formato compacto) + metas activas + viaje activo
-      const [{ data: transacciones }, { data: metas }, { data: viajeActivo }] = await Promise.all([
+      // Fetch en paralelo: transacciones + metas + viaje activo + compromisos MSI
+      const [{ data: transacciones }, { data: metas }, { data: viajeActivo }, { data: compromisosMsi }] = await Promise.all([
         supabase
           .from("transacciones")
           .select("id, monto, descripcion, categoria, tipo, fecha")
@@ -268,10 +293,25 @@ export async function POST(req: NextRequest) {
           .select("id, nombre, moneda, presupuesto, tipo_cambio, fecha_inicio, fecha_fin")
           .eq("activo", true)
           .single(),
+        supabase
+          .from("compromisos_msi")
+          .select("id, descripcion, categoria, monto_total, mensualidad, meses_total, meses_pagados, fecha_proximo_pago")
+          .eq("activo", true)
+          .order("fecha_proximo_pago", { ascending: true })
+          .limit(20),
       ]);
 
       if (transacciones && transacciones.length > 0) {
         contextoTransacciones = `\n\n--- DATOS FINANCIEROS DEL USUARIO ---\n${construirResumen(transacciones, metas || [])}\n---`;
+      }
+
+      // Compromisos MSI activos
+      if (compromisosMsi && compromisosMsi.length > 0) {
+        const lineasMsi = compromisosMsi.map((c) => {
+          const restante = (Number(c.meses_total) - Number(c.meses_pagados)) * Number(c.mensualidad);
+          return `[${c.id.replace(/-/g, "").substring(0, 8)}] ${c.descripcion} — $${Number(c.mensualidad).toFixed(0)}/mes — ${c.meses_pagados}/${c.meses_total} pagado — próximo: ${c.fecha_proximo_pago} — restante: $${restante.toFixed(0)}`;
+        }).join("\n");
+        contextoTransacciones += `\n\n--- COMPROMISOS MSI ACTIVOS ---\n${lineasMsi}\n---`;
       }
 
       if (viajeActivo) {
@@ -421,6 +461,68 @@ export async function POST(req: NextRequest) {
           anthropic, sistemaFinal, HERRAMIENTAS, mensajesAPI as Anthropic.MessageParam[],
           respuesta.content, bloqueHerramienta.id, resultado
         );
+
+      } else if (bloqueHerramienta.name === "registrar_msi") {
+        // --- Compra a meses sin intereses ---
+        const datos = bloqueHerramienta.input as {
+          descripcion: string; categoria?: string; monto_total: number;
+          mensualidad: number; meses_total: number; fecha_inicio?: string;
+        };
+
+        const monto_total  = Number(datos.monto_total);
+        const mensualidad  = Number(datos.mensualidad);
+        const meses_total  = Math.max(2, Math.round(Number(datos.meses_total)));
+        const categoria    = CATEGORIAS_VALIDAS.has(datos.categoria ?? "") ? datos.categoria! : "Otros";
+        const fechaInicio  = datos.fecha_inicio || hoy;
+        // Calcular siguiente fecha de pago (+1 mes desde inicio)
+        const [a, m, d]    = fechaInicio.split("-").map(Number);
+        const diasMesSig   = new Date(a, m, 0).getDate(); // días del mes destino
+        const diaFinal     = Math.min(d, diasMesSig);
+        const fechaProximo = new Date(a, m, diaFinal).toISOString().split("T")[0];
+
+        if (!isFinite(monto_total) || monto_total <= 0 || !isFinite(mensualidad) || mensualidad <= 0) {
+          textoFinal = await llamarClaudeConResultado(
+            anthropic, sistemaFinal, HERRAMIENTAS, mensajesAPI as Anthropic.MessageParam[],
+            respuesta.content, bloqueHerramienta.id, "Error: monto o mensualidad inválidos."
+          );
+        } else {
+          // Insertar primer pago como transacción
+          const { error: errTx } = await supabase.from("transacciones").insert({
+            usuario_id: user.id,
+            monto: mensualidad,
+            descripcion: `${datos.descripcion} (1/${meses_total} MSI)`,
+            categoria,
+            tipo: "gasto",
+            fecha: fechaInicio,
+          });
+
+          // Insertar compromiso MSI
+          const { error: errMsi } = errTx ? { error: errTx } : await supabase.from("compromisos_msi").insert({
+            usuario_id:         user.id,
+            descripcion:        datos.descripcion,
+            categoria,
+            monto_total,
+            mensualidad,
+            meses_total,
+            meses_pagados:      1,
+            fecha_inicio:       fechaInicio,
+            fecha_proximo_pago: fechaProximo,
+            activo:             meses_total > 1,
+          });
+
+          const resultado = errMsi
+            ? `Error: ${errMsi.message}`
+            : `Primer pago MSI registrado: $${mensualidad.toFixed(2)} MXN. Compromiso guardado: ${meses_total - 1} pagos restantes de $${mensualidad.toFixed(2)} = $${((meses_total - 1) * mensualidad).toFixed(2)} MXN comprometidos.`;
+
+          textoFinal = await llamarClaudeConResultado(
+            anthropic, sistemaFinal, HERRAMIENTAS, mensajesAPI as Anthropic.MessageParam[],
+            respuesta.content, bloqueHerramienta.id, resultado
+          );
+
+          if (!errMsi) {
+            transaccionesCreadas = [{ monto: mensualidad, categoria, tipo: "gasto", fecha: fechaInicio, descripcion: `${datos.descripcion} (1/${meses_total} MSI)` }];
+          }
+        }
 
       } else if (bloqueHerramienta.name === "crear_multiples_transacciones") {
         // --- Múltiples transacciones (ticket) ---

@@ -38,6 +38,17 @@ const CAT_ICON: Record<string, string> = {
 type Filtro = "todos" | "gastos" | "ingresos";
 type Modo = "mes" | "quincena";
 
+interface CompromisoMSI {
+  id: string;
+  descripcion: string;
+  categoria: string;
+  monto_total: number;
+  mensualidad: number;
+  meses_total: number;
+  meses_pagados: number;
+  fecha_proximo_pago: string;
+}
+
 function Skel({ w, h, r = "8px" }: { w: string; h: string; r?: string }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: r }} />;
 }
@@ -127,6 +138,7 @@ export default function DashboardPage() {
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimerRef = useState<ReturnType<typeof setTimeout> | null>(null);
   const [showTour, setShowTour] = useState(false);
+  const [compromisosMsi, setCompromisosMsi] = useState<CompromisoMSI[]>([]);
 
   const cargar = useCallback(async () => {
     try {
@@ -138,8 +150,8 @@ export default function DashboardPage() {
         setIniciales(n.split(" ").slice(0, 2).map((p: string) => p[0]).join("").toUpperCase());
       }
 
-      // Cargar transacciones y logros en paralelo
-      const [datos, logrosData] = await Promise.all([
+      // Cargar transacciones, logros y compromisos MSI en paralelo
+      const [datos, logrosData, msiData] = await Promise.all([
         obtenerTransacciones(),
         user
           ? supabase
@@ -147,9 +159,17 @@ export default function DashboardPage() {
               .select("logro_id")
               .eq("usuario_id", user.id)
           : Promise.resolve({ data: [] }),
+        user
+          ? supabase
+              .from("compromisos_msi")
+              .select("id, descripcion, categoria, monto_total, mensualidad, meses_total, meses_pagados, fecha_proximo_pago")
+              .eq("activo", true)
+              .order("fecha_proximo_pago", { ascending: true })
+          : Promise.resolve({ data: [] }),
       ]);
 
       setTransacciones(datos);
+      setCompromisosMsi((msiData.data ?? []) as CompromisoMSI[]);
 
       const ids = ((logrosData.data ?? []) as { logro_id: string }[]).map((l) => l.logro_id);
       setLogrosIds(ids);
@@ -306,6 +326,12 @@ export default function DashboardPage() {
 
   const recurrentes = useMemo(() => detectarRecurrentes(transacciones), [transacciones]);
   const totalSuscripciones = useMemo(() => totalRecurrentes(recurrentes), [recurrentes]);
+
+  // Total mensual comprometido en MSI activos
+  const totalMsiMensual = useMemo(
+    () => compromisosMsi.reduce((s, c) => s + Number(c.mensualidad), 0),
+    [compromisosMsi]
+  );
 
   // ── Score Financiero ─────────────────────────────────────────────
   const scoreFinanciero = useMemo(() => {
@@ -940,6 +966,87 @@ export default function DashboardPage() {
                 : "Aún no tienes logros. ¡Empieza a registrar!"}
             </p>
           </button>
+        </div>
+      )}
+
+      {/* ── COMPROMISOS MSI ── */}
+      {!cargando && compromisosMsi.length > 0 && (
+        <div style={{ padding: "0 20px 8px" }}>
+          <div style={{
+            borderRadius: 14,
+            backgroundColor: "var(--surface-2)",
+            border: "1px solid var(--border)",
+            overflow: "hidden",
+          }}>
+            {/* Cabecera */}
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "12px 14px",
+              borderBottom: "1px solid var(--border-2)",
+            }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 3 }}>
+                  Meses sin intereses · {compromisosMsi.length} activo{compromisosMsi.length !== 1 ? "s" : ""}
+                </p>
+                <p className="font-number" style={{ fontSize: 16, fontWeight: 700, color: "var(--warning, #f59e0b)", letterSpacing: "-0.02em" }}>
+                  {formatearMonto(totalMsiMensual)}<span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-3)", marginLeft: 3 }}>/mes comprometido</span>
+                </p>
+              </div>
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%",
+                backgroundColor: "rgba(245,158,11,0.10)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg viewBox="0 0 20 20" fill="none" stroke="#f59e0b" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" style={{ width: 15, height: 15 }}>
+                  <rect x="2" y="4" width="16" height="13" rx="2" />
+                  <path d="M2 8h16" />
+                  <path d="M6 2v2M14 2v2" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Lista de compromisos */}
+            {compromisosMsi.map((c, i) => {
+              const pct      = Math.round((c.meses_pagados / c.meses_total) * 100);
+              const restante = (c.meses_total - c.meses_pagados) * Number(c.mensualidad);
+              const proxDate = new Date(c.fecha_proximo_pago + "T12:00:00");
+              const proxLabel = proxDate.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+              return (
+                <div key={c.id} style={{
+                  padding: "11px 14px",
+                  borderBottom: i < compromisosMsi.length - 1 ? "1px solid var(--border-2)" : "none",
+                }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 7 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {c.descripcion}
+                      </p>
+                      <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 1 }}>
+                        {c.meses_pagados}/{c.meses_total} meses · próx. {proxLabel}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 10 }}>
+                      <p className="font-number" style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+                        {formatearMonto(Number(c.mensualidad))}/mes
+                      </p>
+                      <p style={{ fontSize: 10, color: "var(--text-3)", marginTop: 1 }}>
+                        {formatearMonto(restante)} por pagar
+                      </p>
+                    </div>
+                  </div>
+                  {/* Barra de progreso */}
+                  <div style={{ height: 3, borderRadius: 99, backgroundColor: "var(--border-2)", overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%", borderRadius: 99,
+                      width: `${pct}%`,
+                      backgroundColor: pct >= 75 ? "var(--success, #22c55e)" : "#f59e0b",
+                      transition: "width 0.8s cubic-bezier(0.22,1,0.36,1)",
+                    }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
