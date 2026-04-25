@@ -64,7 +64,10 @@ export default function ViajePage() {
     if (!nombre.trim()) return;
     setGuardando(true);
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setGuardando(false); return; }
     const { error } = await supabase.from("viajes").insert({
+      usuario_id: user.id,
       nombre: nombre.trim(),
       moneda,
       presupuesto: presupuesto ? Number(presupuesto) : null,

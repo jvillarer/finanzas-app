@@ -518,7 +518,18 @@ function SeccionProyectos() {
     if (!nombre.trim()) return;
     setGuardando(true);
     const supabase = createClient();
-    const { error } = await supabase.from("viajes").insert({ nombre: nombre.trim(), moneda, presupuesto: presupuesto ? Number(presupuesto) : null, tipo_cambio: Number(tipoCambio) || 17.5, fecha_inicio: fechaInicio || null, fecha_fin: fechaFin || null, activo: true });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setGuardando(false); return; }
+    const { error } = await supabase.from("viajes").insert({
+      usuario_id: user.id,
+      nombre: nombre.trim(),
+      moneda,
+      presupuesto: presupuesto ? Number(presupuesto) : null,
+      tipo_cambio: Number(tipoCambio) || 17.5,
+      fecha_inicio: fechaInicio || null,
+      fecha_fin: fechaFin || null,
+      activo: true,
+    });
     if (!error) { setCreando(false); await cargarDatos(); }
     setGuardando(false);
   };
