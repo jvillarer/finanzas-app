@@ -606,11 +606,28 @@ function SeccionProyectos() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Fecha inicio</label>
-              <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none" style={inputStyle} />
+              <input
+                type="date"
+                value={fechaInicio}
+                onChange={e => {
+                  setFechaInicio(e.target.value);
+                  // Si fecha fin ya está puesta y queda antes del nuevo inicio, limpiarla
+                  if (fechaFin && e.target.value && fechaFin < e.target.value) setFechaFin("");
+                }}
+                className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none"
+                style={inputStyle}
+              />
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Fecha fin</label>
-              <input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none" style={inputStyle} />
+              <input
+                type="date"
+                value={fechaFin}
+                min={fechaInicio || undefined}   /* no permite elegir antes del inicio */
+                onChange={e => setFechaFin(e.target.value)}
+                className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none"
+                style={inputStyle}
+              />
             </div>
           </div>
           <div className="flex gap-2 pt-1">

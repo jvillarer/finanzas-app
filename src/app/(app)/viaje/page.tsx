@@ -183,15 +183,27 @@ export default function ViajePage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Inicio</label>
-              <input type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)}
+              <input
+                type="date"
+                value={fechaInicio}
+                onChange={e => {
+                  setFechaInicio(e.target.value);
+                  if (fechaFin && e.target.value && fechaFin < e.target.value) setFechaFin("");
+                }}
                 className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none"
-                style={inputStyle} />
+                style={inputStyle}
+              />
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Regreso</label>
-              <input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)}
+              <input
+                type="date"
+                value={fechaFin}
+                min={fechaInicio || undefined}
+                onChange={e => setFechaFin(e.target.value)}
                 className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none"
-                style={inputStyle} />
+                style={inputStyle}
+              />
             </div>
           </div>
 
