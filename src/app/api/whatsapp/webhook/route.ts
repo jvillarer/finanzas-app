@@ -305,7 +305,7 @@ ${contexto}`;
   let textoFinal = "";
   try {
     const respuesta = await anthropic.messages.create({
-      model: "claude-haiku-4-5",
+      model: "claude-sonnet-4-6",   // Sonnet: más confiable en tool use que Haiku
       max_tokens: 512,
       system: sistemaWA,
       tools: herramientas,
@@ -403,7 +403,16 @@ ${contexto}`;
         );
       }
     } else {
-      textoFinal = (respuesta.content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined)?.text ?? "";
+      const textoRespuesta = (respuesta.content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined)?.text ?? "";
+      // Guard: si Claude dice "anotado/registrado/guardado" sin haber llamado una herramienta,
+      // es una confirmación falsa — no la mandamos para no engañar al usuario.
+      const esFalsaConfirmacion = /\b(anot[aó]|registr[aó]|guard[aó])\b/i.test(textoRespuesta);
+      if (esFalsaConfirmacion) {
+        console.warn(`⚠️ Confirmación falsa detectada para ${telefono}: "${textoRespuesta}"`);
+        textoFinal = "No pude registrar eso. Intenta de nuevo con el monto y descripción, por ejemplo: \"helado 175\"";
+      } else {
+        textoFinal = textoRespuesta;
+      }
     }
   } catch (err) {
     console.error("Error en llamada a Claude:", err);
