@@ -229,6 +229,11 @@ export async function POST(req: NextRequest) {
 
   const historial = normalizarHistorial(historialCrudo);
 
+  // Detectar si el último mensaje de Lani fue una pregunta de aclaración
+  // En ese caso, Claude debe usar el historial para entender qué registrar, no inventar
+  const ultimoMensajeLani = historialRows?.[0]?.rol === "assistant" ? historialRows[0].contenido as string : null;
+  const estabaPidiendoAclaracion = ultimoMensajeLani != null && /\?/.test(ultimoMensajeLani);
+
   const contexto = construirContextoWA(transacciones ?? [], metas ?? [], deduciblesAno ?? [], anoActual);
 
   // Prompt de Lani adaptado para WhatsApp
@@ -267,13 +272,26 @@ Cuando el usuario escriba "uber 85", "comida 320", "nómina 15000", "oxxo 48 aye
 1. Registra INMEDIATAMENTE con crear_transaccion — sin preguntar, sin confirmar antes
 2. Responde en UNA línea con personalidad
 
+MEMORIA Y CONTEXTO — MUY IMPORTANTE:
+Tienes acceso al historial completo de la conversación. Úsalo siempre:
+- Si el usuario dice "esa", "la última", "bórrala", "corrígela" → busca en el historial a qué transacción se refiere
+- Si el usuario responde "sí", "exacto", "eso" → revisa qué pregunta hiciste antes y actúa en consecuencia
+- Si estabas pidiendo aclaración sobre un registro (monto, categoría) y el usuario responde → usa TODA la conversación para entender qué querían registrar originalmente y registra ESO, no otra cosa
+
+FLUJO DE ACLARACIÓN — CRÍTICO:
+Cuando el historial muestra que pediste aclaración:
+1. Lee el mensaje ORIGINAL del usuario (el que causó la duda)
+2. Lee su respuesta aclaratoria
+3. Combina ambos para registrar la transacción correcta
+4. El monto y descripción SIEMPRE vienen de lo que el usuario dijo, NUNCA del historial de transacciones guardadas
+5. JAMÁS registres una transacción del historial como si fuera nueva — ese historial es solo referencia
+
 REGLAS OPERATIVAS:
 1. Registra cualquier gasto/ingreso sin pedir confirmación previa
 2. Si pide info financiera, da datos reales del contexto — sé concreta, no vaga
 3. Para modificar o borrar, usa la herramienta con el ID completo
 4. Para abonar a una meta, usa abonar_meta con el ID completo
-5. Usa el historial para referencias: "la última", "esa", "bórrala"
-6. Nunca menciones que eres IA, Claude o cualquier software
+5. Nunca menciones que eres IA, Claude o cualquier software
 
 Categorías válidas: Comida, Supermercado, Transporte, Entretenimiento, Salud, Servicios, Ropa, Hogar, Educación, Otros
 
@@ -359,10 +377,21 @@ ${contexto}`;
     "Salud", "Servicios", "Ropa", "Hogar", "Educación", "Otros",
   ]);
 
+  // Si Lani estaba pidiendo aclaración, inyectamos un recordatorio para que
+  // Claude use el contexto conversacional y no agarre datos del historial financiero
+  const notaAclaracion = estabaPidiendoAclaracion
+    ? `[NOTA INTERNA: Tu mensaje anterior fue una pregunta de aclaración. El usuario acaba de responderte. Usa el historial completo de esta conversación para entender qué transacción quería registrar originalmente y registra ESA — con el monto y descripción que el usuario dijo, no con datos del historial financiero.]`
+    : null;
+
   // Mensajes con historial + mensaje actual
   const mensajesParaClaude: Anthropic.MessageParam[] = [
     ...historial,
-    { role: "user", content: textoFinal_entrada },
+    {
+      role: "user",
+      content: notaAclaracion
+        ? `${notaAclaracion}\n\n${textoFinal_entrada}`
+        : textoFinal_entrada,
+    },
   ];
 
   // Primera llamada a Claude — con try/catch para evitar que el webhook tire 500
@@ -589,6 +618,7 @@ function construirContextoWA(
     .slice(0, 5).map(([c, m]) => `${c}:$${Math.round(m)}`).join(", ");
 
   // IDs completos para que Claude pueda hacer update/delete correctamente
+  // ⚠️ ESTAS TRANSACCIONES YA ESTÁN GUARDADAS — solo son referencia, NO las registres de nuevo
   const lista = transacciones.slice(0, 80).map((t) =>
     `[${t.id}] ${t.fecha} ${t.tipo === "ingreso" ? "I" : "G"} $${Number(t.monto).toFixed(0)} ${t.descripcion} (${t.categoria})`
   ).join("\n");
@@ -621,5 +651,5 @@ function construirContextoWA(
     }
   }
 
-  return `\n--- FINANZAS ---\nMes ${mesActual}: Ingresos $${Math.round(ingresos)} | Gastos $${Math.round(gastos)} | Balance $${Math.round(ingresos - gastos)}\nTop categorías: ${cats}${metasTxt}${deduciblesTxt}\n\nÚltimas transacciones:\n${lista}\n---`;
+  return `\n--- FINANZAS (solo referencia — NO registres nada de aquí como nuevo) ---\nMes ${mesActual}: Ingresos $${Math.round(ingresos)} | Gastos $${Math.round(gastos)} | Balance $${Math.round(ingresos - gastos)}\nTop categorías: ${cats}${metasTxt}${deduciblesTxt}\n\nÚltimas transacciones YA GUARDADAS (úsalas solo para modificar/borrar/consultar, NUNCA para registrar de nuevo):\n${lista}\n---`;
 }
