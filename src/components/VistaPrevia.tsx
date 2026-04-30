@@ -15,7 +15,8 @@ interface Props {
   filas: FilaParseada[];
   nombreArchivo: string;
   guardando: boolean;
-  duplicados?: Set<number>; // índices que ya existen en la BD
+  duplicados?: Set<number>;         // exactos: misma fecha+monto+tipo+desc → desseleccionados
+  posiblesDuplicados?: Set<number>; // posibles: misma fecha+monto+tipo, desc diferente → warning
   onConfirmar: (filasSeleccionadas: FilaParseada[]) => void;
   onCancelar: () => void;
 }
@@ -25,14 +26,16 @@ export default function VistaPrevia({
   nombreArchivo,
   guardando,
   duplicados = new Set(),
+  posiblesDuplicados = new Set(),
   onConfirmar,
   onCancelar,
 }: Props) {
-  // Por defecto: todo seleccionado excepto duplicados
+  // Duplicados exactos → pre-desseleccionados; posibles → seleccionados pero con warning
   const [seleccionadas, setSeleccionadas] = useState<Set<number>>(
     new Set(filas.map((_, i) => i).filter((i) => !duplicados.has(i)))
   );
-  const [soloNuevas, setSoloNuevas] = useState(duplicados.size > 0);
+  const hayAlertas = duplicados.size > 0 || posiblesDuplicados.size > 0;
+  const [soloNuevas, setSoloNuevas] = useState(hayAlertas);
 
   const toggleFila = (i: number) => {
     haptico.seleccion();
@@ -60,6 +63,8 @@ export default function VistaPrevia({
     ? filas.map((f, i) => ({ f, i })).filter(({ i }) => !duplicados.has(i))
     : filas.map((f, i) => ({ f, i }));
 
+  const totalAlertas = duplicados.size + posiblesDuplicados.size;
+
   const filasSeleccionadas = filas.filter((_, i) => seleccionadas.has(i));
   const totalIngresos = filasSeleccionadas.filter((f) => f.tipo === "ingreso").reduce((s, f) => s + f.monto, 0);
   const totalGastos = filasSeleccionadas.filter((f) => f.tipo === "gasto").reduce((s, f) => s + f.monto, 0);
@@ -85,7 +90,10 @@ export default function VistaPrevia({
         <p style={{ fontSize: 11, color: "var(--text-3)" }}>
           {seleccionadas.size} de {filas.length} seleccionadas
           {duplicados.size > 0 && (
-            <span style={{ color: "var(--warning)", marginLeft: 6 }}>· {duplicados.size} posibles duplicados</span>
+            <span style={{ color: "var(--danger)", marginLeft: 6 }}>· {duplicados.size} duplicado{duplicados.size !== 1 ? "s" : ""} exacto{duplicados.size !== 1 ? "s" : ""}</span>
+          )}
+          {posiblesDuplicados.size > 0 && (
+            <span style={{ color: "#f59e0b", marginLeft: 6 }}>· {posiblesDuplicados.size} posible{posiblesDuplicados.size !== 1 ? "s" : ""}</span>
           )}
         </p>
       </div>
@@ -121,7 +129,7 @@ export default function VistaPrevia({
           <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)" }}>Seleccionar todas</span>
         </label>
 
-        {duplicados.size > 0 && (
+        {hayAlertas && (
           <button
             onClick={() => setSoloNuevas(!soloNuevas)}
             style={{
@@ -132,7 +140,7 @@ export default function VistaPrevia({
               cursor: "pointer",
             }}
           >
-            {soloNuevas ? "Solo nuevas" : "Ver todas"}
+            {soloNuevas ? `Solo nuevas (${filas.length - duplicados.size})` : `Ver todas (${filas.length})`}
           </button>
         )}
       </div>
@@ -146,7 +154,8 @@ export default function VistaPrevia({
         ) : (
           <div>
             {filasFiltradas.map(({ f: fila, i }) => {
-              const esDup = duplicados.has(i);
+              const esDupExacto  = duplicados.has(i);
+              const esDupPosible = posiblesDuplicados.has(i);
               const seleccionada = seleccionadas.has(i);
               const emoji = fila.tipo === "ingreso" ? "💰" : (CAT_ICON[fila.categoria] || "📦");
 
@@ -158,9 +167,12 @@ export default function VistaPrevia({
                     display: "flex", alignItems: "center", gap: 12,
                     padding: "12px 16px", cursor: "pointer",
                     borderBottom: "1px solid var(--border-2)",
-                    backgroundColor: seleccionada ? "transparent" : "rgba(0,0,0,0.2)",
-                    opacity: seleccionada ? 1 : 0.45,
+                    backgroundColor: esDupPosible && seleccionada
+                      ? "rgba(245,158,11,0.04)"
+                      : seleccionada ? "transparent" : "rgba(0,0,0,0.2)",
+                    opacity: seleccionada ? 1 : 0.4,
                     transition: "opacity 0.15s",
+                    borderLeft: esDupPosible && seleccionada ? "2px solid #f59e0b" : esDupExacto ? "2px solid var(--danger)" : "2px solid transparent",
                   }}
                 >
                   <input
@@ -180,9 +192,14 @@ export default function VistaPrevia({
                       <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {fila.descripcion || "Sin descripción"}
                       </p>
-                      {esDup && (
-                        <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 99, backgroundColor: "rgba(232,168,56,0.15)", color: "var(--warning)", flexShrink: 0 }}>
-                          Duplicado
+                      {esDupExacto && (
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 99, backgroundColor: "rgba(240,110,110,0.12)", color: "var(--danger)", flexShrink: 0 }}>
+                          Ya existe
+                        </span>
+                      )}
+                      {esDupPosible && (
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 99, backgroundColor: "rgba(245,158,11,0.12)", color: "#f59e0b", flexShrink: 0 }}>
+                          ¿Ya lo tienes?
                         </span>
                       )}
                     </div>

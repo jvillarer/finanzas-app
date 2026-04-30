@@ -14,6 +14,7 @@ export default function SubirArchivoPage() {
   const [estado, setEstado] = useState<Estado>("inicio");
   const [filasParseadas, setFilasParseadas] = useState<FilaParseada[]>([]);
   const [duplicados, setDuplicados] = useState<Set<number>>(new Set());
+  const [posiblesDuplicados, setPosiblesDuplicados] = useState<Set<number>>(new Set());
   const [nombreArchivo, setNombreArchivo] = useState("");
   const [archivoOriginal, setArchivoOriginal] = useState<File | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -22,54 +23,55 @@ export default function SubirArchivoPage() {
   const [metadatosPDF, setMetadatosPDF] = useState<MetadatosPDF | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Detecta cuáles filas ya existen en la BD (por fecha + monto + tipo)
-  const detectarDuplicados = async (filas: FilaParseada[]): Promise<Set<number>> => {
+  // Detecta duplicados exactos y posibles (misma fecha+monto+tipo pero descripción diferente)
+  const detectarDuplicados = async (
+    filas: FilaParseada[]
+  ): Promise<{ exactos: Set<number>; posibles: Set<number> }> => {
     try {
       const supabase = createClient();
-      // Rango de fechas del archivo
       const fechas = filas.map((f) => f.fecha).sort();
       const desde = fechas[0];
       const hasta = fechas[fechas.length - 1];
 
       const { data: existentes } = await supabase
         .from("transacciones")
-        .select("fecha, monto, tipo")
+        .select("fecha, monto, tipo, descripcion")
         .gte("fecha", desde)
         .lte("fecha", hasta);
 
-      if (!existentes || existentes.length === 0) return new Set();
+      if (!existentes || existentes.length === 0) return { exactos: new Set(), posibles: new Set() };
 
       const normDesc = (s: string) =>
         (s || "").trim().toLowerCase().replace(/\s+/g, " ");
 
-      const clavesExistentes = new Set(
+      // Clave simple: fecha + monto + tipo (para detectar posibles)
+      const clavesSimples = new Set(
         existentes.map((t) => `${t.fecha}|${Number(t.monto).toFixed(2)}|${t.tipo}`)
       );
-      // Clave extendida con descripción para evitar falsos positivos
-      const { data: existentesDesc } = await supabase
-        .from("transacciones")
-        .select("fecha, monto, tipo, descripcion")
-        .gte("fecha", desde)
-        .lte("fecha", hasta);
-      const clavesConDesc = new Set(
-        (existentesDesc || []).map(
+      // Clave completa: fecha + monto + tipo + descripción (para duplicados exactos)
+      const clavesCompletas = new Set(
+        existentes.map(
           (t) => `${t.fecha}|${Number(t.monto).toFixed(2)}|${t.tipo}|${normDesc(t.descripcion)}`
         )
       );
 
-      const idxDuplicados = new Set<number>();
+      const exactos = new Set<number>();
+      const posibles = new Set<number>();
+
       filas.forEach((f, i) => {
-        const claveSimple = `${f.fecha}|${f.monto.toFixed(2)}|${f.tipo}`;
-        const claveDesc = `${f.fecha}|${f.monto.toFixed(2)}|${f.tipo}|${normDesc(f.descripcion)}`;
-        // Duplicado solo si coincide fecha+monto+tipo+descripción
-        if (clavesExistentes.has(claveSimple) && clavesConDesc.has(claveDesc)) {
-          idxDuplicados.add(i);
+        const claveSimple   = `${f.fecha}|${f.monto.toFixed(2)}|${f.tipo}`;
+        const claveCompleta = `${f.fecha}|${f.monto.toFixed(2)}|${f.tipo}|${normDesc(f.descripcion)}`;
+
+        if (clavesCompletas.has(claveCompleta)) {
+          exactos.add(i);           // mismo todo → duplicado exacto, se desselecciona
+        } else if (clavesSimples.has(claveSimple)) {
+          posibles.add(i);          // misma fecha+monto+tipo, descripción diferente → posible
         }
       });
 
-      return idxDuplicados;
+      return { exactos, posibles };
     } catch {
-      return new Set();
+      return { exactos: new Set(), posibles: new Set() };
     }
   };
 
@@ -88,8 +90,9 @@ export default function SubirArchivoPage() {
         try {
           const filas = parsearCSV(ev.target?.result as string);
           if (filas.length === 0) { setMensajeError("No se encontraron transacciones en el CSV."); return; }
-          const dups = await detectarDuplicados(filas);
-          setDuplicados(dups);
+          const { exactos, posibles } = await detectarDuplicados(filas);
+          setDuplicados(exactos);
+          setPosiblesDuplicados(posibles);
           setFilasParseadas(filas);
           setEstado("preview");
         } catch { setMensajeError("Error al leer el CSV."); }
@@ -113,8 +116,9 @@ export default function SubirArchivoPage() {
             setEstado("inicio");
             return;
           }
-          const dups = await detectarDuplicados(datos.transacciones);
-          setDuplicados(dups);
+          const { exactos, posibles } = await detectarDuplicados(datos.transacciones);
+          setDuplicados(exactos);
+          setPosiblesDuplicados(posibles);
           setMetadatosPDF({ banco: datos.banco, periodo: datos.periodo });
           setFilasParseadas(datos.transacciones);
           setEstado("preview");
@@ -204,6 +208,7 @@ export default function SubirArchivoPage() {
           nombreArchivo={nombreArchivo}
           guardando={guardando}
           duplicados={duplicados}
+          posiblesDuplicados={posiblesDuplicados}
           onConfirmar={handleConfirmar}
           onCancelar={reiniciar}
         />
