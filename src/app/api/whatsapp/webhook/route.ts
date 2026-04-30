@@ -286,6 +286,17 @@ Cuando el historial muestra que pediste aclaración:
 4. El monto y descripción SIEMPRE vienen de lo que el usuario dijo, NUNCA del historial de transacciones guardadas
 5. JAMÁS registres una transacción del historial como si fuera nueva — ese historial es solo referencia
 
+REGLA DE ORO — PROHIBICIÓN ABSOLUTA:
+El monto a registrar SIEMPRE viene del mensaje del usuario. NUNCA del contexto financiero.
+Si el usuario dice "120 pejecoins", registra $120. Si dice "me gasté trescientos", registra $300.
+Si el usuario usa slang, broma o moneda inventada, extrae el número que dijo y úsalo.
+ESTÁ PROHIBIDO usar cualquier monto que aparezca en la lista de transacciones guardadas para crear una transacción nueva.
+
+Ejemplo de lo que NUNCA debes hacer:
+- Usuario dice "120 pejecoins en comida" → el contexto tiene "$167.50 Oxxo" → NO registres $167.50 Oxxo. Registra $120 Comida.
+- Si no entiendes la moneda pero sí el número, usa el número en pesos MXN.
+- Si no entiendes ni el número, pregunta UNA sola vez: "¿Cuánto fue exactamente?"
+
 REGLAS OPERATIVAS:
 1. Registra cualquier gasto/ingreso sin pedir confirmación previa
 2. Si pide info financiera, da datos reales del contexto — sé concreta, no vaga
@@ -651,5 +662,15 @@ function construirContextoWA(
     }
   }
 
-  return `\n--- FINANZAS (solo referencia — NO registres nada de aquí como nuevo) ---\nMes ${mesActual}: Ingresos $${Math.round(ingresos)} | Gastos $${Math.round(gastos)} | Balance $${Math.round(ingresos - gastos)}\nTop categorías: ${cats}${metasTxt}${deduciblesTxt}\n\nÚltimas transacciones YA GUARDADAS (úsalas solo para modificar/borrar/consultar, NUNCA para registrar de nuevo):\n${lista}\n---`;
+  return `\n════════════════════════════════
+BASE DE DATOS FINANCIERA — SOLO LECTURA
+PROHIBIDO: usar estos datos para crear transacciones nuevas.
+PERMITIDO: consultarlos, modificarlos o borrarlos cuando el usuario lo pida.
+════════════════════════════════
+Mes ${mesActual}: Ingresos $${Math.round(ingresos)} | Gastos $${Math.round(gastos)} | Balance $${Math.round(ingresos - gastos)}
+Top categorías: ${cats}${metasTxt}${deduciblesTxt}
+
+Transacciones ya guardadas en DB (NO son nuevas — ya existen):
+${lista}
+════════════════════════════════`;
 }
