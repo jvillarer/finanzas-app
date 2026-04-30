@@ -391,7 +391,7 @@ ${contexto}`;
   // Si Lani estaba pidiendo aclaración, inyectamos un recordatorio para que
   // Claude use el contexto conversacional y no agarre datos del historial financiero
   const notaAclaracion = estabaPidiendoAclaracion
-    ? `[NOTA INTERNA: Tu mensaje anterior fue una pregunta de aclaración. El usuario acaba de responderte. Usa el historial completo de esta conversación para entender qué transacción quería registrar originalmente y registra ESA — con el monto y descripción que el usuario dijo, no con datos del historial financiero.]`
+    ? `[NOTA INTERNA — ACCIÓN REQUERIDA: Tu mensaje anterior fue una pregunta de aclaración y el usuario acaba de responderte. DEBES llamar AHORA a crear_transaccion con el tool_use. NO respondas en texto. Pasos: (1) Lee el mensaje ORIGINAL del usuario antes de tu pregunta. (2) Combínalo con su respuesta de ahora. (3) Llama crear_transaccion con el monto y descripción que EL USUARIO dijo — jamás uses montos del historial financiero guardado.]`
     : null;
 
   // Mensajes con historial + mensaje actual
@@ -435,7 +435,14 @@ ${contexto}`;
           fecha,
         });
 
-        const resultado = error ? `Error: ${error.message}` : "Transacción guardada.";
+        if (error) {
+          console.error(`❌ Error al guardar transacción para ${usuarioId}:`, error);
+          Sentry.captureException(new Error(error.message), { tags: { contexto: "crear_transaccion", usuarioId } });
+        } else {
+          console.log(`✅ Transacción guardada: ${tipoTx} $${monto} ${d.descripcion || categoria} (${usuarioId})`);
+        }
+
+        const resultado = error ? `Error al guardar: ${error.message}` : "Transacción guardada correctamente.";
         textoFinal = await segundaLlamadaClaude(
           anthropic, sistemaWA, herramientas,
           mensajesParaClaude, respuesta.content, bloque.id, resultado
@@ -530,10 +537,12 @@ ${contexto}`;
       const textoRespuesta = (respuesta.content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined)?.text ?? "";
       // Guard: si Claude dice "anotado/registrado/guardado" sin haber llamado una herramienta,
       // es una confirmación falsa — no la mandamos para no engañar al usuario.
-      const esFalsaConfirmacion = /\b(anot[aó]|registr[aó]|guard[aó])\b/i.test(textoRespuesta);
+      // Cubre formas verbales: anota/anotó/anotada/anotado/registra/registró/registrada/registrado/etc.
+      const esFalsaConfirmacion = /\b(anot[aó]d?[ao]?|registr[aó]d?[ao]?|guard[aó]d?[ao]?)\b/i.test(textoRespuesta);
       if (esFalsaConfirmacion) {
-        console.warn(`⚠️ Confirmación falsa detectada para ${telefono}: "${textoRespuesta}"`);
-        textoFinal = "No pude registrar eso. Intenta de nuevo con el monto y descripción, por ejemplo: \"helado 175\"";
+        console.warn(`⚠️ Confirmación falsa detectada para ${telefono}: "${textoRespuesta.slice(0, 120)}"`);
+        Sentry.captureMessage("Confirmación falsa sin tool_use", { level: "warning", tags: { telefono }, extra: { textoRespuesta } });
+        textoFinal = "No pude registrar eso, intenta de nuevo 🐑 Dime el monto y qué fue, por ejemplo: \"comida 120\"";
       } else {
         textoFinal = textoRespuesta;
       }
