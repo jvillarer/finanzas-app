@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
+const { withSentryConfig } = require("@sentry/nextjs");
+
 const nextConfig = {
+  // Activa el hook instrumentation.ts para inicializar Sentry en server/edge
+  experimental: {
+    instrumentationHook: true,
+  },
+
   // PWA headers
   async headers() {
     return [
@@ -15,4 +22,13 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  // Silencia logs de Sentry durante el build
+  silent: true,
+  disableLogger: true,
+
+  // Sin subida de source maps (no requiere SENTRY_AUTH_TOKEN)
+  sourcemaps: {
+    disable: true,
+  },
+});

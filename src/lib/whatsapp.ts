@@ -2,28 +2,43 @@
 
 const WA_API_URL = `https://graph.facebook.com/v21.0/${process.env.WHATSAPP_PHONE_ID}/messages`;
 
-// Envía un mensaje de texto al número indicado
+// Envía un mensaje de texto al número indicado (con reintentos automáticos)
 export async function enviarMensajeWA(para: string, texto: string): Promise<void> {
-  const res = await fetch(WA_API_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.WHATSAPP_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: para,
-      type: "text",
-      text: { body: texto.slice(0, 4096) }, // límite de WhatsApp
-    }),
-  });
+  const MAX_INTENTOS = 3;
+  let ultimoError: Error | null = null;
 
-  if (!res.ok) {
+  for (let intento = 0; intento < MAX_INTENTOS; intento++) {
+    // Espera exponencial entre reintentos: 0ms, 1s, 2s
+    if (intento > 0) {
+      await new Promise(r => setTimeout(r, 1000 * intento));
+    }
+
+    const res = await fetch(WA_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: para,
+        type: "text",
+        text: { body: texto.slice(0, 4096) }, // límite de WhatsApp
+      }),
+    });
+
+    if (res.ok) return; // ✅ éxito
+
     const err = await res.text();
-    console.error("Error enviando WhatsApp:", err);
-    throw new Error(`WhatsApp API error: ${res.status}`);
+    console.error(`Error enviando WhatsApp (intento ${intento + 1}/${MAX_INTENTOS}):`, err);
+    ultimoError = new Error(`WhatsApp API error: ${res.status}`);
+
+    // Errores 4xx son del cliente (número inválido, etc.) — no tiene caso reintentar
+    if (res.status >= 400 && res.status < 500) break;
   }
+
+  throw ultimoError!;
 }
 
 // Marca el mensaje como "leído" (doble palomita azul)

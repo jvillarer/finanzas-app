@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import * as Sentry from "@sentry/nextjs";
 import { enviarMensajeWA, marcarLeidoWA, transcribirAudioWA } from "@/lib/whatsapp";
 import { calcularDistribucionQuincena } from "@/lib/distribucion-quincena";
 import { clasificarDeduccion, ETIQUETAS_DEDUCCION } from "@/lib/isr-calculator";
@@ -36,7 +37,23 @@ export async function GET(req: NextRequest) {
 
 // ── POST: recibe mensajes de WhatsApp ────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  // Leer el body como texto crudo para poder verificar la firma de Meta
+  const rawBody = await req.text();
+
+  // ── Verificar firma HMAC-SHA256 de Meta (seguridad) ────────────────────────
+  // Sin esto, cualquiera que conozca la URL puede mandar requests falsos
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (appSecret) {
+    const firma = req.headers.get("x-hub-signature-256");
+    const { createHmac } = await import("node:crypto");
+    const esperada = "sha256=" + createHmac("sha256", appSecret).update(rawBody).digest("hex");
+    if (firma !== esperada) {
+      console.warn("⚠️ Firma Meta inválida — request rechazado");
+      return new Response("Firma inválida", { status: 401 });
+    }
+  }
+
+  const body = JSON.parse(rawBody);
 
   // Extraer el mensaje del payload de Meta
   const entry   = body?.entry?.[0];
@@ -483,6 +500,7 @@ ${contexto}`;
     }
   } catch (err) {
     console.error("Error en llamada a Claude:", err);
+    Sentry.captureException(err, { tags: { contexto: "claude_webhook", telefono } });
     await enviarMensajeWA(telefono, "Tuve un problema técnico 🐑 Intenta de nuevo en un momento.");
     return Response.json({ ok: true, motivo: "error_claude" });
   }

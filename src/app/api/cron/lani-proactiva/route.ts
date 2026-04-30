@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import * as Sentry from "@sentry/nextjs";
 import { enviarMensajeWA } from "@/lib/whatsapp";
 import { clasificarDeduccion, calcularDevolucion, ETIQUETAS_DEDUCCION } from "@/lib/isr-calculator";
 
@@ -285,6 +286,12 @@ async function revisarDeclaracionAnual(
   console.log(`✅ declaracion_anual enviado a ${telefono} — ${anoPasado}, devolución ${resultado.devolucionEstimada}`);
 }
 
+// Vercel: permitir hasta 5 minutos de ejecución (plan Pro)
+export const maxDuration = 300;
+
+// Cuántos usuarios procesamos en paralelo por batch
+const BATCH_SIZE = 50;
+
 // ── Handler principal ─────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
@@ -320,28 +327,47 @@ export async function GET(req: NextRequest) {
   let procesados = 0;
   const errores: string[] = [];
 
-  for (const perfil of perfiles) {
-    const usuarioId = perfil.id as string;
-    const telefono  = perfil.telefono_whatsapp as string;
-    const nombre    = (perfil.nombre_completo as string) || "amigo";
+  // Procesar en batches de BATCH_SIZE usuarios en paralelo
+  // Evita que el cron timeout con muchos usuarios (proceso secuencial sería muy lento)
+  const perfilesFiltrados = perfiles.filter(p => (p.telefono_whatsapp as string)?.trim());
 
-    if (!telefono?.trim()) continue;
+  for (let i = 0; i < perfilesFiltrados.length; i += BATCH_SIZE) {
+    const batch = perfilesFiltrados.slice(i, i + BATCH_SIZE);
 
-    try {
-      // Los cuatro disparadores corren en paralelo por usuario
-      await Promise.allSettled([
-        revisarSinRegistro(supabase, usuarioId, telefono, nombre),
-        revisarPresupuestos(supabase, usuarioId, telefono, nombre),
-        revisarGastosFijos(supabase, usuarioId, telefono, nombre, diaMX),
-        revisarDeclaracionAnual(supabase, usuarioId, telefono, nombre, mesMX, anoMX),
-      ]);
-      procesados++;
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      errores.push(`${usuarioId}: ${msg}`);
-      console.error(`Error procesando usuario ${usuarioId}:`, e);
+    const resultados = await Promise.allSettled(
+      batch.map(async (perfil) => {
+        const usuarioId = perfil.id as string;
+        const telefono  = perfil.telefono_whatsapp as string;
+        const nombre    = (perfil.nombre_completo as string) || "amigo";
+
+        // Los cuatro disparadores corren en paralelo por usuario
+        await Promise.allSettled([
+          revisarSinRegistro(supabase, usuarioId, telefono, nombre),
+          revisarPresupuestos(supabase, usuarioId, telefono, nombre),
+          revisarGastosFijos(supabase, usuarioId, telefono, nombre, diaMX),
+          revisarDeclaracionAnual(supabase, usuarioId, telefono, nombre, mesMX, anoMX),
+        ]);
+
+        return usuarioId;
+      })
+    );
+
+    for (const r of resultados) {
+      if (r.status === "fulfilled") {
+        procesados++;
+      } else {
+        const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+        errores.push(msg);
+        console.error("Error en batch:", r.reason);
+        Sentry.captureException(r.reason, { tags: { contexto: "cron_lani_proactiva" } });
+      }
+    }
+
+    // Pequeña pausa entre batches para no saturar la API de WhatsApp
+    if (i + BATCH_SIZE < perfilesFiltrados.length) {
+      await new Promise(r => setTimeout(r, 300));
     }
   }
 
-  return Response.json({ ok: true, procesados, errores, diaMX });
+  return Response.json({ ok: true, procesados, errores, diaMX, totalUsuarios: perfilesFiltrados.length });
 }
