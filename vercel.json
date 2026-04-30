@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/msi",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/lani-proactiva",
+      "schedule": "0 15 * * *"
     }
   ]
 }

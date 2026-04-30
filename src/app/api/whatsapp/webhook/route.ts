@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { enviarMensajeWA, marcarLeidoWA, transcribirAudioWA } from "@/lib/whatsapp";
+import { calcularDistribucionQuincena } from "@/lib/distribucion-quincena";
+import { clasificarDeduccion, ETIQUETAS_DEDUCCION } from "@/lib/isr-calculator";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -164,10 +166,13 @@ export async function POST(req: NextRequest) {
   const hoy       = new Date().toISOString().split("T")[0];
 
   // ── Cargar historial conversacional + contexto financiero en paralelo ──────
+  const anoActual = new Date().getFullYear();
+
   const [
     { data: historialRows },
     { data: transacciones },
     { data: metas },
+    { data: deduciblesAno },
   ] = await Promise.all([
     supabase
       .from("mensajes_wa")
@@ -186,6 +191,14 @@ export async function POST(req: NextRequest) {
       .select("id, nombre, emoji, monto_objetivo, monto_actual")
       .eq("usuario_id", usuarioId)
       .limit(10),
+    // Todos los gastos potencialmente deducibles del año (sin límite de 150)
+    supabase
+      .from("transacciones")
+      .select("monto, descripcion, categoria")
+      .eq("usuario_id", usuarioId)
+      .eq("tipo", "gasto")
+      .gte("fecha", `${anoActual}-01-01`)
+      .in("categoria", ["Salud", "Educación", "Servicios", "Otros"]),
   ]);
 
   // El historial viene en orden DESC; lo invertimos para orden cronológico
@@ -199,7 +212,7 @@ export async function POST(req: NextRequest) {
 
   const historial = normalizarHistorial(historialCrudo);
 
-  const contexto = construirContextoWA(transacciones ?? [], metas ?? []);
+  const contexto = construirContextoWA(transacciones ?? [], metas ?? [], deduciblesAno ?? [], anoActual);
 
   // Prompt de Lani adaptado para WhatsApp
   const sistemaWA = `Eres Lani, la asistente financiera personal de ${nombre || "tu usuario"}.
@@ -246,6 +259,23 @@ REGLAS OPERATIVAS:
 6. Nunca menciones que eres IA, Claude o cualquier software
 
 Categorías válidas: Comida, Supermercado, Transporte, Entretenimiento, Salud, Servicios, Ropa, Hogar, Educación, Otros
+
+DEDUCCIONES ISR — menciona solo cuando sea obvio por la descripción. Usa los límites reales del SAT 2025 y el acumulado del contexto para dar info concreta:
+
+Qué es deducible y sus límites:
+- Gastos médicos (Salud): consulta médica, dentista, psicólogo, nutriólogo, óptica/lentes, hospital, medicamentos con receta, análisis clínicos → sin límite fijo, pero tope del 15% del ingreso anual o 5 UMAs ($58,835). Si ya hay acumulado en el contexto, dile cuánto lleva.
+- Colegiaturas (Educación): límites anuales — preescolar $14,200 | primaria $12,900 | secundaria $19,900 | prof. técnico $17,100 | bachillerato $24,500. Detecta el nivel por la descripción (prepa, kinder, primaria, etc.). Si no puedes detectarlo, pregunta: "¿Es de qué nivel?" para dar el tope exacto. Si hay acumulado, calcula cuánto le queda del límite.
+- Seguro de gastos médicos (Servicios): prima del seguro GMM → deducible sin límite específico.
+- Intereses de crédito hipotecario (Servicios): solo los intereses reales (descontando inflación) → deducible.
+- Donativos (Otros): Cruz Roja, UNICEF, instituciones autorizadas SAT → hasta 7% del ingreso del año anterior.
+
+Cómo mencionarlo:
+- Una línea al final, tono casual, nunca regañón
+- Si hay acumulado en el contexto: "Ya llevas $X en gastos médicos este año."
+- Si se acerca al límite de colegiatura: "Ojo, el límite de [nivel] es $X al año — llevas $Y, te quedan $Z."
+- Si ya superó el límite: "Ya rebasaste el tope deducible de colegiaturas para este nivel."
+- NO menciones en: comida, uber, ropa, entretenimiento, supermercado, gasolina, o cuando no sea claro.
+- Solo en gastos, nunca en ingresos. Máximo dos líneas extra.
 
 ${contexto}`;
 
@@ -353,6 +383,26 @@ ${contexto}`;
           anthropic, sistemaWA, herramientas,
           mensajesParaClaude, respuesta.content, bloque.id, resultado
         );
+
+        // ── Distribución inteligente de quincena (fire-and-forget) ────────────
+        // Si fue un ingreso grande (≥ $5,000), mandamos el plan de distribución
+        // como segundo mensaje después de la confirmación principal.
+        if (!error && tipoTx === "ingreso" && monto >= 5000) {
+          (async () => {
+            try {
+              const msgDistribucion = await calcularDistribucionQuincena(
+                supabase, usuarioId, monto, nombre
+              );
+              if (msgDistribucion) {
+                // Pequeña pausa para que el mensaje de confirmación llegue primero
+                await new Promise((r) => setTimeout(r, 1500));
+                await enviarMensajeWA(telefono, msgDistribucion);
+              }
+            } catch (errDist) {
+              console.error("Error al calcular distribución quincena:", errDist);
+            }
+          })();
+        }
 
       } else if (bloque.name === "actualizar_transaccion") {
         const d = bloque.input as { id: string; fecha?: string; monto?: number; descripcion?: string; categoria?: string; tipo?: string };
@@ -502,7 +552,9 @@ function normalizarHistorial(msgs: Anthropic.MessageParam[]): Anthropic.MessageP
 // IMPORTANTE: usa IDs completos (UUID) para que Claude pueda modificar/borrar
 function construirContextoWA(
   transacciones: { id: string; monto: number; descripcion: string; categoria: string; tipo: string; fecha: string }[],
-  metas: { id: string; nombre: string; emoji: string; monto_objetivo: number; monto_actual: number }[]
+  metas: { id: string; nombre: string; emoji: string; monto_objetivo: number; monto_actual: number }[],
+  deduciblesAno: { monto: number; descripcion: string; categoria: string }[],
+  anoActual: number,
 ): string {
   if (!transacciones.length) return "";
 
@@ -530,5 +582,26 @@ function construirContextoWA(
       }).join("\n")
     : "";
 
-  return `\n--- FINANZAS ---\nMes ${mesActual}: Ingresos $${Math.round(ingresos)} | Gastos $${Math.round(gastos)} | Balance $${Math.round(ingresos - gastos)}\nTop categorías: ${cats}${metasTxt}\n\nÚltimas transacciones:\n${lista}\n---`;
+  // ── Resumen de deducibles acumulados en el año ────────────────────────────
+  let deduciblesTxt = "";
+  if (deduciblesAno.length > 0) {
+    const totalesPorTipo: Record<string, number> = {};
+    for (const d of deduciblesAno) {
+      const tipo = clasificarDeduccion(d.categoria, d.descripcion);
+      if (tipo) {
+        totalesPorTipo[tipo] = (totalesPorTipo[tipo] || 0) + Number(d.monto);
+      }
+    }
+
+    const lineas = Object.entries(totalesPorTipo).map(
+      ([tipo, total]) => `${ETIQUETAS_DEDUCCION[tipo as keyof typeof ETIQUETAS_DEDUCCION]}: $${Math.round(total)}`
+    );
+
+    if (lineas.length > 0) {
+      const totalAno = Object.values(totalesPorTipo).reduce((s, v) => s + v, 0);
+      deduciblesTxt = `\n\nDeducibles ISR acumulados ${anoActual}:\n${lineas.join(" | ")}\nTotal deducible estimado: $${Math.round(totalAno)}`;
+    }
+  }
+
+  return `\n--- FINANZAS ---\nMes ${mesActual}: Ingresos $${Math.round(ingresos)} | Gastos $${Math.round(gastos)} | Balance $${Math.round(ingresos - gastos)}\nTop categorías: ${cats}${metasTxt}${deduciblesTxt}\n\nÚltimas transacciones:\n${lista}\n---`;
 }

@@ -49,6 +49,12 @@ interface CompromisoMSI {
   fecha_proximo_pago: string;
 }
 
+interface PresupuestoDash {
+  id: string;
+  categoria: string;
+  limite: number;
+}
+
 function Skel({ w, h, r = "8px" }: { w: string; h: string; r?: string }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: r }} />;
 }
@@ -139,6 +145,7 @@ export default function DashboardPage() {
   const toastTimerRef = useState<ReturnType<typeof setTimeout> | null>(null);
   const [showTour, setShowTour] = useState(false);
   const [compromisosMsi, setCompromisosMsi] = useState<CompromisoMSI[]>([]);
+  const [presupuestosDash, setPresupuestosDash] = useState<PresupuestoDash[]>([]);
 
   const cargar = useCallback(async () => {
     try {
@@ -150,8 +157,8 @@ export default function DashboardPage() {
         setIniciales(n.split(" ").slice(0, 2).map((p: string) => p[0]).join("").toUpperCase());
       }
 
-      // Cargar transacciones, logros y compromisos MSI en paralelo
-      const [datos, logrosData, msiData] = await Promise.all([
+      // Cargar transacciones, logros, MSI y presupuestos en paralelo
+      const [datos, logrosData, msiData, presData] = await Promise.all([
         obtenerTransacciones(),
         user
           ? supabase
@@ -166,10 +173,17 @@ export default function DashboardPage() {
               .eq("activo", true)
               .order("fecha_proximo_pago", { ascending: true })
           : Promise.resolve({ data: [] }),
+        user
+          ? supabase
+              .from("presupuestos")
+              .select("id, categoria, limite")
+              .eq("usuario_id", user.id)
+          : Promise.resolve({ data: [] }),
       ]);
 
       setTransacciones(datos);
       setCompromisosMsi((msiData.data ?? []) as CompromisoMSI[]);
+      setPresupuestosDash((presData.data ?? []) as PresupuestoDash[]);
 
       const ids = ((logrosData.data ?? []) as { logro_id: string }[]).map((l) => l.logro_id);
       setLogrosIds(ids);
@@ -326,6 +340,21 @@ export default function DashboardPage() {
 
   const recurrentes = useMemo(() => detectarRecurrentes(transacciones), [transacciones]);
   const totalSuscripciones = useMemo(() => totalRecurrentes(recurrentes), [recurrentes]);
+
+  // ── Alertas de presupuesto del mes actual ───────────────────────
+  const alertasPresupuesto = useMemo(() => {
+    if (presupuestosDash.length === 0) return [];
+    return presupuestosDash
+      .map((p) => {
+        const gastado = txsMesActual
+          .filter((t) => t.tipo === "gasto" && t.categoria === p.categoria)
+          .reduce((s, t) => s + Number(t.monto), 0);
+        const pct = Number(p.limite) > 0 ? (gastado / Number(p.limite)) * 100 : 0;
+        return { ...p, gastado, pct };
+      })
+      .filter((p) => p.pct >= 70)
+      .sort((a, b) => b.pct - a.pct);
+  }, [presupuestosDash, txsMesActual]);
 
   // Total mensual comprometido en MSI activos
   const totalMsiMensual = useMemo(
@@ -969,6 +998,61 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ── ALERTAS PRESUPUESTO ── */}
+      {!cargando && alertasPresupuesto.length > 0 && mesOffset === 0 && (
+        <div style={{ padding: "0 20px 8px" }}>
+          <button
+            onClick={() => router.push("/presupuestos")}
+            style={{
+              width: "100%", borderRadius: 14, overflow: "hidden",
+              backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+              cursor: "pointer", textAlign: "left",
+            }}
+          >
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "12px 14px", borderBottom: "1px solid var(--border-2)",
+            }}>
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)" }}>
+                💰 Presupuestos · {alertasPresupuesto.length} en alerta
+              </p>
+              <p style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600 }}>Ver todos →</p>
+            </div>
+            {alertasPresupuesto.slice(0, 3).map((p, i) => {
+              const color = p.pct >= 100 ? "var(--danger)" : "#f59e0b";
+              return (
+                <div key={p.categoria} style={{
+                  padding: "10px 14px",
+                  borderBottom: i < Math.min(alertasPresupuesto.length, 3) - 1 ? "1px solid var(--border-2)" : "none",
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-1)" }}>
+                      {CAT_ICON[p.categoria] || "📦"} {p.categoria}
+                    </p>
+                    <p className="font-number" style={{ fontSize: 12, fontWeight: 700, color }}>
+                      {formatearMonto(p.gastado)} <span style={{ color: "var(--text-3)", fontWeight: 400 }}>/ {formatearMonto(Number(p.limite))}</span>
+                    </p>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)", overflow: "hidden" }}>
+                    <div style={{
+                      height: "100%", borderRadius: 99,
+                      width: `${Math.min(p.pct, 100)}%`,
+                      backgroundColor: color,
+                      transition: "width 0.8s cubic-bezier(0.22,1,0.36,1)",
+                    }} />
+                  </div>
+                  {p.pct >= 100 && (
+                    <p style={{ fontSize: 10, color: "var(--danger)", marginTop: 4, fontWeight: 600 }}>
+                      ⚠ Excedido en {formatearMonto(p.gastado - Number(p.limite))}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </button>
+        </div>
+      )}
+
       {/* ── COMPROMISOS MSI ── */}
       {!cargando && compromisosMsi.length > 0 && (
         <div style={{ padding: "0 20px 8px" }}>
@@ -1047,6 +1131,42 @@ export default function DashboardPage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── DEDUCCIONES ISR ── */}
+      {!cargando && mesOffset === 0 && (
+        <div style={{ padding: "0 20px 8px" }}>
+          <button
+            onClick={() => router.push("/deducciones")}
+            style={{
+              width: "100%", borderRadius: 14, overflow: "hidden",
+              backgroundColor: "var(--surface)", border: "1px solid var(--border)",
+              cursor: "pointer", textAlign: "left",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "12px 14px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: "50%",
+                backgroundColor: "rgba(var(--gold-rgb, 212,175,55),0.12)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 16, flexShrink: 0,
+              }}>
+                🧾
+              </div>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 2 }}>
+                  Deducciones ISR
+                </p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>
+                  Gastos médicos, colegiaturas y más
+                </p>
+              </div>
+            </div>
+            <p style={{ fontSize: 11, color: "var(--gold)", fontWeight: 600, flexShrink: 0 }}>Ver →</p>
+          </button>
         </div>
       )}
 

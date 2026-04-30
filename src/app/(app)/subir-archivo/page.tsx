@@ -9,6 +9,18 @@ import { useRouter } from "next/navigation";
 type Estado = "inicio" | "leyendo-pdf" | "preview" | "exito" | "error";
 interface MetadatosPDF { banco: string; periodo: string; }
 
+// Calcula SHA-256 de un ArrayBuffer y devuelve hex string
+async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function formatearFecha(iso: string) {
+  return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+}
+
 export default function SubirArchivoPage() {
   const router = useRouter();
   const [estado, setEstado] = useState<Estado>("inicio");
@@ -17,10 +29,12 @@ export default function SubirArchivoPage() {
   const [posiblesDuplicados, setPosiblesDuplicados] = useState<Set<number>>(new Set());
   const [nombreArchivo, setNombreArchivo] = useState("");
   const [archivoOriginal, setArchivoOriginal] = useState<File | null>(null);
+  const [hashArchivo, setHashArchivo] = useState<string>("");
   const [guardando, setGuardando] = useState(false);
   const [mensajeError, setMensajeError] = useState("");
   const [totalImportadas, setTotalImportadas] = useState(0);
   const [metadatosPDF, setMetadatosPDF] = useState<MetadatosPDF | null>(null);
+  const [advertenciaPeriodo, setAdvertenciaPeriodo] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Detecta duplicados exactos y posibles (misma fecha+monto+tipo pero descripción diferente)
@@ -104,7 +118,36 @@ export default function SubirArchivoPage() {
       const lector = new FileReader();
       lector.onload = async (ev) => {
         try {
-          const base64 = (ev.target?.result as string).split(",")[1];
+          const dataUrl = ev.target?.result as string;
+          const base64 = dataUrl.split(",")[1];
+
+          // ── 1. Calcular hash SHA-256 del archivo ──────────────────────
+          const arrayBuffer = await archivo.arrayBuffer();
+          const hash = await sha256Hex(arrayBuffer);
+          setHashArchivo(hash);
+
+          // ── 2. Verificar si ya se importó este archivo exacto ─────────
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: importPrevio } = await supabase
+              .from("archivos_importados")
+              .select("importado_en, banco, periodo")
+              .eq("usuario_id", user.id)
+              .eq("hash_sha256", hash)
+              .maybeSingle();
+
+            if (importPrevio) {
+              const fechaImport = formatearFecha(importPrevio.importado_en);
+              setMensajeError(
+                `Ya importaste este archivo el ${fechaImport} (${importPrevio.banco} · ${importPrevio.periodo}). Si hubo cambios, descarga un nuevo estado de cuenta.`
+              );
+              setEstado("inicio");
+              return;
+            }
+          }
+
+          // ── 3. Parsear con Claude ──────────────────────────────────────
           const res = await fetch("/api/parsear-pdf", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pdfBase64: base64 }),
@@ -116,6 +159,25 @@ export default function SubirArchivoPage() {
             setEstado("inicio");
             return;
           }
+
+          // ── 4. Verificar si ya se importó el mismo banco+periodo ───────
+          if (user && datos.banco && datos.periodo) {
+            const { data: periodoPrevio } = await supabase
+              .from("archivos_importados")
+              .select("importado_en, total_tx")
+              .eq("usuario_id", user.id)
+              .eq("banco", datos.banco)
+              .eq("periodo", datos.periodo)
+              .maybeSingle();
+
+            if (periodoPrevio) {
+              const fechaImport = formatearFecha(periodoPrevio.importado_en);
+              setAdvertenciaPeriodo(
+                `Ya importaste ${datos.banco} · ${datos.periodo} el ${fechaImport} (${periodoPrevio.total_tx} transacciones). Puede haber duplicados.`
+              );
+            }
+          }
+
           const { exactos, posibles } = await detectarDuplicados(datos.transacciones);
           setDuplicados(exactos);
           setPosiblesDuplicados(posibles);
@@ -140,11 +202,15 @@ export default function SubirArchivoPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No hay sesión activa");
+
+      // Subir archivo a storage (best-effort, no bloqueante)
       if (archivoOriginal) {
-        await supabase.storage.from("archivos").upload(
+        supabase.storage.from("archivos").upload(
           `${user.id}/${Date.now()}_${archivoOriginal.name}`, archivoOriginal
-        );
+        ).catch(() => { /* ignorar error de storage */ });
       }
+
+      // Insertar transacciones en lotes de 50
       for (let i = 0; i < filasSeleccionadas.length; i += 50) {
         const lote = filasSeleccionadas.slice(i, i + 50).map((f) => ({
           usuario_id: user.id, monto: f.monto, descripcion: f.descripcion,
@@ -153,6 +219,21 @@ export default function SubirArchivoPage() {
         const { error } = await supabase.from("transacciones").insert(lote);
         if (error) throw error;
       }
+
+      // ── Registrar archivo importado para dedup futuro ─────────────────
+      const ext = archivoOriginal?.name.split(".").pop()?.toLowerCase();
+      if (hashArchivo && user) {
+        await supabase.from("archivos_importados").upsert({
+          usuario_id: user.id,
+          hash_sha256: hashArchivo,
+          nombre_archivo: archivoOriginal?.name ?? "",
+          banco: metadatosPDF?.banco ?? null,
+          periodo: metadatosPDF?.periodo ?? null,
+          tipo: ext === "pdf" ? "pdf" : "csv",
+          total_tx: filasSeleccionadas.length,
+        }, { onConflict: "usuario_id,hash_sha256", ignoreDuplicates: true });
+      }
+
       setTotalImportadas(filasSeleccionadas.length);
       // Guardar fecha de último PDF importado para recordatorio quincenal
       try { localStorage.setItem("lani_ultimo_pdf", new Date().toISOString()); } catch { /* ok */ }
@@ -166,7 +247,8 @@ export default function SubirArchivoPage() {
   const reiniciar = () => {
     setEstado("inicio"); setFilasParseadas([]); setNombreArchivo("");
     setArchivoOriginal(null); setMensajeError(""); setMetadatosPDF(null);
-    setDuplicados(new Set());
+    setDuplicados(new Set()); setPosiblesDuplicados(new Set());
+    setHashArchivo(""); setAdvertenciaPeriodo(null);
   };
 
   // ── Estados especiales ─────────────────────────────────────────────
@@ -201,6 +283,17 @@ export default function SubirArchivoPage() {
             </p>
             <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)" }}>{metadatosPDF.banco}</h2>
             <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>{metadatosPDF.periodo}</p>
+          </div>
+        )}
+        {advertenciaPeriodo && (
+          <div style={{
+            margin: "0", padding: "10px 16px",
+            backgroundColor: "rgba(245,158,11,0.08)",
+            borderBottom: "1px solid rgba(245,158,11,0.2)",
+            display: "flex", alignItems: "flex-start", gap: 8,
+          }}>
+            <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+            <p style={{ fontSize: 11, color: "#f59e0b", lineHeight: 1.5 }}>{advertenciaPeriodo}</p>
           </div>
         )}
         <VistaPrevia
