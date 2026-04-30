@@ -247,6 +247,16 @@ export default function DashboardPage() {
     if ("Notification" in window && Notification.permission === "default") {
       setTimeout(() => setMostrarBannerNotif(true), 5000);
     }
+
+    // Recargar datos cuando el usuario vuelve a la pestaña/app
+    // (cubre el caso de registrar por WhatsApp y volver al dashboard)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void cargar();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   // ── Detectar nuevos logros cuando cambian transacciones o logrosIds ──
@@ -315,7 +325,9 @@ export default function DashboardPage() {
     return {
       mesSeleccionado: sel,
       inicioMesSel: sel,
-      finMesSel: new Date(sel.getFullYear(), sel.getMonth() + 1, 0),
+      // Fin del mes a las 23:59:59 para incluir transacciones del último día
+      // (las transacciones se comparan con "T12:00:00" → mediodía > medianoche sin este fix)
+      finMesSel: new Date(sel.getFullYear(), sel.getMonth() + 1, 0, 23, 59, 59),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesOffset]);
