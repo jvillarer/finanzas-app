@@ -146,6 +146,7 @@ export default function DashboardPage() {
   const [showTour, setShowTour] = useState(false);
   const [compromisosMsi, setCompromisosMsi] = useState<CompromisoMSI[]>([]);
   const [presupuestosDash, setPresupuestosDash] = useState<PresupuestoDash[]>([]);
+  const [pagosTarjeta, setPagosTarjeta] = useState<{ nombre: string; color: string; monto: number; fecha_cargo: string }[]>([]);
 
   const cargar = useCallback(async () => {
     try {
@@ -157,8 +158,8 @@ export default function DashboardPage() {
         setIniciales(n.split(" ").slice(0, 2).map((p: string) => p[0]).join("").toUpperCase());
       }
 
-      // Cargar transacciones, logros, MSI y presupuestos en paralelo
-      const [datos, logrosData, msiData, presData] = await Promise.all([
+      // Cargar transacciones, logros, MSI, presupuestos y tarjetas en paralelo
+      const [datos, logrosData, msiData, presData, tarjetasData] = await Promise.all([
         obtenerTransacciones(),
         user
           ? supabase
@@ -179,11 +180,33 @@ export default function DashboardPage() {
               .select("id, categoria, limite")
               .eq("usuario_id", user.id)
           : Promise.resolve({ data: [] }),
+        user
+          ? supabase
+              .from("transacciones")
+              .select("monto, fecha_cargo, tarjeta_id, tarjetas(nombre, color)")
+              .eq("usuario_id", user.id)
+              .eq("tipo", "gasto")
+              .eq("metodo_pago", "credito")
+              .not("fecha_cargo", "is", null)
+              .gte("fecha_cargo", new Date().toISOString().split("T")[0])
+              .order("fecha_cargo", { ascending: true })
+          : Promise.resolve({ data: [] }),
       ]);
 
       setTransacciones(datos);
       setCompromisosMsi((msiData.data ?? []) as CompromisoMSI[]);
       setPresupuestosDash((presData.data ?? []) as PresupuestoDash[]);
+
+      // Agrupar pagos de tarjeta por fecha_cargo
+      type TxTarjeta = { monto: number; fecha_cargo: string; tarjetas: { nombre: string; color: string } | null };
+      const txTarjeta = (tarjetasData.data ?? []) as TxTarjeta[];
+      const agrupado: Record<string, { nombre: string; color: string; monto: number; fecha_cargo: string }> = {};
+      txTarjeta.forEach(tx => {
+        const key = `${tx.fecha_cargo}_${tx.tarjetas?.nombre}`;
+        if (!agrupado[key]) agrupado[key] = { nombre: tx.tarjetas?.nombre ?? "Tarjeta", color: tx.tarjetas?.color ?? "#1B4332", monto: 0, fecha_cargo: tx.fecha_cargo };
+        agrupado[key].monto += Number(tx.monto);
+      });
+      setPagosTarjeta(Object.values(agrupado).sort((a, b) => a.fecha_cargo.localeCompare(b.fecha_cargo)));
 
       const ids = ((logrosData.data ?? []) as { logro_id: string }[]).map((l) => l.logro_id);
       setLogrosIds(ids);
@@ -1062,6 +1085,54 @@ export default function DashboardPage() {
               );
             })}
           </button>
+        </div>
+      )}
+
+      {/* ── PAGOS DE TARJETA (FLUJO REAL) ── */}
+      {!cargando && pagosTarjeta.length > 0 && (
+        <div style={{ padding: "0 20px 8px" }}>
+          <div style={{ borderRadius: 14, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--border-2)" }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 3 }}>
+                  💳 Próximos pagos de tarjeta
+                </p>
+                <p className="font-number" style={{ fontSize: 16, fontWeight: 700, color: "#1B4332", letterSpacing: "-0.02em" }}>
+                  {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(
+                    pagosTarjeta.reduce((s, p) => s + p.monto, 0)
+                  )}
+                  <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-3)", marginLeft: 3 }}>por pagar</span>
+                </p>
+              </div>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", backgroundColor: "rgba(27,67,50,0.10)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg viewBox="0 0 20 20" fill="none" stroke="#1B4332" strokeWidth={1.6} strokeLinecap="round" style={{ width: 15, height: 15 }}>
+                  <rect x="1" y="4" width="18" height="13" rx="2" />
+                  <path d="M1 9h18" />
+                </svg>
+              </div>
+            </div>
+            {pagosTarjeta.map((p, i) => {
+              const fecha = new Date(p.fecha_cargo + "T12:00:00");
+              const label = fecha.toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+              const diasRestantes = Math.ceil((fecha.getTime() - Date.now()) / 86400000);
+              return (
+                <div key={i} style={{ padding: "11px 14px", borderBottom: i < pagosTarjeta.length - 1 ? "1px solid var(--border-2)" : "none", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: p.color, flexShrink: 0 }} />
+                    <div>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{p.nombre}</p>
+                      <p style={{ fontSize: 11, color: diasRestantes <= 7 ? "#D94A4A" : "var(--text-3)", marginTop: 1 }}>
+                        {label} · {diasRestantes <= 0 ? "hoy" : `en ${diasRestantes} día${diasRestantes !== 1 ? "s" : ""}`}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="font-number" style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>
+                    {new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(p.monto)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
