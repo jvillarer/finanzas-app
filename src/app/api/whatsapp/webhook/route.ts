@@ -274,10 +274,23 @@ EJEMPLOS DE CONFIRMACIONES CON PERSONALIDAD:
 - "300 en zapatos" → "✓ Zapatos $300 anotados. Inversión necesaria o antojo? Jajaja"
 - Si el gasto es muy alto o inusual → un comentario breve y directo sin regañar
 
-REGISTRO ULTRA-RÁPIDO — CRÍTICO:
-Cuando el usuario escriba "uber 85", "comida 320", "nómina 15000", "oxxo 48 ayer":
-1. Registra INMEDIATAMENTE con crear_transaccion — sin preguntar, sin confirmar antes
-2. Responde en UNA línea con personalidad
+REGISTRO DE GASTOS — FLUJO OBLIGATORIO:
+Cuando el usuario reporte un GASTO (uber, comida, oxxo, ropa, etc.):
+1. Registra INMEDIATAMENTE con crear_transaccion (metodo_pago: "efectivo" por default)
+2. En tu respuesta de confirmación, SIEMPRE pregunta al final cómo pagó: "¿cómo pagaste — efectivo, débito o tarjeta?"
+3. Si el usuario responde con el método → llama actualizar_transaccion para corregir metodo_pago (y tarjeta_id + fecha_cargo si aplica)
+4. Si dice "tarjeta" y tiene varias → pregunta cuál; si tiene una → actualiza con esa automáticamente
+
+EXCEPCIÓN — no preguntes método de pago si:
+- El usuario YA mencionó el método en su mensaje ("con la amex", "en efectivo", "con débito", "a crédito")
+- Es un ingreso (nómina, transferencia, etc.)
+- El usuario está respondiendo a una pregunta tuya sobre el método
+
+EJEMPLOS CON FLUJO CORRECTO:
+- "uber 85" → registra → "✓ Uber $85 anotado 🐑 ¿Cómo pagaste — efectivo, débito o tarjeta?"
+- "comida 320 con la amex" → registra con credito + tarjeta_id → "✓ Comida $320 anotada a tu AMEX 💳"
+- "oxxo 48 efectivo" → registra con efectivo → "✓ Oxxo $48 anotado."
+- Usuario responde "débito" → actualiza_transaccion metodo_pago: "debito" → "✓ Listo, puesto como débito."
 
 DETECCIÓN DE DUPLICADOS — REGLA EXACTA:
 Para saber si algo ya está registrado, revisa ÚNICAMENTE la lista de transacciones del contexto financiero (la sección "Transacciones ya guardadas en DB").
@@ -372,12 +385,15 @@ ${contexto}`;
       input_schema: {
         type: "object" as const,
         properties: {
-          id:          { type: "string",  description: "ID completo (UUID) de la transacción" },
-          fecha:       { type: "string" },
-          monto:       { type: "number" },
-          descripcion: { type: "string" },
-          categoria:   { type: "string" },
-          tipo:        { type: "string", enum: ["gasto", "ingreso"] },
+          id:           { type: "string",  description: "ID completo (UUID) de la transacción" },
+          fecha:        { type: "string" },
+          monto:        { type: "number" },
+          descripcion:  { type: "string" },
+          categoria:    { type: "string" },
+          tipo:         { type: "string", enum: ["gasto", "ingreso"] },
+          metodo_pago:  { type: "string", enum: ["efectivo", "debito", "credito"] },
+          tarjeta_id:   { type: "string", description: "ID de la tarjeta (solo si metodo_pago es credito)" },
+          fecha_cargo:  { type: "string", description: "Fecha YYYY-MM-DD de cargo real (se calcula automáticamente si hay tarjeta_id)" },
         },
         required: ["id"],
       },
@@ -510,13 +526,32 @@ ${contexto}`;
         }
 
       } else if (bloque.name === "actualizar_transaccion") {
-        const d = bloque.input as { id: string; fecha?: string; monto?: number; descripcion?: string; categoria?: string; tipo?: string };
+        const d = bloque.input as {
+          id: string; fecha?: string; monto?: number; descripcion?: string;
+          categoria?: string; tipo?: string; metodo_pago?: string; tarjeta_id?: string;
+        };
         const cambios: Record<string, unknown> = {};
         if (d.fecha)       cambios.fecha       = d.fecha;
         if (d.monto)       cambios.monto       = Math.abs(Number(d.monto));
         if (d.descripcion) cambios.descripcion = d.descripcion;
         if (d.categoria)   cambios.categoria   = CATEGORIAS_VALIDAS.has(d.categoria!) ? d.categoria : "Otros";
         if (d.tipo)        cambios.tipo        = d.tipo;
+        if (d.metodo_pago && ["efectivo", "debito", "credito"].includes(d.metodo_pago)) {
+          cambios.metodo_pago = d.metodo_pago;
+          // Si cambia a crédito con tarjeta, calcular fecha_cargo
+          if (d.metodo_pago === "credito" && d.tarjeta_id) {
+            const tarjeta = tarjetasUsuario.find((t) => t.id === d.tarjeta_id);
+            if (tarjeta) {
+              const fechaBase = (d.fecha as string | undefined) || hoy;
+              cambios.tarjeta_id  = d.tarjeta_id;
+              cambios.fecha_cargo = calcularFechaCargo(fechaBase, tarjeta.dia_corte, tarjeta.dias_para_pago);
+            }
+          } else if (d.metodo_pago !== "credito") {
+            // Si cambia a efectivo/débito, limpiar tarjeta y fecha_cargo
+            cambios.tarjeta_id  = null;
+            cambios.fecha_cargo = null;
+          }
+        }
 
         const { error } = await supabase.from("transacciones")
           .update(cambios).eq("id", d.id).eq("usuario_id", usuarioId);
