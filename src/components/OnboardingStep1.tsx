@@ -248,13 +248,13 @@ export default function OnboardingStep1({ onContinuar }: Props) {
                 draggable={false}
                 style={{
                   position:   "absolute",
-                  bottom:     0,             // pies al borde inferior del slot
+                  bottom:     "-6%",
                   left:       "50%",
                   transform:  idx === indice
                     ? "translateX(-50%) scale(1)"
                     : "translateX(-50%) scale(0.95)",
-                  height:     "98%",         // ocupa casi toda la altura del slot
-                  width:      "auto",
+                  width:      "115%",
+                  height:     "auto",
                   maxWidth:   "none",
                   objectFit:  "contain",
                   display:    "block",
