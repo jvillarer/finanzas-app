@@ -6,8 +6,9 @@ const RUTAS_PUBLICAS = [
   "/login",
   "/registro",
   "/auth/callback",
-  "/api/whatsapp",   // webhook de Meta (sin sesión)
-  "/api/push",       // endpoints de push notifications
+  "/preview-onboarding", // vista previa de onboarding (sin sesión)
+  "/api/whatsapp",       // webhook de Meta (sin sesión)
+  "/api/push",           // endpoints de push notifications
 ];
 
 export async function middleware(request: NextRequest) {
