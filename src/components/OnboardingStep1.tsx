@@ -223,13 +223,10 @@ export default function OnboardingStep1({ onContinuar }: Props) {
             <div
               key={pantalla.id}
               style={{
-                width:           `${100 / PANTALLAS.length}%`,
-                height:          "100%",
-                flexShrink:      0,
-                display:         "flex",
-                alignItems:      "flex-end",   // borrego pegado abajo
-                justifyContent:  "center",
-                position:        "relative",
+                width:          `${100 / PANTALLAS.length}%`,
+                height:         "100%",
+                flexShrink:     0,
+                position:       "relative",   // hijo absoluto se posiciona aquí
               }}
             >
               {/* Glow detrás */}
@@ -239,7 +236,7 @@ export default function OnboardingStep1({ onContinuar }: Props) {
                 height:       300,
                 borderRadius: "50%",
                 background:   "radial-gradient(circle, rgba(207,232,232,0.09) 0%, transparent 70%)",
-                top:          "40%",
+                top:          "50%",
                 left:         "50%",
                 transform:    "translate(-50%, -50%)",
                 pointerEvents:"none",
@@ -250,17 +247,19 @@ export default function OnboardingStep1({ onContinuar }: Props) {
                 alt="Lani"
                 draggable={false}
                 style={{
-                  height:          "auto",
-                  width:           "130%",
-                  maxWidth:        "none",
-                  objectFit:       "contain",
-                  objectPosition:  "bottom center",
-                  display:         "block",
-                  filter:          "drop-shadow(0px 16px 32px rgba(0,0,0,0.35))",
-                  transform:       idx === indice
-                    ? "scale(1) translateY(12%)"
-                    : "scale(0.95) translateY(15%)",
-                  transition:      "transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+                  position:   "absolute",
+                  bottom:     0,             // pies al borde inferior del slot
+                  left:       "50%",
+                  transform:  idx === indice
+                    ? "translateX(-50%) scale(1)"
+                    : "translateX(-50%) scale(0.95)",
+                  height:     "98%",         // ocupa casi toda la altura del slot
+                  width:      "auto",
+                  maxWidth:   "none",
+                  objectFit:  "contain",
+                  display:    "block",
+                  filter:     "drop-shadow(0px 16px 32px rgba(0,0,0,0.35))",
+                  transition: "transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
                 }}
               />
             </div>
