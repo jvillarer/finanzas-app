@@ -190,6 +190,7 @@ export async function POST(req: NextRequest) {
     { data: transacciones },
     { data: metas },
     { data: deduciblesAno },
+    { data: tarjetas },
   ] = await Promise.all([
     supabase
       .from("mensajes_wa")
@@ -208,7 +209,6 @@ export async function POST(req: NextRequest) {
       .select("id, nombre, emoji, monto_objetivo, monto_actual")
       .eq("usuario_id", usuarioId)
       .limit(10),
-    // Todos los gastos potencialmente deducibles del año (sin límite de 150)
     supabase
       .from("transacciones")
       .select("monto, descripcion, categoria")
@@ -216,6 +216,11 @@ export async function POST(req: NextRequest) {
       .eq("tipo", "gasto")
       .gte("fecha", `${anoActual}-01-01`)
       .in("categoria", ["Salud", "Educación", "Servicios", "Otros"]),
+    supabase
+      .from("tarjetas")
+      .select("id, nombre, banco, dia_corte, dias_para_pago")
+      .eq("usuario_id", usuarioId)
+      .eq("activa", true),
   ]);
 
   // El historial viene en orden DESC; lo invertimos para orden cronológico
@@ -234,7 +239,9 @@ export async function POST(req: NextRequest) {
   const ultimoMensajeLani = historialRows?.[0]?.rol === "assistant" ? historialRows[0].contenido as string : null;
   const estabaPidiendoAclaracion = ultimoMensajeLani != null && /\?/.test(ultimoMensajeLani);
 
-  const contexto = construirContextoWA(transacciones ?? [], metas ?? [], deduciblesAno ?? [], anoActual);
+  type Tarjeta = { id: string; nombre: string; banco: string | null; dia_corte: number; dias_para_pago: number };
+  const tarjetasUsuario = (tarjetas ?? []) as Tarjeta[];
+  const contexto = construirContextoWA(transacciones ?? [], metas ?? [], deduciblesAno ?? [], anoActual, tarjetasUsuario);
 
   // Prompt de Lani adaptado para WhatsApp
   const sistemaWA = `Eres Lani, la asistente financiera personal de ${nombre || "tu usuario"}.
@@ -312,6 +319,15 @@ REGLAS OPERATIVAS:
 
 Categorías válidas: Comida, Supermercado, Transporte, Entretenimiento, Salud, Servicios, Ropa, Hogar, Educación, Otros
 
+TARJETAS DE CRÉDITO — FLUJO REAL:
+Cuando el usuario mencione que pagó con tarjeta de crédito (o diga "con la tarjeta", "a crédito", nombre de un banco como AMEX/BBVA/etc.):
+1. Registra con metodo_pago: "credito"
+2. Si tiene UNA sola tarjeta → usa ese tarjeta_id automáticamente, sin preguntar
+3. Si tiene VARIAS tarjetas → pregunta cuál usó (menciona los nombres cortos)
+4. Si no tiene tarjetas registradas → registra igual con metodo_pago: "credito", sin tarjeta_id
+5. Si pagó en efectivo o débito (o no especifica) → metodo_pago: "efectivo" o "debito", sin tarjeta_id
+La fecha de cargo real la calcula el sistema automáticamente — tú solo pasa el tarjeta_id correcto.
+
 DEDUCCIONES ISR — menciona solo cuando sea obvio por la descripción. Usa los límites reales del SAT 2025 y el acumulado del contexto para dar info concreta:
 
 Qué es deducible y sus límites:
@@ -339,11 +355,13 @@ ${contexto}`;
       input_schema: {
         type: "object" as const,
         properties: {
-          monto:       { type: "number",  description: "Monto en pesos MXN, siempre positivo" },
-          descripcion: { type: "string",  description: "Descripción breve" },
-          categoria:   { type: "string",  description: "Categoría" },
-          tipo:        { type: "string",  enum: ["gasto", "ingreso"] },
-          fecha:       { type: "string",  description: "Fecha YYYY-MM-DD, default hoy" },
+          monto:        { type: "number",  description: "Monto en pesos MXN, siempre positivo" },
+          descripcion:  { type: "string",  description: "Descripción breve" },
+          categoria:    { type: "string",  description: "Categoría" },
+          tipo:         { type: "string",  enum: ["gasto", "ingreso"] },
+          fecha:        { type: "string",  description: "Fecha YYYY-MM-DD, default hoy" },
+          metodo_pago:  { type: "string",  enum: ["efectivo", "debito", "credito"], description: "Método de pago. Default: efectivo" },
+          tarjeta_id:   { type: "string",  description: "ID de la tarjeta de crédito (solo si metodo_pago es credito y el usuario tiene tarjetas)" },
         },
         required: ["monto", "tipo", "categoria"],
       },
@@ -426,11 +444,25 @@ ${contexto}`;
       const bloque = respuesta.content.find((b) => b.type === "tool_use") as Anthropic.ToolUseBlock;
 
       if (bloque.name === "crear_transaccion") {
-        const d = bloque.input as { monto: number; descripcion?: string; categoria: string; tipo: string; fecha?: string };
-        const monto     = Math.abs(Number(d.monto));
-        const tipoTx    = d.tipo === "ingreso" ? "ingreso" : "gasto";
-        const categoria = CATEGORIAS_VALIDAS.has(d.categoria) ? d.categoria : "Otros";
-        const fecha     = d.fecha || hoy;
+        const d = bloque.input as {
+          monto: number; descripcion?: string; categoria: string; tipo: string;
+          fecha?: string; metodo_pago?: string; tarjeta_id?: string;
+        };
+        const monto      = Math.abs(Number(d.monto));
+        const tipoTx     = d.tipo === "ingreso" ? "ingreso" : "gasto";
+        const categoria  = CATEGORIAS_VALIDAS.has(d.categoria) ? d.categoria : "Otros";
+        const fecha      = d.fecha || hoy;
+        const metodoPago = (d.metodo_pago && ["efectivo", "debito", "credito"].includes(d.metodo_pago))
+          ? d.metodo_pago : "efectivo";
+
+        // Calcular fecha_cargo real si es crédito y tiene tarjeta
+        let fechaCargo: string | null = null;
+        if (metodoPago === "credito" && d.tarjeta_id) {
+          const tarjeta = tarjetasUsuario.find((t) => t.id === d.tarjeta_id);
+          if (tarjeta) {
+            fechaCargo = calcularFechaCargo(fecha, tarjeta.dia_corte, tarjeta.dias_para_pago);
+          }
+        }
 
         const { error } = await supabase.from("transacciones").insert({
           usuario_id:  usuarioId,
@@ -439,6 +471,9 @@ ${contexto}`;
           categoria,
           tipo: tipoTx,
           fecha,
+          metodo_pago: metodoPago,
+          tarjeta_id:  d.tarjeta_id || null,
+          fecha_cargo: fechaCargo,
         });
 
         if (error) {
@@ -621,6 +656,25 @@ function normalizarHistorial(msgs: Anthropic.MessageParam[]): Anthropic.MessageP
   return resultado;
 }
 
+// Calcula la fecha real de cargo de una compra a crédito
+// Replica la lógica de la función SQL calcular_fecha_cargo()
+function calcularFechaCargo(fechaGasto: string, diaCorte: number, diasPago: number): string {
+  const gasto = new Date(fechaGasto + "T12:00:00");
+  const diaGasto = gasto.getDate();
+  // Si el gasto es ANTES o EN el día de corte → el corte es este mes
+  // Si es DESPUÉS del corte → el corte es el mes siguiente
+  let mesCorte = gasto.getMonth();
+  let anoCorte = gasto.getFullYear();
+  if (diaGasto > diaCorte) {
+    mesCorte += 1;
+    if (mesCorte > 11) { mesCorte = 0; anoCorte += 1; }
+  }
+  const fechaCorte = new Date(anoCorte, mesCorte, diaCorte);
+  const fechaCargo = new Date(fechaCorte);
+  fechaCargo.setDate(fechaCargo.getDate() + diasPago);
+  return fechaCargo.toISOString().split("T")[0];
+}
+
 // Resumen financiero compacto para el contexto de WhatsApp
 // IMPORTANTE: usa IDs completos (UUID) para que Claude pueda modificar/borrar
 function construirContextoWA(
@@ -628,6 +682,7 @@ function construirContextoWA(
   metas: { id: string; nombre: string; emoji: string; monto_objetivo: number; monto_actual: number }[],
   deduciblesAno: { monto: number; descripcion: string; categoria: string }[],
   anoActual: number,
+  tarjetas: { id: string; nombre: string; banco: string | null; dia_corte: number; dias_para_pago: number }[],
 ): string {
   if (!transacciones.length) return "";
 
@@ -677,13 +732,25 @@ function construirContextoWA(
     }
   }
 
+  // ── Tarjetas de crédito del usuario ─────────────────────────────────────────
+  let tarjetasTxt = "";
+  if (tarjetas.length > 0) {
+    const hoyDate = new Date();
+    const tarjetasLineas = tarjetas.map((t) => {
+      const proximoPago = calcularFechaCargo(hoyDate.toISOString().split("T")[0], t.dia_corte, t.dias_para_pago);
+      const banco = t.banco ? ` (${t.banco})` : "";
+      return `[${t.id}] ${t.nombre}${banco} — corte día ${t.dia_corte}, pago ${t.dias_para_pago}d después → próx. cargo ~${proximoPago}`;
+    }).join("\n");
+    tarjetasTxt = `\n\nTarjetas de crédito registradas:\n${tarjetasLineas}`;
+  }
+
   return `\n════════════════════════════════
 BASE DE DATOS FINANCIERA — SOLO LECTURA
 PROHIBIDO: usar estos datos para crear transacciones nuevas.
 PERMITIDO: consultarlos, modificarlos o borrarlos cuando el usuario lo pida.
 ════════════════════════════════
 Mes ${mesActual}: Ingresos $${Math.round(ingresos)} | Gastos $${Math.round(gastos)} | Balance $${Math.round(ingresos - gastos)}
-Top categorías: ${cats}${metasTxt}${deduciblesTxt}
+Top categorías: ${cats}${metasTxt}${deduciblesTxt}${tarjetasTxt}
 
 Transacciones ya guardadas en DB (NO son nuevas — ya existen):
 ${lista}
