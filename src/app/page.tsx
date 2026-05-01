@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
-import OnboardingStep1 from "@/components/OnboardingStep1";
 
 const FEATURES = [
   {
@@ -62,9 +61,6 @@ export default function Home() {
     };
     checkSession();
   }, [router]);
-
-  // ── TEMPORAL: mostrar OnboardingStep1 para revisión de diseño ──
-  return <OnboardingStep1 onContinuar={() => {}} />;
 
   return (
     <main style={{ minHeight: "100vh", backgroundColor: BG, display: "flex", flexDirection: "column", paddingBottom: 48 }}>

@@ -218,7 +218,7 @@ export default function RegistroPage() {
             </div>
           ))}
         </div>
-        <button onClick={() => router.push("/bienvenida")}
+        <button onClick={() => router.push("/onboarding")}
           className="w-full max-w-xs font-bold py-4 rounded-full text-sm text-white tracking-wide transition-all active:scale-[0.98]"
           style={{ backgroundColor: "#000" }}>
           Entrar a Lani

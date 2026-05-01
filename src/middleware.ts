@@ -6,7 +6,8 @@ const RUTAS_PUBLICAS = [
   "/login",
   "/registro",
   "/auth/callback",
-  "/preview-onboarding", // vista previa de onboarding (sin sesión)
+  "/onboarding",         // onboarding de introducción (sin sesión)
+  "/preview-onboarding", // vista previa de diseño
   "/api/whatsapp",       // webhook de Meta (sin sesión)
   "/api/push",           // endpoints de push notifications
 ];
