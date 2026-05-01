@@ -8,7 +8,7 @@ interface Props {
 
 export default function OnboardingStep1({ onContinuar }: Props) {
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#1B4332]">
+    <div className="fixed inset-0 flex flex-col bg-[#F5F5F5]">
 
       <div className="flex-shrink-0 h-safe-top" />
 
@@ -29,26 +29,29 @@ export default function OnboardingStep1({ onContinuar }: Props) {
           </p>
         </div>
 
+        {/* ── Zona de imagen ── */}
         <div className="flex-1 relative flex items-end justify-center overflow-hidden">
+
+          {/* Blob verde claro agrandado */}
           <div
-            className="absolute bottom-[-40px] w-[300px] h-[300px] rounded-full"
+            className="absolute bottom-[-60px] w-[380px] h-[380px] rounded-full"
             style={{ backgroundColor: "#D1FAE5" }}
           />
-          <div
-            className="relative z-10 mb-[-8px]"
-            style={{ mixBlendMode: "multiply" }}
-          >
+
+          {/* Imagen transparente, sin blend mode */}
+          <div className="relative z-10 mb-[-8px]">
             <Image
-              src="/Lani_Saludando.png"
+              src="/Lani_Saludando_transparent.png"
               alt="Lani saludando"
-              width={290}
-              height={290}
-              className="object-contain w-[260px] h-[260px] sm:w-[300px] sm:h-[300px]"
+              width={340}
+              height={340}
+              className="object-contain w-[320px] h-[320px] sm:w-[360px] sm:h-[360px]"
               priority
             />
           </div>
         </div>
 
+        {/* ── Dots de paginación ── */}
         <div className="flex items-center justify-center gap-[6px] py-5">
           <div className="w-[22px] h-[7px] rounded-full bg-[#1B4332]" />
           <div className="w-[7px] h-[7px] rounded-full bg-gray-200" />
@@ -56,11 +59,12 @@ export default function OnboardingStep1({ onContinuar }: Props) {
         </div>
       </div>
 
+      {/* ── Botón Continuar ── */}
       <div className="px-4 pt-3 pb-8 flex-shrink-0">
         <button
           onClick={onContinuar}
           className="
-            w-full bg-white text-gray-900
+            w-full bg-[#1B4332] text-white
             font-semibold text-base
             rounded-2xl py-[16px]
             shadow-[0_4px_24px_rgba(0,0,0,0.18)]
