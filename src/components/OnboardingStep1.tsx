@@ -250,16 +250,16 @@ export default function OnboardingStep1({ onContinuar }: Props) {
                 alt="Lani"
                 draggable={false}
                 style={{
-                  height:          "100%",
-                  width:           "auto",
-                  maxWidth:        "95%",
+                  height:          "auto",
+                  width:           "130%",
+                  maxWidth:        "none",
                   objectFit:       "contain",
                   objectPosition:  "bottom center",
                   display:         "block",
                   filter:          "drop-shadow(0px 16px 32px rgba(0,0,0,0.35))",
                   transform:       idx === indice
-                    ? "scale(1) translateY(0%)"
-                    : "scale(0.95) translateY(3%)",
+                    ? "scale(1) translateY(12%)"
+                    : "scale(0.95) translateY(15%)",
                   transition:      "transform 0.5s cubic-bezier(0.34,1.56,0.64,1)",
                 }}
               />
