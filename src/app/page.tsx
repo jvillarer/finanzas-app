@@ -221,7 +221,7 @@ export default function Home() {
 
       {/* ── CTAs ── */}
       <div style={{ padding: "0 24px", display: "flex", flexDirection: "column", gap: 10 }}>
-        <Link href="/registro" style={{
+        <Link href="/onboarding" style={{
           display: "block", textAlign: "center",
           padding: "16px 0", borderRadius: 14,
           fontSize: 15, fontWeight: 700, color: "#ffffff",

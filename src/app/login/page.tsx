@@ -27,7 +27,7 @@ export default function LoginPage() {
     if (yaVioOnboarding) {
       router.push("/dashboard");
     } else {
-      router.push("/onboarding");
+      router.push("/bienvenida");
     }
     router.refresh();
   };

@@ -7,7 +7,7 @@ export default function OnboardingPage() {
   const router = useRouter();
 
   const handleContinuar = () => {
-    router.push("/bienvenida");
+    router.push("/registro");
   };
 
   return <OnboardingStep1 onContinuar={handleContinuar} />;
