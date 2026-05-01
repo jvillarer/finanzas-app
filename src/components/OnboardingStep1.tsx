@@ -12,7 +12,7 @@ const PANTALLAS = [
   { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!" },
 ];
 
-const IMAGEN = "/Lani_Saludando_ec67ff06.png";
+const IMAGEN = "/Lani_cropped.png";
 
 // ── Texto con fade+slide al cambiar pantalla ──────────────────────────────────
 function SeccionTexto({ pantalla }: { pantalla: typeof PANTALLAS[0] }) {
@@ -248,13 +248,13 @@ export default function OnboardingStep1({ onContinuar }: Props) {
                 draggable={false}
                 style={{
                   position:   "absolute",
-                  bottom:     "-6%",
+                  bottom:     0,
                   left:       "50%",
                   transform:  idx === indice
                     ? "translateX(-50%) scale(1)"
                     : "translateX(-50%) scale(0.95)",
-                  width:      "115%",
-                  height:     "auto",
+                  height:     "92%",
+                  width:      "auto",
                   maxWidth:   "none",
                   objectFit:  "contain",
                   display:    "block",
