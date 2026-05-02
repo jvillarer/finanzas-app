@@ -8,12 +8,12 @@ import { useState, useRef, useEffect, useCallback } from "react";
 // Lani_ticket_crop (85% contenido) → 92% / 85% * 96% ≈ 104%
 // Lani_categorias_crop (77% contenido) → 92% / 77% * 96% ≈ 115%
 const PANTALLAS = [
-  { id: 1, titulo: "¡Hola! Soy Lani",            subtitulo: "Estoy aquí para ayudarte con tu dinero, sin estrés.", cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%"  },
-  { id: 2, titulo: "Toma una foto a tu ticket",   subtitulo: "Yo registro todo automáticamente.",                  cta: "Continuar", imagen: "/Lani_ticket_crop.png",     altura: "104%" },
-  { id: 3, titulo: "Háblame por WhatsApp",         subtitulo: "Solo dime lo que gastaste.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%"  },
-  { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar", imagen: "/Lani_organiza_crop.png",   altura: "102%" },
-  { id: 5, titulo: "Entiende tu dinero",           subtitulo: "Gráficas simples y claras.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%"  },
-  { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!", imagen: "/Lani_cropped.png",         altura: "92%"  },
+  { id: 1, titulo: "¡Hola! Soy Lani",            subtitulo: "Estoy aquí para ayudarte con tu dinero, sin estrés.", cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%",  bajada: "0%"  },
+  { id: 2, titulo: "Toma una foto a tu ticket",   subtitulo: "Yo registro todo automáticamente.",                  cta: "Continuar", imagen: "/Lani_ticket_crop.png",     altura: "104%", bajada: "0%"  },
+  { id: 3, titulo: "Háblame por WhatsApp",         subtitulo: "Solo dime lo que gastaste.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%",  bajada: "0%"  },
+  { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar", imagen: "/Lani_organiza_crop.png",   altura: "112%", bajada: "-8%" },
+  { id: 5, titulo: "Entiende tu dinero",           subtitulo: "Gráficas simples y claras.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%",  bajada: "0%"  },
+  { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!", imagen: "/Lani_cropped.png",         altura: "92%",  bajada: "0%"  },
 ];
 
 // ── Texto con fade+slide al cambiar pantalla ──────────────────────────────────
@@ -250,7 +250,7 @@ export default function OnboardingStep1({ onContinuar }: Props) {
                 draggable={false}
                 style={{
                   position:   "absolute",
-                  bottom:     0,
+                  bottom:     pantalla.bajada,
                   left:       "50%",
                   transform:  idx === indice
                     ? "translateX(-50%) scale(1)"
