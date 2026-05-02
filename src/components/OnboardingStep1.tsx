@@ -3,14 +3,17 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 // ── Pantallas ─────────────────────────────────────────────────────────────────
-// altura: % del contenedor visible — ajustado para que Lani se vea igual de grande en todas las pantallas
+// altura: % del contenedor — calculado para que Lani se vea igual de grande en todas las pantallas
+// Referencia: Lani_cropped (96% contenido) a 92% → Lani visual ≈ 88% del contenedor
+// Lani_ticket_crop (85% contenido) → 92% / 85% * 96% ≈ 104%
+// Lani_categorias_crop (77% contenido) → 92% / 77% * 96% ≈ 115%
 const PANTALLAS = [
-  { id: 1, titulo: "¡Hola! Soy Lani",            subtitulo: "Estoy aquí para ayudarte con tu dinero, sin estrés.", cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%" },
-  { id: 2, titulo: "Toma una foto a tu ticket",   subtitulo: "Yo registro todo automáticamente.",                  cta: "Continuar", imagen: "/Lani_categorias_crop.png", altura: "92%" },
-  { id: 3, titulo: "Háblame por WhatsApp",         subtitulo: "Solo dime lo que gastaste.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%" },
-  { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar", imagen: "/Lani_ticket_crop.png",     altura: "92%" },
-  { id: 5, titulo: "Entiende tu dinero",           subtitulo: "Gráficas simples y claras.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%" },
-  { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!", imagen: "/Lani_cropped.png",         altura: "92%" },
+  { id: 1, titulo: "¡Hola! Soy Lani",            subtitulo: "Estoy aquí para ayudarte con tu dinero, sin estrés.", cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%"  },
+  { id: 2, titulo: "Toma una foto a tu ticket",   subtitulo: "Yo registro todo automáticamente.",                  cta: "Continuar", imagen: "/Lani_ticket_crop.png",     altura: "104%" },
+  { id: 3, titulo: "Háblame por WhatsApp",         subtitulo: "Solo dime lo que gastaste.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%"  },
+  { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar", imagen: "/Lani_categorias_crop.png", altura: "115%" },
+  { id: 5, titulo: "Entiende tu dinero",           subtitulo: "Gráficas simples y claras.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%"  },
+  { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!", imagen: "/Lani_cropped.png",         altura: "92%"  },
 ];
 
 // ── Texto con fade+slide al cambiar pantalla ──────────────────────────────────
