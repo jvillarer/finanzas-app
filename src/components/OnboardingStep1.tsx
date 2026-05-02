@@ -3,13 +3,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 // ── Pantallas ─────────────────────────────────────────────────────────────────
+// altura: % del contenedor visible — ajustado para que Lani se vea igual de grande en todas las pantallas
 const PANTALLAS = [
-  { id: 1, titulo: "¡Hola! Soy Lani",            subtitulo: "Estoy aquí para ayudarte con tu dinero, sin estrés.", cta: "Continuar", imagen: "/Lani_cropped.png"         },
-  { id: 2, titulo: "Toma una foto a tu ticket",   subtitulo: "Yo registro todo automáticamente.",                  cta: "Continuar", imagen: "/Lani_ticket_crop.png"     },
-  { id: 3, titulo: "Háblame por WhatsApp",         subtitulo: "Solo dime lo que gastaste.",                         cta: "Continuar", imagen: "/Lani_cropped.png"         },
-  { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar", imagen: "/Lani_categorias_crop.png" },
-  { id: 5, titulo: "Entiende tu dinero",           subtitulo: "Gráficas simples y claras.",                         cta: "Continuar", imagen: "/Lani_cropped.png"         },
-  { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!", imagen: "/Lani_cropped.png"         },
+  { id: 1, titulo: "¡Hola! Soy Lani",            subtitulo: "Estoy aquí para ayudarte con tu dinero, sin estrés.", cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%" },
+  { id: 2, titulo: "Toma una foto a tu ticket",   subtitulo: "Yo registro todo automáticamente.",                  cta: "Continuar", imagen: "/Lani_categorias_crop.png", altura: "92%" },
+  { id: 3, titulo: "Háblame por WhatsApp",         subtitulo: "Solo dime lo que gastaste.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%" },
+  { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar", imagen: "/Lani_ticket_crop.png",     altura: "92%" },
+  { id: 5, titulo: "Entiende tu dinero",           subtitulo: "Gráficas simples y claras.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%" },
+  { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!", imagen: "/Lani_cropped.png",         altura: "92%" },
 ];
 
 // ── Texto con fade+slide al cambiar pantalla ──────────────────────────────────
@@ -251,7 +252,7 @@ export default function OnboardingStep1({ onContinuar }: Props) {
                   transform:  idx === indice
                     ? "translateX(-50%) scale(1)"
                     : "translateX(-50%) scale(0.95)",
-                  height:     "92%",
+                  height:     pantalla.altura,
                   width:      "auto",
                   maxWidth:   "none",
                   objectFit:  "contain",
@@ -283,8 +284,8 @@ export default function OnboardingStep1({ onContinuar }: Props) {
           onMouseDown={() => setPresionado(true)}
           onMouseUp={() => setPresionado(false)}
           onMouseLeave={() => setPresionado(false)}
-          onTouchStart={() => setPresionado(true)}
-          onTouchEnd={() => { setPresionado(false); handleCTA(); }}
+          onTouchStart={(e) => { e.preventDefault(); setPresionado(true); }}
+          onTouchEnd={(e) => { e.preventDefault(); setPresionado(false); handleCTA(); }}
           onClick={handleCTA}
           style={{
             height:        56,
