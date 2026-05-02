@@ -4,15 +4,13 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 // ── Pantallas ─────────────────────────────────────────────────────────────────
 const PANTALLAS = [
-  { id: 1, titulo: "¡Hola! Soy Lani",            subtitulo: "Estoy aquí para ayudarte con tu dinero, sin estrés.", cta: "Continuar" },
-  { id: 2, titulo: "Toma una foto a tu ticket",   subtitulo: "Yo registro todo automáticamente.",                  cta: "Continuar" },
-  { id: 3, titulo: "Háblame por WhatsApp",         subtitulo: "Solo dime lo que gastaste.",                         cta: "Continuar" },
-  { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar" },
-  { id: 5, titulo: "Entiende tu dinero",           subtitulo: "Gráficas simples y claras.",                         cta: "Continuar" },
-  { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!" },
+  { id: 1, titulo: "¡Hola! Soy Lani",            subtitulo: "Estoy aquí para ayudarte con tu dinero, sin estrés.", cta: "Continuar", imagen: "/Lani_cropped.png"         },
+  { id: 2, titulo: "Toma una foto a tu ticket",   subtitulo: "Yo registro todo automáticamente.",                  cta: "Continuar", imagen: "/Lani_ticket_crop.png"     },
+  { id: 3, titulo: "Háblame por WhatsApp",         subtitulo: "Solo dime lo que gastaste.",                         cta: "Continuar", imagen: "/Lani_cropped.png"         },
+  { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar", imagen: "/Lani_categorias_crop.png" },
+  { id: 5, titulo: "Entiende tu dinero",           subtitulo: "Gráficas simples y claras.",                         cta: "Continuar", imagen: "/Lani_cropped.png"         },
+  { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!", imagen: "/Lani_cropped.png"         },
 ];
-
-const IMAGEN = "/Lani_cropped.png";
 
 // ── Texto con fade+slide al cambiar pantalla ──────────────────────────────────
 function SeccionTexto({ pantalla }: { pantalla: typeof PANTALLAS[0] }) {
@@ -174,7 +172,7 @@ export default function OnboardingStep1({ onContinuar }: Props) {
     return (
       <div style={{ position: "fixed", inset: 0, background: "#0F2F2F", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, padding: 32, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={IMAGEN} alt="Lani" style={{ width: 180, objectFit: "contain", filter: "drop-shadow(0 16px 24px rgba(0,0,0,0.4))" }} />
+        <img src="/Lani_cropped.png" alt="Lani" style={{ width: 180, objectFit: "contain", filter: "drop-shadow(0 16px 24px rgba(0,0,0,0.4))" }} />
         <div style={{ textAlign: "center" }}>
           <h2 style={{ color: "#fff", fontSize: 26, fontWeight: 700, marginBottom: 10 }}>¡Todo listo!</h2>
           <p style={{ color: "#CFE8E8", fontSize: 16, lineHeight: "22px" }}>Lani está lista para ayudarte.</p>
@@ -226,7 +224,7 @@ export default function OnboardingStep1({ onContinuar }: Props) {
                 width:          `${100 / PANTALLAS.length}%`,
                 height:         "100%",
                 flexShrink:     0,
-                position:       "relative",   // hijo absoluto se posiciona aquí
+                position:       "relative",
               }}
             >
               {/* Glow detrás */}
@@ -243,7 +241,7 @@ export default function OnboardingStep1({ onContinuar }: Props) {
               }} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={IMAGEN}
+                src={pantalla.imagen}
                 alt="Lani"
                 draggable={false}
                 style={{
