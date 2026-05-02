@@ -11,7 +11,7 @@ const PANTALLAS = [
   { id: 1, titulo: "¡Hola! Soy Lani",            subtitulo: "Estoy aquí para ayudarte con tu dinero, sin estrés.", cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%"  },
   { id: 2, titulo: "Toma una foto a tu ticket",   subtitulo: "Yo registro todo automáticamente.",                  cta: "Continuar", imagen: "/Lani_ticket_crop.png",     altura: "104%" },
   { id: 3, titulo: "Háblame por WhatsApp",         subtitulo: "Solo dime lo que gastaste.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%"  },
-  { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar", imagen: "/Lani_organiza_crop.png",   altura: "110%" },
+  { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar", imagen: "/Lani_organiza_crop.png",   altura: "102%" },
   { id: 5, titulo: "Entiende tu dinero",           subtitulo: "Gráficas simples y claras.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%"  },
   { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!", imagen: "/Lani_cropped.png",         altura: "92%"  },
 ];
