@@ -152,14 +152,9 @@ export default function DashboardPage() {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.user_metadata?.nombre_completo) {
-        const n = user.user_metadata.nombre_completo as string;
-        setNombre(n.split(" ")[0]);
-        setIniciales(n.split(" ").slice(0, 2).map((p: string) => p[0]).join("").toUpperCase());
-      }
 
-      // Cargar transacciones, logros, MSI, presupuestos y tarjetas en paralelo
-      const [datos, logrosData, msiData, presData, tarjetasData] = await Promise.all([
+      // Cargar transacciones, logros, MSI, presupuestos, tarjetas y perfil en paralelo
+      const [datos, logrosData, msiData, presData, tarjetasData, perfilData] = await Promise.all([
         obtenerTransacciones(),
         user
           ? supabase
@@ -191,7 +186,23 @@ export default function DashboardPage() {
               .gte("fecha_cargo", new Date().toISOString().split("T")[0])
               .order("fecha_cargo", { ascending: true })
           : Promise.resolve({ data: [] }),
+        user
+          ? supabase
+              .from("perfiles")
+              .select("nombre_completo")
+              .eq("id", user.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
       ]);
+
+      // Nombre: preferir tabla perfiles, fallback a user_metadata
+      const nombreCompleto =
+        (perfilData?.data as { nombre_completo?: string } | null)?.nombre_completo ||
+        (user?.user_metadata?.nombre_completo as string | undefined);
+      if (nombreCompleto) {
+        setNombre(nombreCompleto.split(" ")[0]);
+        setIniciales(nombreCompleto.split(" ").slice(0, 2).map((p: string) => p[0]).join("").toUpperCase());
+      }
 
       setTransacciones(datos);
       setCompromisosMsi((msiData.data ?? []) as CompromisoMSI[]);
