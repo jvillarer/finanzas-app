@@ -190,7 +190,6 @@ export async function POST(req: NextRequest) {
     { data: transacciones },
     { data: metas },
     { data: deduciblesAno },
-    { data: tarjetas },
   ] = await Promise.all([
     supabase
       .from("mensajes_wa")
@@ -216,11 +215,6 @@ export async function POST(req: NextRequest) {
       .eq("tipo", "gasto")
       .gte("fecha", `${anoActual}-01-01`)
       .in("categoria", ["Salud", "Educación", "Servicios", "Otros"]),
-    supabase
-      .from("tarjetas")
-      .select("id, nombre, banco, dia_corte, dias_para_pago")
-      .eq("usuario_id", usuarioId)
-      .eq("activa", true),
   ]);
 
   // El historial viene en orden DESC; lo invertimos para orden cronológico
@@ -235,13 +229,10 @@ export async function POST(req: NextRequest) {
   const historial = normalizarHistorial(historialCrudo);
 
   // Detectar si el último mensaje de Lani fue una pregunta de aclaración
-  // En ese caso, Claude debe usar el historial para entender qué registrar, no inventar
   const ultimoMensajeLani = historialRows?.[0]?.rol === "assistant" ? historialRows[0].contenido as string : null;
   const estabaPidiendoAclaracion = ultimoMensajeLani != null && /\?/.test(ultimoMensajeLani);
 
-  type Tarjeta = { id: string; nombre: string; banco: string | null; dia_corte: number; dias_para_pago: number };
-  const tarjetasUsuario = (tarjetas ?? []) as Tarjeta[];
-  const contexto = construirContextoWA(transacciones ?? [], metas ?? [], deduciblesAno ?? [], anoActual, tarjetasUsuario);
+  const contexto = construirContextoWA(transacciones ?? [], metas ?? [], deduciblesAno ?? [], anoActual);
 
   // Prompt de Lani adaptado para WhatsApp
   const sistemaWA = `Eres Lani, la asistente financiera personal de ${nombre || "tu usuario"}.
@@ -273,24 +264,6 @@ EJEMPLOS DE CONFIRMACIONES CON PERSONALIDAD:
 - "nómina 20000" → "✓ Nómina $20,000 anotada. Llegó el quince, a administrarlo bien 💪"
 - "300 en zapatos" → "✓ Zapatos $300 anotados. Inversión necesaria o antojo? Jajaja"
 - Si el gasto es muy alto o inusual → un comentario breve y directo sin regañar
-
-REGISTRO DE GASTOS — FLUJO OBLIGATORIO:
-Cuando el usuario reporte un GASTO (uber, comida, oxxo, ropa, etc.):
-1. Registra INMEDIATAMENTE con crear_transaccion (metodo_pago: "efectivo" por default)
-2. En tu respuesta de confirmación, SIEMPRE pregunta al final cómo pagó: "¿cómo pagaste — efectivo, débito o tarjeta?"
-3. Si el usuario responde con el método → llama actualizar_transaccion para corregir metodo_pago (y tarjeta_id + fecha_cargo si aplica)
-4. Si dice "tarjeta" y tiene varias → pregunta cuál; si tiene una → actualiza con esa automáticamente
-
-EXCEPCIÓN — no preguntes método de pago si:
-- El usuario YA mencionó el método en su mensaje ("con la amex", "en efectivo", "con débito", "a crédito")
-- Es un ingreso (nómina, transferencia, etc.)
-- El usuario está respondiendo a una pregunta tuya sobre el método
-
-EJEMPLOS CON FLUJO CORRECTO:
-- "uber 85" → registra → "✓ Uber $85 anotado 🐑 ¿Cómo pagaste — efectivo, débito o tarjeta?"
-- "comida 320 con la amex" → registra con credito + tarjeta_id → "✓ Comida $320 anotada a tu AMEX 💳"
-- "oxxo 48 efectivo" → registra con efectivo → "✓ Oxxo $48 anotado."
-- Usuario responde "débito" → actualiza_transaccion metodo_pago: "debito" → "✓ Listo, puesto como débito."
 
 DETECCIÓN DE DUPLICADOS — REGLA EXACTA:
 Para saber si algo ya está registrado, revisa ÚNICAMENTE la lista de transacciones del contexto financiero (la sección "Transacciones ya guardadas en DB").
@@ -332,15 +305,6 @@ REGLAS OPERATIVAS:
 
 Categorías válidas: Comida, Supermercado, Transporte, Entretenimiento, Salud, Servicios, Ropa, Hogar, Educación, Otros
 
-TARJETAS DE CRÉDITO — FLUJO REAL:
-Cuando el usuario mencione que pagó con tarjeta de crédito (o diga "con la tarjeta", "a crédito", nombre de un banco como AMEX/BBVA/etc.):
-1. Registra con metodo_pago: "credito"
-2. Si tiene UNA sola tarjeta → usa ese tarjeta_id automáticamente, sin preguntar
-3. Si tiene VARIAS tarjetas → pregunta cuál usó (menciona los nombres cortos)
-4. Si no tiene tarjetas registradas → registra igual con metodo_pago: "credito", sin tarjeta_id
-5. Si pagó en efectivo o débito (o no especifica) → metodo_pago: "efectivo" o "debito", sin tarjeta_id
-La fecha de cargo real la calcula el sistema automáticamente — tú solo pasa el tarjeta_id correcto.
-
 DEDUCCIONES ISR — menciona solo cuando sea obvio por la descripción. Usa los límites reales del SAT 2025 y el acumulado del contexto para dar info concreta:
 
 Qué es deducible y sus límites:
@@ -373,8 +337,6 @@ ${contexto}`;
           categoria:    { type: "string",  description: "Categoría" },
           tipo:         { type: "string",  enum: ["gasto", "ingreso"] },
           fecha:        { type: "string",  description: "Fecha YYYY-MM-DD, default hoy" },
-          metodo_pago:  { type: "string",  enum: ["efectivo", "debito", "credito"], description: "Método de pago. Default: efectivo" },
-          tarjeta_id:   { type: "string",  description: "ID de la tarjeta de crédito (solo si metodo_pago es credito y el usuario tiene tarjetas)" },
         },
         required: ["monto", "tipo", "categoria"],
       },
@@ -391,9 +353,6 @@ ${contexto}`;
           descripcion:  { type: "string" },
           categoria:    { type: "string" },
           tipo:         { type: "string", enum: ["gasto", "ingreso"] },
-          metodo_pago:  { type: "string", enum: ["efectivo", "debito", "credito"] },
-          tarjeta_id:   { type: "string", description: "ID de la tarjeta (solo si metodo_pago es credito)" },
-          fecha_cargo:  { type: "string", description: "Fecha YYYY-MM-DD de cargo real (se calcula automáticamente si hay tarjeta_id)" },
         },
         required: ["id"],
       },
@@ -461,24 +420,12 @@ ${contexto}`;
 
       if (bloque.name === "crear_transaccion") {
         const d = bloque.input as {
-          monto: number; descripcion?: string; categoria: string; tipo: string;
-          fecha?: string; metodo_pago?: string; tarjeta_id?: string;
+          monto: number; descripcion?: string; categoria: string; tipo: string; fecha?: string;
         };
-        const monto      = Math.abs(Number(d.monto));
-        const tipoTx     = d.tipo === "ingreso" ? "ingreso" : "gasto";
-        const categoria  = CATEGORIAS_VALIDAS.has(d.categoria) ? d.categoria : "Otros";
-        const fecha      = d.fecha || hoy;
-        const metodoPago = (d.metodo_pago && ["efectivo", "debito", "credito"].includes(d.metodo_pago))
-          ? d.metodo_pago : "efectivo";
-
-        // Calcular fecha_cargo real si es crédito y tiene tarjeta
-        let fechaCargo: string | null = null;
-        if (metodoPago === "credito" && d.tarjeta_id) {
-          const tarjeta = tarjetasUsuario.find((t) => t.id === d.tarjeta_id);
-          if (tarjeta) {
-            fechaCargo = calcularFechaCargo(fecha, tarjeta.dia_corte, tarjeta.dias_para_pago);
-          }
-        }
+        const monto     = Math.abs(Number(d.monto));
+        const tipoTx    = d.tipo === "ingreso" ? "ingreso" : "gasto";
+        const categoria = CATEGORIAS_VALIDAS.has(d.categoria) ? d.categoria : "Otros";
+        const fecha     = d.fecha || hoy;
 
         const { error } = await supabase.from("transacciones").insert({
           usuario_id:  usuarioId,
@@ -487,9 +434,6 @@ ${contexto}`;
           categoria,
           tipo: tipoTx,
           fecha,
-          metodo_pago: metodoPago,
-          tarjeta_id:  d.tarjeta_id || null,
-          fecha_cargo: fechaCargo,
         });
 
         if (error) {
@@ -528,7 +472,7 @@ ${contexto}`;
       } else if (bloque.name === "actualizar_transaccion") {
         const d = bloque.input as {
           id: string; fecha?: string; monto?: number; descripcion?: string;
-          categoria?: string; tipo?: string; metodo_pago?: string; tarjeta_id?: string;
+          categoria?: string; tipo?: string;
         };
         const cambios: Record<string, unknown> = {};
         if (d.fecha)       cambios.fecha       = d.fecha;
@@ -536,22 +480,6 @@ ${contexto}`;
         if (d.descripcion) cambios.descripcion = d.descripcion;
         if (d.categoria)   cambios.categoria   = CATEGORIAS_VALIDAS.has(d.categoria!) ? d.categoria : "Otros";
         if (d.tipo)        cambios.tipo        = d.tipo;
-        if (d.metodo_pago && ["efectivo", "debito", "credito"].includes(d.metodo_pago)) {
-          cambios.metodo_pago = d.metodo_pago;
-          // Si cambia a crédito con tarjeta, calcular fecha_cargo
-          if (d.metodo_pago === "credito" && d.tarjeta_id) {
-            const tarjeta = tarjetasUsuario.find((t) => t.id === d.tarjeta_id);
-            if (tarjeta) {
-              const fechaBase = (d.fecha as string | undefined) || hoy;
-              cambios.tarjeta_id  = d.tarjeta_id;
-              cambios.fecha_cargo = calcularFechaCargo(fechaBase, tarjeta.dia_corte, tarjeta.dias_para_pago);
-            }
-          } else if (d.metodo_pago !== "credito") {
-            // Si cambia a efectivo/débito, limpiar tarjeta y fecha_cargo
-            cambios.tarjeta_id  = null;
-            cambios.fecha_cargo = null;
-          }
-        }
 
         const { error } = await supabase.from("transacciones")
           .update(cambios).eq("id", d.id).eq("usuario_id", usuarioId);
@@ -691,25 +619,6 @@ function normalizarHistorial(msgs: Anthropic.MessageParam[]): Anthropic.MessageP
   return resultado;
 }
 
-// Calcula la fecha real de cargo de una compra a crédito
-// Replica la lógica de la función SQL calcular_fecha_cargo()
-function calcularFechaCargo(fechaGasto: string, diaCorte: number, diasPago: number): string {
-  const gasto = new Date(fechaGasto + "T12:00:00");
-  const diaGasto = gasto.getDate();
-  // Si el gasto es ANTES o EN el día de corte → el corte es este mes
-  // Si es DESPUÉS del corte → el corte es el mes siguiente
-  let mesCorte = gasto.getMonth();
-  let anoCorte = gasto.getFullYear();
-  if (diaGasto > diaCorte) {
-    mesCorte += 1;
-    if (mesCorte > 11) { mesCorte = 0; anoCorte += 1; }
-  }
-  const fechaCorte = new Date(anoCorte, mesCorte, diaCorte);
-  const fechaCargo = new Date(fechaCorte);
-  fechaCargo.setDate(fechaCargo.getDate() + diasPago);
-  return fechaCargo.toISOString().split("T")[0];
-}
-
 // Resumen financiero compacto para el contexto de WhatsApp
 // IMPORTANTE: usa IDs completos (UUID) para que Claude pueda modificar/borrar
 function construirContextoWA(
@@ -717,7 +626,6 @@ function construirContextoWA(
   metas: { id: string; nombre: string; emoji: string; monto_objetivo: number; monto_actual: number }[],
   deduciblesAno: { monto: number; descripcion: string; categoria: string }[],
   anoActual: number,
-  tarjetas: { id: string; nombre: string; banco: string | null; dia_corte: number; dias_para_pago: number }[],
 ): string {
   if (!transacciones.length) return "";
 
@@ -767,25 +675,13 @@ function construirContextoWA(
     }
   }
 
-  // ── Tarjetas de crédito del usuario ─────────────────────────────────────────
-  let tarjetasTxt = "";
-  if (tarjetas.length > 0) {
-    const hoyDate = new Date();
-    const tarjetasLineas = tarjetas.map((t) => {
-      const proximoPago = calcularFechaCargo(hoyDate.toISOString().split("T")[0], t.dia_corte, t.dias_para_pago);
-      const banco = t.banco ? ` (${t.banco})` : "";
-      return `[${t.id}] ${t.nombre}${banco} — corte día ${t.dia_corte}, pago ${t.dias_para_pago}d después → próx. cargo ~${proximoPago}`;
-    }).join("\n");
-    tarjetasTxt = `\n\nTarjetas de crédito registradas:\n${tarjetasLineas}`;
-  }
-
   return `\n════════════════════════════════
 BASE DE DATOS FINANCIERA — SOLO LECTURA
 PROHIBIDO: usar estos datos para crear transacciones nuevas.
 PERMITIDO: consultarlos, modificarlos o borrarlos cuando el usuario lo pida.
 ════════════════════════════════
 Mes ${mesActual}: Ingresos $${Math.round(ingresos)} | Gastos $${Math.round(gastos)} | Balance $${Math.round(ingresos - gastos)}
-Top categorías: ${cats}${metasTxt}${deduciblesTxt}${tarjetasTxt}
+Top categorías: ${cats}${metasTxt}${deduciblesTxt}
 
 Transacciones ya guardadas en DB (NO son nuevas — ya existen):
 ${lista}

@@ -273,23 +273,6 @@ export default function PerfilPage() {
         ))}
       </div>
 
-      {/* Tarjetas de crédito */}
-      <button
-        onClick={() => router.push("/tarjetas")}
-        className="rounded-2xl px-5 py-4 mb-4 w-full text-left"
-        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold" style={{ color: "var(--text-1)" }}>💳 Tarjetas de crédito</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>Configura cortes y fechas de pago para ver tu flujo real</p>
-          </div>
-          <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth={2} strokeLinecap="round" style={{ width: 16, height: 16, flexShrink: 0 }}>
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </div>
-      </button>
-
       {/* Notificaciones push */}
       {soportaPush && (
         <div className="rounded-2xl px-5 py-4 mb-4"
