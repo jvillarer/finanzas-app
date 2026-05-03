@@ -7,10 +7,11 @@ import { createClient } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [correo, setCorreo] = useState("");
+  const [correo,     setCorreo]     = useState("");
   const [contrasena, setContrasena] = useState("");
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState("");
+  const [mostrarPass, setMostrarPass] = useState(false);
+  const [cargando,   setCargando]   = useState(false);
+  const [error,      setError]      = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,89 +25,193 @@ export default function LoginPage() {
       return;
     }
     const yaVioOnboarding = localStorage.getItem("lani_onboarding_done");
-    if (yaVioOnboarding) {
-      router.push("/dashboard");
-    } else {
-      router.push("/bienvenida");
-    }
+    router.push(yaVioOnboarding ? "/dashboard" : "/bienvenida");
     router.refresh();
   };
 
   return (
-    <main className="min-h-screen flex flex-col px-6" style={{ backgroundColor: "#f2f2f7" }}>
+    <main style={{
+      position:    "fixed",
+      inset:       0,
+      background:  "#0F2F2F",
+      display:     "flex",
+      flexDirection: "column",
+      overflow:    "hidden",
+      fontFamily:  "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif",
+    }}>
 
-      {/* Top spacer */}
-      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full pt-10">
+      {/* ── TOP 45% — Lani ─────────────────────────────────────────────────── */}
+      <div style={{
+        flexShrink: 0,
+        height:     "45%",
+        display:    "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        position:   "relative",
+        overflow:   "hidden",
+      }}>
+        {/* Glow suave */}
+        <div style={{
+          position:     "absolute",
+          width:        300,
+          height:       300,
+          borderRadius: "50%",
+          background:   "radial-gradient(circle, rgba(207,232,232,0.07) 0%, transparent 70%)",
+          bottom:       0,
+          left:         "50%",
+          transform:    "translateX(-50%)",
+          pointerEvents: "none",
+        }} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/Lani_cropped.png"
+          alt="Lani"
+          style={{
+            height:     "96%",
+            width:      "auto",
+            maxWidth:   "90%",
+            objectFit:  "contain",
+            display:    "block",
+            filter:     "drop-shadow(0px 12px 24px rgba(0,0,0,0.3))",
+          }}
+        />
+      </div>
 
-        {/* Branding */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 rounded-2xl mb-4 shadow-lg overflow-hidden">
-            <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          </div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Bienvenido de vuelta</h1>
-          <p className="text-sm text-gray-400 mt-1">Entra a tu cuenta de Lani</p>
-        </div>
+      {/* ── Nombre y tagline ────────────────────────────────────────────────── */}
+      <div style={{
+        flexShrink: 0,
+        paddingTop:    10,
+        paddingBottom: 6,
+        display:       "flex",
+        flexDirection: "column",
+        alignItems:    "center",
+      }}>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: "#ffffff", letterSpacing: "-0.5px", lineHeight: 1, margin: 0 }}>
+          Lani
+        </h1>
+        <p style={{ fontSize: 13, color: "rgba(207,232,232,0.55)", marginTop: 4, letterSpacing: "0.5px", textTransform: "uppercase", fontWeight: 500 }}>
+          Controla tu lana con Lani
+        </p>
+      </div>
 
-        {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-3">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1.5 tracking-wide uppercase">Correo</label>
+      {/* ── BOTTOM — Formulario ─────────────────────────────────────────────── */}
+      <form
+        onSubmit={handleLogin}
+        style={{
+          flex:          1,
+          padding:       "20px 24px 36px",
+          display:       "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+          {/* Correo */}
+          <div style={{ background: "#ffffff", borderRadius: 16, padding: "14px 18px" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(15,47,47,0.55)", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: 4 }}>
+              Correo electrónico
+            </div>
             <input
               type="email"
               autoComplete="email"
-              placeholder="tucorreo@ejemplo.com"
+              placeholder="hola@ejemplo.com"
               value={correo}
               onChange={(e) => setCorreo(e.target.value)}
               required
-              className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none bg-white text-gray-900 placeholder-gray-300 transition-all"
-              style={{ border: "1.5px solid rgba(0,0,0,0.08)", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1.5 tracking-wide uppercase">Contraseña</label>
-            <input
-              type="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-              value={contrasena}
-              onChange={(e) => setContrasena(e.target.value)}
-              required
-              className="w-full rounded-2xl px-4 py-4 text-sm font-medium outline-none bg-white text-gray-900 placeholder-gray-300 transition-all"
-              style={{ border: "1.5px solid rgba(0,0,0,0.08)", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}
+              style={{
+                width: "100%", border: "none", outline: "none",
+                background: "transparent", fontSize: 16, color: "#0F2F2F",
+                fontFamily: "inherit",
+              }}
             />
           </div>
 
+          {/* Contraseña */}
+          <div style={{ background: "#ffffff", borderRadius: 16, padding: "14px 18px", display: "flex", alignItems: "center" }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(15,47,47,0.55)", letterSpacing: "0.5px", textTransform: "uppercase", marginBottom: 4 }}>
+                Contraseña
+              </div>
+              <input
+                type={mostrarPass ? "text" : "password"}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={contrasena}
+                onChange={(e) => setContrasena(e.target.value)}
+                required
+                style={{
+                  width: "100%", border: "none", outline: "none",
+                  background: "transparent", fontSize: 16, color: "#0F2F2F",
+                  fontFamily: "inherit",
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setMostrarPass(!mostrarPass)}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "rgba(15,47,47,0.45)" }}
+            >
+              {mostrarPass ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+                  <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          <div style={{ textAlign: "right", marginTop: -4 }}>
+            <span style={{ fontSize: 13, color: "rgba(207,232,232,0.6)", cursor: "pointer" }}>
+              ¿Olvidaste tu contraseña?
+            </span>
+          </div>
+        </div>
+
+        {/* CTA + registro */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {error && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-red-50 border border-red-100">
-              <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-red-500 shrink-0">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-              </svg>
-              <p className="text-xs font-semibold text-red-600">{error}</p>
+            <div style={{ background: "rgba(217,74,74,0.15)", borderRadius: 12, padding: "12px 16px", border: "1px solid rgba(217,74,74,0.3)" }}>
+              <p style={{ fontSize: 13, color: "#ff6b6b", fontWeight: 600 }}>{error}</p>
             </div>
           )}
 
           <button
             type="submit"
             disabled={cargando}
-            className="w-full font-bold py-4 rounded-full text-sm text-white tracking-wide transition-all active:scale-[0.98] disabled:opacity-50 mt-2"
-            style={{ backgroundColor: "#000" }}
+            style={{
+              height:       56,
+              borderRadius: 28,
+              border:       "none",
+              background:   cargando ? "rgba(255,255,255,0.7)" : "#ffffff",
+              color:        "#0F2F2F",
+              fontSize:     16,
+              fontWeight:   700,
+              width:        "100%",
+              cursor:       cargando ? "default" : "pointer",
+              boxShadow:    "0 6px 20px rgba(0,0,0,0.2)",
+              transition:   "all 0.2s ease",
+              letterSpacing: "0.1px",
+            }}
           >
-            {cargando ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                Entrando...
-              </span>
-            ) : "Entrar"}
+            {cargando ? "Entrando…" : "Iniciar sesión"}
           </button>
-        </form>
 
-        <p className="text-center text-sm mt-6 text-gray-400">
-          ¿No tienes cuenta?{" "}
-          <Link href="/registro" className="font-bold text-gray-900">Regístrate</Link>
-        </p>
-      </div>
-
-      <div className="pb-10" />
+          <div style={{ textAlign: "center" }}>
+            <span style={{ fontSize: 14, color: "rgba(207,232,232,0.5)" }}>¿No tienes cuenta? </span>
+            <Link href="/registro" style={{ fontSize: 14, color: "#ffffff", fontWeight: 600, textDecoration: "none" }}>
+              ¡Regístrate!
+            </Link>
+          </div>
+        </div>
+      </form>
     </main>
   );
 }
