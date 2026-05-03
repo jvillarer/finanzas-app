@@ -863,37 +863,6 @@ export default function ChatPage() {
           </div>
         ))}
 
-        {mensajes.length === 1 && (
-          <div className="pt-2">
-            <p className="text-xs mb-2 text-center" style={{ color: "#6b7280" }}>Prueba diciendo:</p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {SUGERENCIAS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => enviar(s)}
-                  className="text-xs px-3 py-2 rounded-2xl font-semibold transition-all active:scale-95"
-                  style={{ backgroundColor: "#fff", border: "1px solid rgba(0,0,0,0.08)", color: "#374151", boxShadow: "0 1px 2px rgba(0,0,0,0.06)" }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-
-            {/* Botón modo voz destacado */}
-            {soportaVoz && (
-              <button
-                onClick={abrirModoVoz}
-                className="mt-4 w-full py-3 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm transition-all active:scale-[0.98]"
-                style={{ backgroundColor: "#000", color: "#fff" }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-                </svg>
-                Hablar con Lani
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       {error && (
