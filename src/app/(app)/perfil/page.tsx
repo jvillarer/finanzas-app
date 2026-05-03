@@ -85,7 +85,8 @@ export default function PerfilPage() {
   useEffect(() => {
     (async () => {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) { router.replace("/login"); return; }
       if (user) {
         const m = user.user_metadata || {};
         setCorreo(user.email || "");

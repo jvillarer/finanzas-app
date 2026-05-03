@@ -151,7 +151,13 @@ export default function DashboardPage() {
   const cargar = useCallback(async () => {
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      // Sesión expirada o inválida → redirigir al login
+      if (authError || !user) {
+        router.replace("/login");
+        return;
+      }
 
       // Cargar transacciones, logros, MSI, presupuestos, tarjetas y perfil en paralelo
       const [datos, logrosData, msiData, presData, tarjetasData, perfilData] = await Promise.all([
