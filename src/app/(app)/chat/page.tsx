@@ -690,7 +690,7 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="flex flex-col h-screen" style={{ backgroundColor: "#f2f2f7" }}>
+    <main className="flex flex-col h-screen" style={{ backgroundColor: "#f5f9f8" }}>
 
       {/* ── TOUR ── */}
       <TourSheet
@@ -709,38 +709,32 @@ export default function ChatPage() {
 
       {/* ── HEADER ── */}
       <div
-        className="flex items-center gap-3 px-5 pt-14 pb-4 shrink-0"
-        style={{ backgroundColor: "#fff", borderBottom: "1px solid rgba(0,0,0,0.06)" }}
+        className="flex items-center gap-3 px-4 shrink-0"
+        style={{ backgroundColor: "#091f1f", paddingTop: 56, paddingBottom: 14 }}
       >
-        <div className="w-10 h-10 rounded-full shrink-0 overflow-hidden">
-          <img src="/lani-typing.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        {/* Avatar + dot */}
+        <div className="relative shrink-0">
+          <div
+            className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center"
+            style={{ backgroundColor: "#fff", border: "2px solid rgba(255,255,255,0.12)" }}
+          >
+            <img src="/Lani_cropped.png" alt="Lani" style={{ width: "90%", height: "90%", objectFit: "contain" }} />
+          </div>
+          <div
+            className="absolute rounded-full"
+            style={{ bottom: 1, right: 1, width: 9, height: 9, backgroundColor: "#4ade80", border: "2px solid #091f1f" }}
+          />
         </div>
+
+        {/* Nombre / estado */}
         <div className="flex-1">
-          <p className="text-base font-black text-gray-900">Lani</p>
-          <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: "#16a34a" }}>
-            {hablando
-              ? <><WaveAnimation color="#16a34a" size={14} /> hablando</>
-              : <><span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: "#16a34a" }} />en línea</>
-            }
+          <p style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", letterSpacing: "-0.2px", lineHeight: 1.2 }}>Lani</p>
+          <p style={{ fontSize: 12, color: "#4ade80", fontWeight: 500, marginTop: 1 }}>
+            {hablando ? "hablando…" : "en línea"}
           </p>
         </div>
-        <TourBoton onClick={() => setShowTour(true)} />
 
-        {/* Nueva conversación */}
-        <button
-          onClick={() => {
-            localStorage.removeItem(STORAGE_KEY);
-            setMensajes([MENSAJE_BIENVENIDA]);
-          }}
-          className="flex items-center gap-1.5 px-3 h-9 rounded-2xl transition-all active:scale-95"
-          style={{ backgroundColor: "#f3f4f6", border: "1px solid rgba(0,0,0,0.06)" }}
-          title="Nueva conversación"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth={2} className="w-3.5 h-3.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-          </svg>
-          <span className="text-xs font-semibold" style={{ color: "#6b7280" }}>Reiniciar conversación</span>
-        </button>
+        <TourBoton onClick={() => setShowTour(true)} />
 
         {/* Toggle speaker */}
         {soportaVoz && (
@@ -749,14 +743,11 @@ export default function ChatPage() {
               if (vozActiva) window.speechSynthesis?.cancel();
               setVozActiva((v) => !v);
             }}
-            className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all active:scale-95"
-            style={{
-              backgroundColor: vozActiva ? "#f0f9ff" : "#f3f4f6",
-              border: vozActiva ? "1px solid rgba(59,130,246,0.3)" : "1px solid rgba(0,0,0,0.06)",
-            }}
+            className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95"
+            style={{ backgroundColor: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}
             title={vozActiva ? "Silenciar" : "Activar voz"}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke={vozActiva ? "#3b82f6" : "#6b7280"} strokeWidth={2} className="w-4 h-4">
+            <svg viewBox="0 0 24 24" fill="none" stroke={vozActiva ? "#4ade80" : "rgba(207,232,232,0.5)"} strokeWidth={2} className="w-4 h-4">
               {vozActiva ? (
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
               ) : (
@@ -765,13 +756,29 @@ export default function ChatPage() {
             </svg>
           </button>
         )}
+
+        {/* Reiniciar */}
+        <button
+          onClick={() => {
+            localStorage.removeItem(STORAGE_KEY);
+            setMensajes([MENSAJE_BIENVENIDA]);
+          }}
+          className="flex items-center gap-1.5 h-8 rounded-2xl transition-all active:scale-95"
+          style={{ backgroundColor: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", paddingLeft: 12, paddingRight: 12 }}
+          title="Nueva conversación"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
+            <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-.08-4.43" />
+          </svg>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "#fff" }}>Reiniciar</span>
+        </button>
       </div>
 
       {/* Notificación */}
       {notificacion && (
         <div
           className="mx-4 mt-3 shrink-0 rounded-2xl px-4 py-3 text-sm font-semibold fade-in"
-          style={{ backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0", color: "#16a34a" }}
+          style={{ backgroundColor: "rgba(74,222,128,0.12)", border: "1px solid rgba(74,222,128,0.25)", color: "#166534" }}
         >
           {notificacion}
         </div>
@@ -781,7 +788,7 @@ export default function ChatPage() {
       {grabando && (
         <div
           className="mx-4 mt-3 shrink-0 rounded-2xl px-4 py-3 flex items-center gap-3 fade-in"
-          style={{ backgroundColor: "#fff5f5", border: "1px solid #fecaca" }}
+          style={{ backgroundColor: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.2)" }}
         >
           <span className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ backgroundColor: "#dc2626" }} />
           <p className="text-sm font-semibold" style={{ color: "#dc2626" }}>Escuchando... habla ahora</p>
@@ -789,23 +796,26 @@ export default function ChatPage() {
       )}
 
       {/* ── MENSAJES ── */}
-      <div ref={listaRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 no-scroll">
+      <div ref={listaRef} className="flex-1 overflow-y-auto py-4 no-scroll" style={{ paddingLeft: 0, paddingRight: 0 }}>
         {mensajes.map((msg, i) => (
-          <div key={i} className={`flex ${msg.rol === "user" ? "justify-end" : "justify-start"}`}>
-            {msg.rol === "assistant" && (
-              <div className="w-8 h-8 rounded-full shrink-0 mr-2 mt-1 overflow-hidden">
-                <img src="/lani-hi.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </div>
-            )}
+          <div
+            key={i}
+            className={`flex ${msg.rol === "user" ? "justify-end" : "justify-start"}`}
+            style={{
+              paddingLeft: msg.rol === "user" ? 64 : 16,
+              paddingRight: msg.rol === "user" ? 16 : 64,
+              marginBottom: 10,
+            }}
+          >
             <div
-              className="max-w-[80%] rounded-3xl px-4 py-3 text-sm leading-relaxed"
+              className="max-w-full text-sm leading-relaxed"
               style={{
-                backgroundColor: msg.rol === "user" ? "#000" : "#fff",
-                border: msg.rol === "user" ? "none" : "1px solid rgba(0,0,0,0.06)",
-                color: msg.rol === "user" ? "#fff" : "#111827",
-                boxShadow: msg.rol === "assistant" ? "0 1px 3px rgba(0,0,0,0.07)" : "none",
-                borderTopRightRadius: msg.rol === "user" ? "4px" : undefined,
-                borderTopLeftRadius: msg.rol === "assistant" ? "4px" : undefined,
+                backgroundColor: msg.rol === "user" ? "#ffffff" : "#0F2F2F",
+                border: msg.rol === "user" ? "1px solid rgba(15,47,47,0.08)" : "none",
+                color: msg.rol === "user" ? "#0F2F2F" : "#ffffff",
+                boxShadow: msg.rol === "user" ? "0 1px 6px rgba(0,0,0,0.08)" : "0 2px 8px rgba(15,47,47,0.15)",
+                borderRadius: msg.rol === "user" ? "18px 4px 18px 18px" : "4px 18px 18px 18px",
+                padding: "11px 14px",
               }}
             >
               {msg.imagenUrl && (
@@ -818,13 +828,13 @@ export default function ChatPage() {
                   <ReactMarkdown
                     components={{
                       p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-                      strong: ({ children }) => <strong style={{ color: "#16a34a" }}>{children}</strong>,
-                      em: ({ children }) => <em style={{ color: "#9ca3af" }}>{children}</em>,
+                      strong: ({ children }) => <strong style={{ color: "#4ade80" }}>{children}</strong>,
+                      em: ({ children }) => <em style={{ color: "rgba(207,232,232,0.7)" }}>{children}</em>,
                       ul: ({ children }) => <ul className="space-y-1.5 mb-2 mt-1">{children}</ul>,
                       ol: ({ children }) => <ol className="space-y-1.5 mb-2 mt-1 list-decimal list-inside">{children}</ol>,
                       li: ({ children }) => (
                         <li className="flex items-start gap-2 leading-snug">
-                          <span style={{ color: "#6b7280", flexShrink: 0, marginTop: 2 }}>•</span>
+                          <span style={{ color: "rgba(207,232,232,0.6)", flexShrink: 0, marginTop: 2 }}>•</span>
                           <span>{children}</span>
                         </li>
                       ),
@@ -834,12 +844,20 @@ export default function ChatPage() {
                   </ReactMarkdown>
                 )
               ) : (
-                <img
-                  src="/lani-typing.png"
-                  alt="Lani escribiendo..."
-                  style={{ width: 36, height: 36, objectFit: "cover", borderRadius: "50%", display: "block" }}
-                  className="animate-pulse"
-                />
+                /* Typing dots */
+                <div className="flex items-center gap-1.5">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 7, height: 7, borderRadius: "50%",
+                        backgroundColor: "rgba(207,232,232,0.5)",
+                        animation: `td 1.2s ease-in-out ${i * 0.18}s infinite`,
+                      }}
+                    />
+                  ))}
+                  <style>{`@keyframes td{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}`}</style>
+                </div>
               )}
             </div>
           </div>
@@ -909,30 +927,39 @@ export default function ChatPage() {
 
       {/* ── INPUT ── */}
       <div
-        className="px-4 py-3 shrink-0"
+        className="shrink-0 flex items-center gap-2"
         style={{
-          backgroundColor: "#fff",
-          borderTop: "1px solid rgba(0,0,0,0.06)",
-          paddingBottom: "calc(72px + env(safe-area-inset-bottom) + 12px)",
+          backgroundColor: "#0F2F2F",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          paddingLeft: 12, paddingRight: 12,
+          paddingTop: 10,
+          paddingBottom: "calc(10px + env(safe-area-inset-bottom) + 60px)",
         }}
       >
-        <div className="flex gap-2 items-end">
+        {/* Cámara */}
+        <button
+          onClick={() => inputImagenRef.current?.click()}
+          disabled={cargando || grabando}
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-opacity active:opacity-70 disabled:opacity-40"
+          style={{ backgroundColor: "#ffffff", border: "none" }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0F2F2F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
+        </button>
+        <input type="file" accept="image/*" capture="environment" ref={inputImagenRef} onChange={manejarImagen} className="hidden" />
 
-          {/* Cámara */}
-          <button
-            onClick={() => inputImagenRef.current?.click()}
-            disabled={cargando || grabando}
-            className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-opacity active:opacity-70 disabled:opacity-40"
-            style={{ backgroundColor: "#f3f4f6", border: "1px solid rgba(0,0,0,0.06)" }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth={1.8} className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.776 48.776 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-            </svg>
-          </button>
-          <input type="file" accept="image/*" capture="environment" ref={inputImagenRef} onChange={manejarImagen} className="hidden" />
-
-          {/* Input texto */}
+        {/* Input pill */}
+        <div
+          className="flex-1 flex items-center"
+          style={{
+            height: 42, borderRadius: 21,
+            backgroundColor: "#ffffff",
+            border: grabando ? "1.5px solid rgba(220,38,38,0.5)" : "1px solid rgba(255,255,255,0.1)",
+            paddingLeft: 16, paddingRight: 10,
+          }}
+        >
           <input
             ref={inputRef}
             type="text"
@@ -941,50 +968,47 @@ export default function ChatPage() {
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && enviar()}
             placeholder={grabando ? "Escuchando..." : imagenPendiente ? "Mensaje opcional..." : "Dile algo a Lani..."}
             disabled={cargando || grabando}
-            className="flex-1 rounded-2xl px-4 py-3 text-sm font-medium outline-none text-gray-900 placeholder-gray-400 disabled:opacity-50"
-            style={{
-              backgroundColor: "#f5f5f5",
-              border: `1.5px solid ${grabando ? "rgba(220,38,38,0.4)" : "rgba(0,0,0,0.08)"}`,
-            }}
+            className="flex-1 outline-none text-sm font-medium disabled:opacity-50"
+            style={{ background: "transparent", border: "none", color: "#0F2F2F" }}
           />
-
-          {/* Micrófono */}
+          {/* Micrófono dentro del pill */}
           {soportaVoz && (
             <button
               onClick={toggleGrabacion}
               disabled={cargando || hablando}
-              className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-95 disabled:opacity-30"
-              style={{
-                backgroundColor: grabando ? "#fff5f5" : "#f3f4f6",
-                border: grabando ? "1.5px solid rgba(220,38,38,0.4)" : "1.5px solid rgba(0,0,0,0.06)",
-              }}
+              className="flex items-center justify-center transition-all active:scale-95 disabled:opacity-30"
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}
             >
               {grabando ? (
                 <span className="w-3 h-3 rounded-sm animate-pulse" style={{ backgroundColor: "#dc2626" }} />
               ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth={1.8} className="w-5 h-5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#0F2F2F" strokeWidth={1.8} className="w-4 h-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
                 </svg>
               )}
             </button>
           )}
-
-          {/* Enviar */}
-          <button
-            onClick={() => enviar()}
-            disabled={(!input.trim() && !imagenPendiente) || cargando || grabando}
-            className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-95 disabled:opacity-30"
-            style={{ backgroundColor: "#000" }}
-          >
-            {cargando ? (
-              <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-              </svg>
-            )}
-          </button>
         </div>
+
+        {/* Enviar */}
+        <button
+          onClick={() => enviar()}
+          disabled={(!input.trim() && !imagenPendiente) || cargando || grabando}
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-95"
+          style={{
+            backgroundColor: (input.trim() || imagenPendiente) && !cargando && !grabando ? "#0F2F2F" : "rgba(15,47,47,0.08)",
+            border: "none",
+          }}
+        >
+          {cargando ? (
+            <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+          )}
+        </button>
       </div>
     </main>
   );
