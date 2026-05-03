@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { crearTransaccion } from "@/lib/transacciones";
 import { haptico } from "@/lib/haptics";
 
@@ -23,6 +23,13 @@ interface Props {
 }
 
 export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
+  // Bloquear scroll del body mientras el sheet está abierto
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   const [tipo, setTipo] = useState<"ingreso" | "gasto">("gasto");
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -62,60 +69,58 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-end"
-      style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+      style={{ backgroundColor: "rgba(0,0,0,0.55)", touchAction: "none" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
     >
       <div
-        className="w-full pt-4 pb-10 px-5 slide-up"
+        className="w-full slide-up"
         style={{
           backgroundColor: "var(--surface)",
           borderTopLeftRadius: "24px",
           borderTopRightRadius: "24px",
-          maxHeight: "92vh",
-          overflowY: "auto",
+          maxHeight: "92dvh",
+          display: "flex",
+          flexDirection: "column",
           borderTop: "1px solid var(--border)",
         }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Handle */}
-        <div style={{ width: 32, height: 2, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 20px" }} />
-
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.01em" }}>Nuevo movimiento</h2>
-          <button
-            onClick={onCerrar}
-            style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
-            <svg viewBox="0 0 20 20" fill="var(--text-3)" style={{ width: 13, height: 13 }}>
-              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Tipo — text-based, not pill */}
-        <div style={{ display: "flex", gap: 4, marginBottom: 20, padding: 3, borderRadius: 10, backgroundColor: "var(--surface-2)" }}>
-          {(["gasto", "ingreso"] as const).map((t) => (
+        {/* Zona fija: handle + header + tipo */}
+        <div style={{ padding: "16px 20px 0", flexShrink: 0 }}>
+          <div style={{ width: 32, height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 20px" }} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)" }}>Nuevo movimiento</h2>
             <button
-              key={t}
-              onClick={() => { haptico.ligero(); setTipo(t); }}
-              style={{
-                flex: 1, padding: "9px 0",
-                borderRadius: 8,
-                fontSize: 12, fontWeight: 700,
-                backgroundColor: tipo === t ? "var(--bg)" : "transparent",
-                color: tipo === t
-                  ? (t === "ingreso" ? "var(--success)" : "var(--danger)")
-                  : "var(--text-3)",
-                border: tipo === t ? "1px solid var(--border)" : "1px solid transparent",
-                cursor: "pointer",
-                transition: "all 0.15s",
-              }}
+              onClick={onCerrar}
+              style={{ width: 30, height: 30, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
             >
-              {t === "ingreso" ? "↑ Ingreso" : "↓ Gasto"}
+              <svg viewBox="0 0 20 20" fill="var(--text-3)" style={{ width: 13, height: 13 }}>
+                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+              </svg>
             </button>
-          ))}
+          </div>
+          <div style={{ display: "flex", gap: 4, marginBottom: 16, padding: 3, borderRadius: 10, backgroundColor: "var(--surface-2)" }}>
+            {(["gasto", "ingreso"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => { haptico.ligero(); setTipo(t); }}
+                style={{
+                  flex: 1, padding: "9px 0", borderRadius: 8,
+                  fontSize: 13, fontWeight: 700,
+                  backgroundColor: tipo === t ? "var(--bg)" : "transparent",
+                  color: tipo === t ? (t === "ingreso" ? "var(--success)" : "var(--danger)") : "var(--text-3)",
+                  border: tipo === t ? "1px solid var(--border)" : "1px solid transparent",
+                  cursor: "pointer", transition: "all 0.15s",
+                }}
+              >
+                {t === "ingreso" ? "↑ Ingreso" : "↓ Gasto"}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* Zona scrolleable */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 8px", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
         {/* Monto */}
         <div style={{ marginBottom: 16 }}>
           {lbl("Monto")}
@@ -197,23 +202,27 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
           />
         </div>
 
-        {error && (
-          <div style={{ marginBottom: 12, padding: "10px 12px", borderRadius: 10, backgroundColor: "var(--danger-dim)", border: "1px solid rgba(240,110,110,0.2)" }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--danger)" }}>{error}</p>
-          </div>
-        )}
+        </div>{/* fin zona scrolleable */}
 
-        <button
-          onClick={handleGuardar} disabled={guardando}
-          className="active:scale-[0.98] transition-transform"
-          style={{
-            width: "100%", fontWeight: 700, padding: "14px 0", borderRadius: 12,
-            fontSize: 14, backgroundColor: "var(--gold)", color: "#ffffff",
-            border: "none", cursor: "pointer", opacity: guardando ? 0.4 : 1,
-          }}
-        >
-          {guardando ? "Guardando..." : "Guardar movimiento"}
-        </button>
+        {/* Botón fijo abajo */}
+        <div style={{ padding: "12px 20px", paddingBottom: "calc(12px + env(safe-area-inset-bottom))", flexShrink: 0, borderTop: "1px solid var(--border-2)" }}>
+          {error && (
+            <div style={{ marginBottom: 10, padding: "10px 12px", borderRadius: 10, backgroundColor: "var(--danger-dim)", border: "1px solid rgba(240,110,110,0.2)" }}>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "var(--danger)" }}>{error}</p>
+            </div>
+          )}
+          <button
+            onClick={handleGuardar} disabled={guardando}
+            className="active:scale-[0.98] transition-transform"
+            style={{
+              width: "100%", fontWeight: 700, padding: "15px 0", borderRadius: 14,
+              fontSize: 15, backgroundColor: "#0F2F2F", color: "#ffffff",
+              border: "none", cursor: "pointer", opacity: guardando ? 0.5 : 1,
+            }}
+          >
+            {guardando ? "Guardando..." : "Guardar movimiento"}
+          </button>
+        </div>
       </div>
     </div>
   );
