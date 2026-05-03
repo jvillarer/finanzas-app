@@ -12,6 +12,23 @@ export default function LoginPage() {
   const [mostrarPass, setMostrarPass] = useState(false);
   const [cargando,   setCargando]   = useState(false);
   const [error,      setError]      = useState("");
+  const [enviandoReset, setEnviandoReset] = useState(false);
+  const [resetEnviado,  setResetEnviado]  = useState(false);
+
+  const handleOlvideContrasena = async () => {
+    if (!correo) {
+      setError("Escribe tu correo arriba y luego toca '¿Olvidaste tu contraseña?'");
+      return;
+    }
+    setEnviandoReset(true);
+    setError("");
+    const supabase = createClient();
+    await supabase.auth.resetPasswordForEmail(correo, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setEnviandoReset(false);
+    setResetEnviado(true);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,9 +186,18 @@ export default function LoginPage() {
           </div>
 
           <div style={{ textAlign: "right", marginTop: -4 }}>
-            <span style={{ fontSize: 13, color: "rgba(207,232,232,0.6)", cursor: "pointer" }}>
-              ¿Olvidaste tu contraseña?
-            </span>
+            {resetEnviado ? (
+              <span style={{ fontSize: 13, color: "rgba(130,220,130,0.85)" }}>
+                ✓ Revisa tu correo para restablecer tu contraseña
+              </span>
+            ) : (
+              <span
+                onClick={handleOlvideContrasena}
+                style={{ fontSize: 13, color: enviandoReset ? "rgba(207,232,232,0.35)" : "rgba(207,232,232,0.6)", cursor: enviandoReset ? "default" : "pointer" }}
+              >
+                {enviandoReset ? "Enviando…" : "¿Olvidaste tu contraseña?"}
+              </span>
+            )}
           </div>
         </div>
 
