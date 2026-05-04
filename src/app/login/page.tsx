@@ -82,7 +82,7 @@ export default function LoginPage() {
         }} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/Lani_cropped.png"
+          src="/Lani_login_crop.png"
           alt="Lani"
           style={{
             height:     "96%",
