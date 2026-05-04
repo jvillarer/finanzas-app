@@ -13,7 +13,7 @@ const PANTALLAS = [
   { id: 3, titulo: "Háblame por WhatsApp",         subtitulo: "Solo dime lo que gastaste.",                         cta: "Continuar", imagen: "/Lani_whatsapp_crop.png",  altura: "90%",  bajada: "6%"    },
   { id: 4, titulo: "Yo organizo todo",             subtitulo: "Tus gastos se ordenan solos.",                       cta: "Continuar", imagen: "/Lani_organiza_crop.png",   altura: "89%",  bajada: "7%"  },
   { id: 5, titulo: "Entiende tu dinero",           subtitulo: "Gráficas simples y claras.",                         cta: "Continuar", imagen: "/Lani_cropped.png",         altura: "92%",  bajada: "0%"  },
-  { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!", imagen: "/Lani_cropped.png",         altura: "92%",  bajada: "0%"  },
+  { id: 6, titulo: "Cumple tus metas",             subtitulo: "Ahorra y celebra conmigo.",                          cta: "¡Empezar!", imagen: "/Lani_metas_crop.png",      altura: "92%",  bajada: "0%"  },
 ];
 
 // ── Texto con fade+slide al cambiar pantalla ──────────────────────────────────
