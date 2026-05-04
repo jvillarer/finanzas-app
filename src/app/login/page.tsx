@@ -57,10 +57,10 @@ export default function LoginPage() {
       fontFamily:  "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif",
     }}>
 
-      {/* ── TOP 38% — Lani ─────────────────────────────────────────────────── */}
+      {/* ── TOP 34% — Lani ─────────────────────────────────────────────────── */}
       <div style={{
         flexShrink: 0,
-        height:     "38%",
+        height:     "34%",
         display:    "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -98,8 +98,8 @@ export default function LoginPage() {
       {/* ── Nombre y tagline ────────────────────────────────────────────────── */}
       <div style={{
         flexShrink: 0,
-        paddingTop:    10,
-        paddingBottom: 6,
+        paddingTop:    6,
+        paddingBottom: 4,
         display:       "flex",
         flexDirection: "column",
         alignItems:    "center",
@@ -117,7 +117,7 @@ export default function LoginPage() {
         onSubmit={handleLogin}
         style={{
           flex:          1,
-          padding:       "20px 24px 36px",
+          padding:       "12px 24px 24px",
           display:       "flex",
           flexDirection: "column",
           justifyContent: "space-between",
