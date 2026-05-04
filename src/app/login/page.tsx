@@ -60,7 +60,7 @@ export default function LoginPage() {
       {/* ── TOP 34% — Lani ─────────────────────────────────────────────────── */}
       <div style={{
         flexShrink: 0,
-        height:     "34%",
+        height:     "31%",
         display:    "flex",
         flexDirection: "column",
         alignItems: "center",
