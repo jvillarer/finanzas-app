@@ -57,10 +57,10 @@ export default function LoginPage() {
       fontFamily:  "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif",
     }}>
 
-      {/* ── TOP 45% — Lani ─────────────────────────────────────────────────── */}
+      {/* ── TOP 38% — Lani ─────────────────────────────────────────────────── */}
       <div style={{
         flexShrink: 0,
-        height:     "45%",
+        height:     "38%",
         display:    "flex",
         flexDirection: "column",
         alignItems: "center",
