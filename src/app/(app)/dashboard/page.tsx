@@ -402,17 +402,8 @@ export default function DashboardPage() {
           padding: "14px 18px 16px",
           color: "#ffffff",
           position: "relative",
-          overflow: "hidden",
           boxShadow: "0 8px 24px rgba(15,47,47,0.18)",
         }}>
-          {/* Decoración Lani peek */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/Lani_Saludando_ec67ff06.png"
-            alt=""
-            style={{ position: "absolute", right: -20, bottom: -10, width: 120, height: 120, objectFit: "contain", opacity: 0.22, pointerEvents: "none" }}
-          />
-
           {/* Selector de periodo */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -450,27 +441,35 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Balance grande */}
-          <div style={{ marginTop: 10, position: "relative", zIndex: 1 }}>
-            <p style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase" }}>
-              Balance del mes
-            </p>
-            {cargando ? <Skel w="200px" h="44px" r="10px" /> : (
-              <h2 style={{
-                fontFamily: "var(--font-display), Georgia, serif",
-                fontStyle: "italic",
-                fontSize: 52, fontWeight: 400,
-                color: balance < 0 ? "#ff8a7a" : "#ffffff",
-                marginTop: 2, letterSpacing: "-0.5px", lineHeight: 1,
-              }}>
-                {balance < 0 ? `−${formatearMonto(Math.abs(balance))}` : formatearMonto(balance)}
-              </h2>
-            )}
-            {!cargando && mesOffset === 0 && modo === "mes" && (
-              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 4, fontWeight: 500 }}>
-                Día {diaActual} de {diasEnMes} · {diasRestantes === 0 ? "último día" : `quedan ${diasRestantes} días`}
+          {/* Balance + Lani */}
+          <div style={{ marginTop: 10, display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <p style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase" }}>
+                Balance del mes
               </p>
-            )}
+              {cargando ? <Skel w="200px" h="44px" r="10px" /> : (
+                <h2 style={{
+                  fontFamily: "var(--font-display), Georgia, serif",
+                  fontStyle: "italic",
+                  fontSize: 52, fontWeight: 400,
+                  color: balance < 0 ? "#ff8a7a" : "#ffffff",
+                  marginTop: 2, letterSpacing: "-0.5px", lineHeight: 1,
+                }}>
+                  {balance < 0 ? `−${formatearMonto(Math.abs(balance))}` : formatearMonto(balance)}
+                </h2>
+              )}
+              {!cargando && mesOffset === 0 && modo === "mes" && (
+                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 4, fontWeight: 500 }}>
+                  Día {diaActual} de {diasEnMes} · {diasRestantes === 0 ? "último día" : `quedan ${diasRestantes} días`}
+                </p>
+              )}
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/Lani_Saludando_ec67ff06.png"
+              alt=""
+              style={{ width: 90, height: 90, objectFit: "contain", flexShrink: 0, marginBottom: -16, marginRight: -6 }}
+            />
           </div>
 
           {/* Ingresos / Gastos mini cards */}
