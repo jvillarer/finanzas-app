@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { obtenerTransacciones, formatearMonto } from "@/lib/transacciones";
 import type { Transaccion } from "@/lib/supabase";
 import TourSheet, { TourBoton } from "@/components/TourSheet";
+import EditarTransaccion from "@/components/EditarTransaccion";
 
 // ═══════════════════════════════════════════════════════════
 // CONSTANTES
@@ -304,15 +305,38 @@ const TOUR_PASOS = [
   { icono: "🏆", titulo: "Top 5 gastos", desc: "Los 5 movimientos más grandes del periodo seleccionado. Útil para detectar gastos hormiga o imprevistos grandes." },
 ];
 
+type FiltroLista = "todos" | "gastos" | "ingresos";
+
+function agruparPorFecha(txs: Transaccion[]): [string, Transaccion[]][] {
+  const hoy = new Date().toISOString().split("T")[0];
+  const ayer = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  const grupos: Record<string, Transaccion[]> = {};
+  for (const t of txs) {
+    const label =
+      t.fecha === hoy ? "Hoy" :
+      t.fecha === ayer ? "Ayer" :
+      new Date(t.fecha + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+    if (!grupos[label]) grupos[label] = [];
+    grupos[label].push(t);
+  }
+  return Object.entries(grupos);
+}
+
 export default function EstadisticasPage() {
   const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
   const [cargando, setCargando] = useState(true);
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const [showTour, setShowTour] = useState(false);
+  const [filtroLista, setFiltroLista] = useState<FiltroLista>("todos");
+  const [paginaLista, setPaginaLista] = useState(30);
+  const [transaccionEditar, setTransaccionEditar] = useState<Transaccion | null>(null);
 
   useEffect(() => {
     obtenerTransacciones().then(setTransacciones).finally(() => setCargando(false));
   }, []);
+
+  // Reset paginación cuando cambia el filtro o periodo
+  useEffect(() => { setPaginaLista(30); }, [filtroLista, periodo]);
 
   const hoy = new Date();
 
@@ -791,9 +815,113 @@ export default function EstadisticasPage() {
                 <p style={{ fontSize: 12, color: "var(--text-3)" }}>Registra tus gastos para ver el análisis</p>
               </div>
             )}
+
+            {/* ── LISTA DE MOVIMIENTOS ── */}
+            {filtradas.length > 0 && (() => {
+              const listaBase = filtradas.filter((t) =>
+                filtroLista === "todos" ? true : filtroLista === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
+              );
+              const lista = listaBase.slice(0, paginaLista);
+              const hayMas = listaBase.length > paginaLista;
+              const grupos = agruparPorFecha(lista);
+
+              return (
+                <div>
+                  {/* Separador + título */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", whiteSpace: "nowrap" }}>Movimientos</p>
+                    <div style={{ flex: 1, height: 1, backgroundColor: "var(--border-2)" }} />
+                  </div>
+
+                  {/* Filtros */}
+                  <div style={{ display: "flex", gap: 20, marginBottom: 16 }}>
+                    {(["todos", "gastos", "ingresos"] as FiltroLista[]).map((f) => {
+                      const activo = filtroLista === f;
+                      return (
+                        <button key={f} onClick={() => setFiltroLista(f)} style={{
+                          fontSize: 13, fontWeight: activo ? 700 : 500,
+                          color: activo ? "var(--text-1)" : "var(--text-3)",
+                          background: "none", border: "none", padding: 0, cursor: "pointer",
+                          position: "relative", paddingBottom: 6, transition: "color 0.15s",
+                        }}>
+                          {f === "todos" ? "Todos" : f === "gastos" ? "Gastos" : "Ingresos"}
+                          {activo && (
+                            <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1.5, borderRadius: 99, backgroundColor: "var(--gold)" }} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Grupos por fecha */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                    {grupos.map(([fecha, txs]) => (
+                      <div key={fecha}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                          <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-3)", whiteSpace: "nowrap" }}>
+                            {fecha}
+                          </p>
+                          <div style={{ flex: 1, height: 1, backgroundColor: "var(--border-2)" }} />
+                        </div>
+                        <div style={{ borderRadius: 20, overflow: "hidden", backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+                          {txs.map((t, idx) => {
+                            const emoji = t.tipo === "ingreso" ? "💰" : (CAT_ICON[t.categoria] || "📦");
+                            const esIngreso = t.tipo === "ingreso";
+                            return (
+                              <div key={t.id} onClick={() => setTransaccionEditar(t)} style={{
+                                display: "flex", alignItems: "center", gap: 12,
+                                padding: "13px 16px", cursor: "pointer",
+                                borderBottom: idx < txs.length - 1 ? "1px solid var(--border-2)" : "none",
+                                transition: "background-color 0.1s",
+                              }}
+                                onTouchStart={(e) => (e.currentTarget.style.backgroundColor = "var(--surface-2)")}
+                                onTouchEnd={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                              >
+                                <div style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: "var(--surface-2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>
+                                  {emoji}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    {t.descripcion || t.categoria || "Sin descripción"}
+                                  </p>
+                                  {t.categoria && t.descripcion && (
+                                    <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{t.categoria}</p>
+                                  )}
+                                </div>
+                                <p className="font-number" style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, color: esIngreso ? "var(--success)" : "var(--text-1)" }}>
+                                  {esIngreso ? "+" : "−"}{formatearMonto(t.monto)}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {hayMas && (
+                    <button
+                      onClick={() => setPaginaLista((p) => p + 30)}
+                      style={{ width: "100%", padding: "13px 0", marginTop: 8, borderRadius: 14, fontSize: 12, fontWeight: 600, backgroundColor: "var(--surface)", color: "var(--text-3)", border: "1px solid var(--border)", cursor: "pointer" }}
+                    >
+                      Ver más ({listaBase.length - paginaLista} restantes)
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
           </>
         )}
       </div>
+
+      {transaccionEditar && (
+        <EditarTransaccion
+          transaccion={transaccionEditar}
+          onCerrar={() => setTransaccionEditar(null)}
+          onGuardado={() => { setTransaccionEditar(null); obtenerTransacciones().then(setTransacciones); }}
+          onEliminado={() => { setTransaccionEditar(null); obtenerTransacciones().then(setTransacciones); }}
+        />
+      )}
     </main>
   );
 }
