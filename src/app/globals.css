@@ -135,13 +135,21 @@ textarea::placeholder {
 
 /* ─── Micro-interacciones premium ─── */
 
-/* Balance: entra desde abajo con fade al cambiar periodo */
+/* Balance: sale hacia arriba */
+@keyframes balanceOut {
+  from { opacity: 1; transform: translateY(0)    scale(1);    }
+  to   { opacity: 0; transform: translateY(-14px) scale(0.97); }
+}
+/* Balance: entra desde abajo */
 @keyframes balanceIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+.balance-out {
+  animation: balanceOut 0.18s ease-in forwards;
 }
 .balance-in {
-  animation: balanceIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: balanceIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Lani flotando suave en loop */

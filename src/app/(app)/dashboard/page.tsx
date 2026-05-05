@@ -81,6 +81,7 @@ export default function DashboardPage() {
   const [iniciales, setIniciales] = useState("??");
   const [modo, setModo] = useState<Modo>("mes");
   const [animKey, setAnimKey] = useState(0);
+  const [saliendo, setSaliendo] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightCargando, setInsightCargando] = useState(false);
   const [insightExpandido, setInsightExpandido] = useState(false);
@@ -338,6 +339,16 @@ export default function DashboardPage() {
 
   const racha = useMemo(() => calcularRacha(transacciones), [transacciones]);
 
+  // Transición out→update→in al cambiar periodo
+  const cambiarPeriodo = (fn: () => void) => {
+    setSaliendo(true);
+    setTimeout(() => {
+      fn();
+      setSaliendo(false);
+      setAnimKey((k) => k + 1);
+    }, 180);
+  };
+
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
   const periodoLabel = modo === "quincena" && mesOffset === 0
@@ -409,7 +420,7 @@ export default function DashboardPage() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <button
-                onClick={() => { setMesOffset((o) => o - 1); setAnimKey((k) => k + 1); }}
+                onClick={() => cambiarPeriodo(() => setMesOffset((o) => o - 1))}
                 style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#ffffff" }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 10, height: 10 }}><path d="M15 18l-6-6 6-6" /></svg>
@@ -418,7 +429,7 @@ export default function DashboardPage() {
                 {periodoLabel}
               </span>
               <button
-                onClick={() => { setMesOffset((o) => Math.min(0, o + 1)); setAnimKey((k) => k + 1); }}
+                onClick={() => cambiarPeriodo(() => setMesOffset((o) => Math.min(0, o + 1)))}
                 disabled={mesOffset === 0}
                 style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: mesOffset === 0 ? "default" : "pointer", color: "#ffffff", opacity: mesOffset === 0 ? 0.3 : 1 }}
               >
@@ -428,7 +439,7 @@ export default function DashboardPage() {
             {mesOffset === 0 && (
               <div style={{ display: "flex", background: "rgba(255,255,255,0.1)", borderRadius: 14, padding: 3 }}>
                 {(["mes", "quincena"] as Modo[]).map((m) => (
-                  <button key={m} onClick={() => { setModo(m); setAnimKey((k) => k + 1); }} style={{
+                  <button key={m} onClick={() => cambiarPeriodo(() => setModo(m))} style={{
                     background: modo === m ? "#ffffff" : "transparent",
                     color: modo === m ? VERDE : "rgba(255,255,255,0.9)",
                     border: "none", borderRadius: 11, padding: "4px 10px",
@@ -444,7 +455,7 @@ export default function DashboardPage() {
 
           {/* Balance + Lani */}
           <div style={{ marginTop: 10, display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-            <div key={animKey} className="balance-in" style={{ position: "relative", zIndex: 1 }}>
+            <div key={animKey} className={saliendo ? "balance-out" : "balance-in"} style={{ position: "relative", zIndex: 1 }}>
               <p style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase" }}>
                 Balance del mes
               </p>
