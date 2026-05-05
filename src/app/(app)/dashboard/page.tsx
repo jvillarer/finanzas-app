@@ -480,7 +480,6 @@ export default function DashboardPage() {
             <img
               src="/Lani_Saludando_ec67ff06.png"
               alt=""
-              className="lani-float"
               style={{ width: 90, height: 90, objectFit: "contain", flexShrink: 0, marginBottom: -16, marginRight: -6 }}
             />
           </div>
