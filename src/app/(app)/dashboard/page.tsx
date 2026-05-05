@@ -51,8 +51,9 @@ function MetricaRing({ valor, label, display, color, grande = false }: {
         </svg>
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
           <p style={{
-            fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic",
-            fontSize: grande ? 20 : 14, fontWeight: 700, color, lineHeight: 1, letterSpacing: "-0.02em",
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+            fontSize: grande ? 19 : 13, fontWeight: 700, color, lineHeight: 1,
+            letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums",
           }}>
             {display}
           </p>
@@ -366,9 +367,9 @@ export default function DashboardPage() {
             )}
           </div>
           <h1 style={{
-            fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic",
-            fontSize: 32, fontWeight: 700, color: VERDE,
-            letterSpacing: "-0.5px", lineHeight: 1, marginTop: 2,
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+            fontSize: 34, fontWeight: 800, color: VERDE,
+            letterSpacing: "-0.6px", lineHeight: 1, marginTop: 2,
           }}>
             {cargando ? <Skel w="100px" h="34px" r="8px" /> : (nombre || "Mis finanzas")}
           </h1>
@@ -456,10 +457,11 @@ export default function DashboardPage() {
             </p>
             {cargando ? <Skel w="200px" h="44px" r="10px" /> : (
               <h2 style={{
-                fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic",
-                fontSize: 40, fontWeight: 900,
+                fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+                fontSize: 42, fontWeight: 800,
                 color: balance < 0 ? "#ff8a7a" : "#ffffff",
-                marginTop: 2, letterSpacing: "-1.2px", lineHeight: 1,
+                marginTop: 2, letterSpacing: "-1.5px", lineHeight: 1,
+                fontVariantNumeric: "tabular-nums",
               }}>
                 {balance < 0 ? `−${formatearMonto(Math.abs(balance))}` : formatearMonto(balance)}
               </h2>
@@ -597,8 +599,9 @@ export default function DashboardPage() {
                         {formatearMonto(monto)}
                       </span>
                       <span style={{
-                        fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic",
-                        fontSize: 15, fontWeight: 700, color: VERDE,
+                        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+                        fontSize: 14, fontWeight: 700, color: VERDE,
+                        letterSpacing: "-0.3px", fontVariantNumeric: "tabular-nums",
                       }}>
                         {pct}%
                       </span>
