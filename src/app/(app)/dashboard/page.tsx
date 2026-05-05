@@ -481,19 +481,19 @@ export default function DashboardPage() {
 
           {/* Ingresos / Gastos mini cards — Lani se asoma detrás de Gastos */}
           <div style={{ marginTop: 10, position: "relative" }}>
-            {/* Lani detrás de la mini card de gastos — zIndex 0 para que quede debajo */}
+            {/* Lani sosteniéndose del borde superior de la mini card de gastos */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/Lani_peek.png"
               alt=""
               style={{
                 position: "absolute",
-                bottom: -4,
-                right: 4,
-                width: 82,
-                height: 82,
+                bottom: 46,
+                right: 2,
+                width: 115,
+                height: 115,
                 objectFit: "contain",
-                zIndex: 0,
+                zIndex: 2,
                 pointerEvents: "none",
               }}
             />
