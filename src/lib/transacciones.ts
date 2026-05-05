@@ -2,8 +2,8 @@ import { createClient, Transaccion } from "./supabase";
 
 // Formateador en módulo para no crear instancias en cada llamada
 const formateador = new Intl.NumberFormat("es-MX", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
 });
 
 export async function obtenerTransacciones(): Promise<Transaccion[]> {
