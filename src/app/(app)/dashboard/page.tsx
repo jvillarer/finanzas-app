@@ -367,9 +367,9 @@ export default function DashboardPage() {
             )}
           </div>
           <h1 style={{
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
-            fontSize: 34, fontWeight: 800, color: VERDE,
-            letterSpacing: "-0.6px", lineHeight: 1, marginTop: 2,
+            fontFamily: "var(--font-display), Georgia, serif",
+            fontSize: 36, fontWeight: 700, color: VERDE,
+            letterSpacing: "-0.3px", lineHeight: 1, marginTop: 2,
           }}>
             {cargando ? <Skel w="100px" h="34px" r="8px" /> : (nombre || "Mis finanzas")}
           </h1>
@@ -457,11 +457,11 @@ export default function DashboardPage() {
             </p>
             {cargando ? <Skel w="200px" h="44px" r="10px" /> : (
               <h2 style={{
-                fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
-                fontSize: 42, fontWeight: 800,
+                fontFamily: "var(--font-display), Georgia, serif",
+                fontStyle: "italic",
+                fontSize: 52, fontWeight: 700,
                 color: balance < 0 ? "#ff8a7a" : "#ffffff",
-                marginTop: 2, letterSpacing: "-1.5px", lineHeight: 1,
-                fontVariantNumeric: "tabular-nums",
+                marginTop: 2, letterSpacing: "-1px", lineHeight: 1,
               }}>
                 {balance < 0 ? `−${formatearMonto(Math.abs(balance))}` : formatearMonto(balance)}
               </h2>
