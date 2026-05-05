@@ -690,7 +690,7 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="flex flex-col h-screen" style={{ backgroundColor: "#f5f9f8" }}>
+    <main className="flex flex-col" style={{ position: "fixed", inset: 0, backgroundColor: "#f5f9f8", overflow: "hidden" }}>
 
       {/* ── TOUR ── */}
       <TourSheet
