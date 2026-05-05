@@ -7,6 +7,7 @@ import {
   getQuincenaActual,
   filtrarPorQuincena,
 } from "@/lib/quincena";
+import { calcularRacha } from "@/lib/gamificacion";
 import type { Transaccion } from "@/lib/supabase";
 import { createClient } from "@/lib/supabase";
 
@@ -331,6 +332,8 @@ export default function DashboardPage() {
       .map(([cat, monto]) => ({ cat, monto, pct: Math.round((monto / gastoTotal) * 100) }));
   }, [txsVista]);
 
+  const racha = useMemo(() => calcularRacha(transacciones), [transacciones]);
+
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
   const periodoLabel = modo === "quincena" && mesOffset === 0
@@ -341,9 +344,25 @@ export default function DashboardPage() {
     <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)", paddingBottom: 80 }}>
 
       {/* ── HEADER ── */}
-      <div style={{ padding: "40px 22px 6px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+      <div style={{ padding: "28px 22px 6px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
-          <p style={{ fontSize: 13, color: "rgba(15,47,47,0.55)", fontWeight: 500, letterSpacing: "0.1px" }}>{saludo},</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <p style={{ fontSize: 13, color: "rgba(15,47,47,0.55)", fontWeight: 500, letterSpacing: "0.1px" }}>{saludo},</p>
+            {/* Badge racha */}
+            {!cargando && racha.activa && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 3,
+                padding: "2px 8px", borderRadius: 99,
+                backgroundColor: racha.enRiesgo ? "rgba(15,47,47,0.06)" : "rgba(255,160,0,0.12)",
+                border: `1px solid ${racha.enRiesgo ? "rgba(15,47,47,0.1)" : "rgba(255,160,0,0.25)"}`,
+              }}>
+                <span style={{ fontSize: 11 }}>🔥</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: racha.enRiesgo ? "rgba(15,47,47,0.4)" : "#d97706" }}>
+                  {racha.dias}
+                </span>
+              </div>
+            )}
+          </div>
           <h1 style={{
             fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic",
             fontSize: 32, fontWeight: 700, color: VERDE,
