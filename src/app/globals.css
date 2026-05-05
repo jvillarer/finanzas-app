@@ -133,6 +133,36 @@ textarea::placeholder {
   border-radius: var(--r-sm);
 }
 
+/* ─── Micro-interacciones premium ─── */
+
+/* Balance: entra desde abajo con fade al cambiar periodo */
+@keyframes balanceIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.balance-in {
+  animation: balanceIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Lani flotando suave en loop */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+.lani-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Press: escala hacia abajo al tocar */
+.press-card {
+  transition: transform 0.12s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.12s ease;
+  cursor: pointer;
+}
+.press-card:active {
+  transform: scale(0.97);
+}
+
 /* ─── Focus — teal de Lani ─── */
 input:focus-visible,
 textarea:focus-visible {

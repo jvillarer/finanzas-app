@@ -80,6 +80,7 @@ export default function DashboardPage() {
   const [nombre, setNombre] = useState("");
   const [iniciales, setIniciales] = useState("??");
   const [modo, setModo] = useState<Modo>("mes");
+  const [animKey, setAnimKey] = useState(0);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightCargando, setInsightCargando] = useState(false);
   const [insightExpandido, setInsightExpandido] = useState(false);
@@ -408,7 +409,7 @@ export default function DashboardPage() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <button
-                onClick={() => setMesOffset((o) => o - 1)}
+                onClick={() => { setMesOffset((o) => o - 1); setAnimKey((k) => k + 1); }}
                 style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#ffffff" }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 10, height: 10 }}><path d="M15 18l-6-6 6-6" /></svg>
@@ -417,7 +418,7 @@ export default function DashboardPage() {
                 {periodoLabel}
               </span>
               <button
-                onClick={() => setMesOffset((o) => Math.min(0, o + 1))}
+                onClick={() => { setMesOffset((o) => Math.min(0, o + 1)); setAnimKey((k) => k + 1); }}
                 disabled={mesOffset === 0}
                 style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: mesOffset === 0 ? "default" : "pointer", color: "#ffffff", opacity: mesOffset === 0 ? 0.3 : 1 }}
               >
@@ -427,7 +428,7 @@ export default function DashboardPage() {
             {mesOffset === 0 && (
               <div style={{ display: "flex", background: "rgba(255,255,255,0.1)", borderRadius: 14, padding: 3 }}>
                 {(["mes", "quincena"] as Modo[]).map((m) => (
-                  <button key={m} onClick={() => setModo(m)} style={{
+                  <button key={m} onClick={() => { setModo(m); setAnimKey((k) => k + 1); }} style={{
                     background: modo === m ? "#ffffff" : "transparent",
                     color: modo === m ? VERDE : "rgba(255,255,255,0.9)",
                     border: "none", borderRadius: 11, padding: "4px 10px",
@@ -443,7 +444,7 @@ export default function DashboardPage() {
 
           {/* Balance + Lani */}
           <div style={{ marginTop: 10, display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-            <div style={{ position: "relative", zIndex: 1 }}>
+            <div key={animKey} className="balance-in" style={{ position: "relative", zIndex: 1 }}>
               <p style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase" }}>
                 Balance del mes
               </p>
@@ -468,6 +469,7 @@ export default function DashboardPage() {
             <img
               src="/Lani_Saludando_ec67ff06.png"
               alt=""
+              className="lani-float"
               style={{ width: 90, height: 90, objectFit: "contain", flexShrink: 0, marginBottom: -16, marginRight: -6 }}
             />
           </div>
@@ -503,15 +505,15 @@ export default function DashboardPage() {
       {/* ── SCORE: 3 rings ── */}
       {!cargando && scoreFinanciero && mesOffset === 0 && (
         <div style={{ padding: "8px 14px 0", display: "flex", gap: 8 }}>
-          <div style={{ flex: 1, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+          <div className="press-card" style={{ flex: 1, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Ahorro</span>
             <MetricaRing valor={scoreFinanciero.metricas[0].valor} label="" display={scoreFinanciero.metricas[0].display} color={scoreFinanciero.metricas[0].color} />
           </div>
-          <div style={{ flex: 1.4, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
+          <div className="press-card" style={{ flex: 1.4, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Score</span>
             <MetricaRing valor={scoreFinanciero.pts} label={scoreFinanciero.label} display={`${scoreFinanciero.pts}%`} color={scoreFinanciero.color} grande />
           </div>
-          <div style={{ flex: 1, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+          <div className="press-card" style={{ flex: 1, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Control</span>
             <MetricaRing valor={scoreFinanciero.metricas[1].valor} label="" display={scoreFinanciero.metricas[1].display} color={scoreFinanciero.metricas[1].color} />
           </div>
@@ -521,7 +523,7 @@ export default function DashboardPage() {
       {/* ── LANI INSIGHT ── */}
       {(insight || insightCargando) && (
         <div style={{ padding: "8px 14px 0" }}>
-          <div style={{
+          <div className="press-card" style={{
             background: CREMA,
             borderRadius: 18,
             padding: "10px 12px",
@@ -575,7 +577,7 @@ export default function DashboardPage() {
       {/* ── TOP CATEGORÍAS ── */}
       {!cargando && topCategorias.length > 0 && (
         <div style={{ padding: "8px 14px 0" }}>
-          <div style={{
+          <div className="press-card" style={{
             background: "#ffffff",
             borderRadius: 18,
             padding: "12px 14px 10px",
