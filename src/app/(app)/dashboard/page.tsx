@@ -10,6 +10,12 @@ import {
 import type { Transaccion } from "@/lib/supabase";
 import { createClient } from "@/lib/supabase";
 
+const CAT_ICON: Record<string, string> = {
+  Comida: "🍽", Supermercado: "🛒", Transporte: "🚗",
+  Entretenimiento: "🎬", Salud: "💊", Servicios: "⚡",
+  Ropa: "👕", Hogar: "🏠", Educación: "📚", Otros: "📦",
+};
+
 type Modo = "mes" | "quincena";
 
 function Skel({ w, h, r = "8px" }: { w: string; h: string; r?: string }) {
@@ -305,6 +311,21 @@ export default function DashboardPage() {
     localStorage.setItem("lani_alertas_vistas", JSON.stringify(nuevas));
   };
 
+  // ── Top 3 categorías de gasto del mes ────────────────────────────
+  const topCategorias = useMemo(() => {
+    const gastoTotal = txsVista.filter(t => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
+    if (gastoTotal === 0) return [];
+    const porCat: Record<string, number> = {};
+    txsVista.filter(t => t.tipo === "gasto").forEach(t => {
+      const c = t.categoria || "Otros";
+      porCat[c] = (porCat[c] || 0) + Number(t.monto);
+    });
+    return Object.entries(porCat)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([cat, monto]) => ({ cat, monto, pct: Math.round((monto / gastoTotal) * 100) }));
+  }, [txsVista]);
+
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
   const periodoLabel = modo === "quincena" && mesOffset === 0
@@ -472,6 +493,45 @@ export default function DashboardPage() {
             ) : (
               <p style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.55 }}>{insight}</p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── TOP CATEGORÍAS ── */}
+      {!cargando && topCategorias.length > 0 && (
+        <div style={{ padding: "0 20px 8px" }}>
+          <div style={{ padding: "14px 16px", borderRadius: 16, backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)" }}>En qué gastas más</p>
+              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)" }}>este periodo</p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+              {topCategorias.map(({ cat, monto, pct }) => (
+                <div key={cat}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>
+                      {CAT_ICON[cat] || "📦"} {cat}
+                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span className="font-number" style={{ fontSize: 11, color: "var(--text-3)" }}>
+                        {formatearMonto(monto)}
+                      </span>
+                      <span className="font-number" style={{ fontSize: 11, fontWeight: 700, color: "var(--text-1)", minWidth: 28, textAlign: "right" }}>
+                        {pct}%
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ width: "100%", height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)" }}>
+                    <div style={{
+                      height: 4, borderRadius: 99,
+                      width: `${pct}%`,
+                      backgroundColor: "var(--gold)",
+                      transition: "width 0.9s cubic-bezier(0.22,1,0.36,1)",
+                    }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
