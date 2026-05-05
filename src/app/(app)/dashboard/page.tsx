@@ -81,6 +81,7 @@ export default function DashboardPage() {
   const [modo, setModo] = useState<Modo>("mes");
   const [insight, setInsight] = useState<string | null>(null);
   const [insightCargando, setInsightCargando] = useState(false);
+  const [insightExpandido, setInsightExpandido] = useState(false);
   const [mesOffset, setMesOffset] = useState(0);
   const [alertasDismissed, setAlertasDismissed] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
@@ -196,11 +197,12 @@ export default function DashboardPage() {
 
     const sinIngresos = ingMes === 0 && gasMes > 0;
     if (sinIngresos) {
+      const NEUTRAL = "rgba(15,47,47,0.25)";
       return {
-        pts: 0, color: "var(--danger)", label: "Crítico",
+        pts: 0, color: NEUTRAL, label: "Sin ingresos",
         metricas: [
-          { valor: 0, label: "Ahorro", display: "0%", color: "var(--danger)" },
-          { valor: 0, label: "Control", display: "0%", color: "var(--danger)" },
+          { valor: 0, label: "Ahorro", display: "—", color: NEUTRAL },
+          { valor: 0, label: "Control", display: "—", color: NEUTRAL },
         ],
       };
     }
@@ -341,7 +343,7 @@ export default function DashboardPage() {
     : mesSeleccionado.toLocaleString("es-MX", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)", paddingBottom: 80 }}>
+    <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)", paddingBottom: 90 }}>
 
       {/* ── HEADER ── */}
       <div style={{ padding: "28px 22px 6px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
@@ -435,9 +437,9 @@ export default function DashboardPage() {
                 {(["mes", "quincena"] as Modo[]).map((m) => (
                   <button key={m} onClick={() => setModo(m)} style={{
                     background: modo === m ? "#ffffff" : "transparent",
-                    color: modo === m ? VERDE : "rgba(255,255,255,0.7)",
+                    color: modo === m ? VERDE : "rgba(255,255,255,0.9)",
                     border: "none", borderRadius: 11, padding: "4px 10px",
-                    fontSize: 10, fontWeight: 700, letterSpacing: "0.5px",
+                    fontSize: 10, fontWeight: modo === m ? 700 : 500, letterSpacing: "0.5px",
                     cursor: "pointer",
                   }}>
                     {m === "mes" ? "MES" : "QUINC."}
@@ -547,7 +549,22 @@ export default function DashboardPage() {
                   ))}
                 </div>
               ) : (
-                <p style={{ fontSize: 13, lineHeight: "18px", color: VERDE_SOFT, fontWeight: 450 }}>{insight}</p>
+                <div>
+                  <p style={{
+                    fontSize: 13, lineHeight: "18px", color: VERDE_SOFT, fontWeight: 450,
+                    display: "-webkit-box", WebkitBoxOrient: "vertical",
+                    WebkitLineClamp: insightExpandido ? undefined : 2,
+                    overflow: insightExpandido ? "visible" : "hidden",
+                  }}>{insight}</p>
+                  {insight && insight.length > 80 && (
+                    <button
+                      onClick={() => setInsightExpandido(!insightExpandido)}
+                      style={{ background: "none", border: "none", padding: "4px 0 0", cursor: "pointer", fontSize: 12, fontWeight: 600, color: VERDE, opacity: 0.6 }}
+                    >
+                      {insightExpandido ? "Ver menos" : "Ver más"}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
