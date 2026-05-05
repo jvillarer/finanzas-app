@@ -22,20 +22,24 @@ function Skel({ w, h, r = "8px" }: { w: string; h: string; r?: string }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: r }} />;
 }
 
+const VERDE = "#0F2F2F";
+const VERDE_SOFT = "#1f4640";
+const CREMA = "#f5f1ea";
+
 function MetricaRing({ valor, label, display, color, grande = false }: {
   valor: number; label: string; display: string; color: string; grande?: boolean;
 }) {
   const radio = grande ? 34 : 22;
-  const grosor = grande ? 7 : 5.5;
-  const tam = grande ? 84 : 56;
+  const grosor = grande ? 7 : 5;
+  const tam = grande ? 86 : 64;
   const cx = tam / 2;
   const circunferencia = 2 * Math.PI * radio;
   const offset = circunferencia * (1 - Math.min(Math.max(valor, 0), 100) / 100);
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
       <div style={{ position: "relative", width: tam, height: tam }}>
         <svg width={tam} height={tam} viewBox={`0 0 ${tam} ${tam}`} style={{ transform: "rotate(-90deg)" }}>
-          <circle cx={cx} cy={cx} r={radio} fill="none" stroke="var(--surface-3)" strokeWidth={grosor} />
+          <circle cx={cx} cy={cx} r={radio} fill="none" stroke="rgba(15,47,47,0.08)" strokeWidth={grosor} />
           <circle
             cx={cx} cy={cx} r={radio} fill="none" stroke={color}
             strokeWidth={grosor} strokeLinecap="round"
@@ -45,18 +49,21 @@ function MetricaRing({ valor, label, display, color, grande = false }: {
           />
         </svg>
         <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1 }}>
-          <p className="font-number" style={{ fontSize: grande ? 22 : 12, fontWeight: 900, color, lineHeight: 1, letterSpacing: "-0.03em" }}>
+          <p style={{
+            fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic",
+            fontSize: grande ? 20 : 14, fontWeight: 700, color, lineHeight: 1, letterSpacing: "-0.02em",
+          }}>
             {display}
           </p>
           {grande && (
-            <p style={{ fontSize: 9, fontWeight: 700, color, letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            <p style={{ fontSize: 8, fontWeight: 700, color, letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 2 }}>
               {label}
             </p>
           )}
         </div>
       </div>
       {!grande && (
-        <p style={{ fontSize: 9, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.07em", textAlign: "center" }}>
+        <p style={{ fontSize: 9, fontWeight: 700, color: "rgba(15,47,47,0.5)", textTransform: "uppercase", letterSpacing: "0.07em", textAlign: "center" }}>
           {label}
         </p>
       )}
@@ -171,8 +178,6 @@ export default function DashboardPage() {
   [modo, mesOffset, transacciones, quinc, txsMesActual]);
 
   const { ingresos, gastos, balance } = useMemo(() => calcularResumen(txsVista), [txsVista]);
-  const spendingPct = ingresos > 0 ? Math.min((gastos / ingresos) * 100, 100) : 0;
-  const spendingColor = spendingPct >= 90 ? "var(--danger)" : spendingPct >= 70 ? "var(--warning)" : "var(--gold)";
 
   // Días restantes del mes actual
   const { diaActual, diasEnMes, diasRestantes } = useMemo(() => {
@@ -336,27 +341,31 @@ export default function DashboardPage() {
     <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)", paddingBottom: 100 }}>
 
       {/* ── HEADER ── */}
-      <div style={{ padding: "56px 20px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ padding: "56px 22px 8px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
-          <p style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 500 }}>{saludo}</p>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", lineHeight: 1.2, marginTop: 1 }}>
-            {cargando ? <Skel w="100px" h="26px" /> : (nombre || "Mis finanzas")}
+          <p style={{ fontSize: 13, color: "rgba(15,47,47,0.55)", fontWeight: 500, letterSpacing: "0.1px" }}>{saludo},</p>
+          <h1 style={{
+            fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic",
+            fontSize: 32, fontWeight: 700, color: VERDE,
+            letterSpacing: "-0.5px", lineHeight: 1, marginTop: 2,
+          }}>
+            {cargando ? <Skel w="100px" h="34px" r="8px" /> : (nombre || "Mis finanzas")}
           </h1>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button
             onClick={() => router.push("/buscar")}
             className="active:opacity-50 transition-opacity"
-            style={{ width: 36, height: 36, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ width: 38, height: 38, borderRadius: "50%", backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}
           >
-            <svg viewBox="0 0 20 20" fill="none" stroke="var(--text-3)" strokeWidth={1.6} strokeLinecap="round" style={{ width: 15, height: 15 }}>
-              <circle cx="8.5" cy="8.5" r="5.5" /><path d="M15 15l-2.5-2.5" />
+            <svg viewBox="0 0 24 24" fill="none" stroke={VERDE} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
           </button>
           <button
             onClick={() => router.push("/perfil")}
             className="active:opacity-50 transition-opacity"
-            style={{ width: 36, height: 36, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "1px solid var(--gold-border)", color: "var(--gold)", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ width: 38, height: 38, borderRadius: "50%", backgroundColor: VERDE, color: "#ffffff", fontSize: 14, fontWeight: 700, letterSpacing: "-0.2px", display: "flex", alignItems: "center", justifyContent: "center", border: "none" }}
           >
             {iniciales}
           </button>
@@ -364,116 +373,124 @@ export default function DashboardPage() {
       </div>
 
       {/* ── BALANCE HERO ── */}
-      <div style={{ padding: "20px 20px 16px" }}>
+      <div style={{ padding: "16px 16px 0" }}>
+        <div style={{
+          background: VERDE,
+          borderRadius: 28,
+          padding: "20px 22px 22px",
+          color: "#ffffff",
+          position: "relative",
+          overflow: "hidden",
+          boxShadow: "0 8px 24px rgba(15,47,47,0.18)",
+        }}>
+          {/* Decoración Lani peek */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/Lani_Saludando_ec67ff06.png"
+            alt=""
+            style={{ position: "absolute", right: -20, bottom: -10, width: 120, height: 120, objectFit: "contain", opacity: 0.22, pointerEvents: "none" }}
+          />
 
-        {/* Selector de periodo */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <button
-              onClick={() => setMesOffset((o) => o - 1)}
-              style={{ width: 24, height: 24, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-            >
-              <svg viewBox="0 0 12 12" fill="none" stroke="var(--text-3)" strokeWidth={1.8} strokeLinecap="round" style={{ width: 10, height: 10 }}><path d="M7.5 9L4.5 6l3-3" /></svg>
-            </button>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: mesOffset === 0 ? "var(--gold)" : "var(--text-2)" }}>
-              {periodoLabel}
+          {/* Selector de periodo */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button
+                onClick={() => setMesOffset((o) => o - 1)}
+                style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#ffffff" }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 10, height: 10 }}><path d="M15 18l-6-6 6-6" /></svg>
+              </button>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "1.2px", color: "rgba(255,255,255,0.85)", textTransform: "uppercase" }}>
+                {periodoLabel}
+              </span>
+              <button
+                onClick={() => setMesOffset((o) => Math.min(0, o + 1))}
+                disabled={mesOffset === 0}
+                style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: mesOffset === 0 ? "default" : "pointer", color: "#ffffff", opacity: mesOffset === 0 ? 0.3 : 1 }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 10, height: 10 }}><path d="M9 18l6-6-6-6" /></svg>
+              </button>
+            </div>
+            {mesOffset === 0 && (
+              <div style={{ display: "flex", background: "rgba(255,255,255,0.1)", borderRadius: 14, padding: 3 }}>
+                {(["mes", "quincena"] as Modo[]).map((m) => (
+                  <button key={m} onClick={() => setModo(m)} style={{
+                    background: modo === m ? "#ffffff" : "transparent",
+                    color: modo === m ? VERDE : "rgba(255,255,255,0.7)",
+                    border: "none", borderRadius: 11, padding: "4px 10px",
+                    fontSize: 10, fontWeight: 700, letterSpacing: "0.5px",
+                    cursor: "pointer",
+                  }}>
+                    {m === "mes" ? "MES" : "QUINC."}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Balance grande */}
+          <div style={{ marginTop: 14, position: "relative", zIndex: 1 }}>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase" }}>
+              Balance del mes
             </p>
-            <button
-              onClick={() => setMesOffset((o) => Math.min(0, o + 1))}
-              disabled={mesOffset === 0}
-              style={{ width: 24, height: 24, borderRadius: "50%", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", cursor: mesOffset === 0 ? "default" : "pointer", opacity: mesOffset === 0 ? 0.25 : 1 }}
-            >
-              <svg viewBox="0 0 12 12" fill="none" stroke="var(--text-3)" strokeWidth={1.8} strokeLinecap="round" style={{ width: 10, height: 10 }}><path d="M4.5 9L7.5 6l-3-3" /></svg>
-            </button>
-          </div>
-          {mesOffset === 0 && (
-            <div style={{ display: "flex", gap: 3 }}>
-              {(["mes", "quincena"] as Modo[]).map((m) => (
-                <button key={m} onClick={() => setModo(m)} style={{
-                  fontSize: 9, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase",
-                  padding: "3px 9px", borderRadius: 99,
-                  backgroundColor: modo === m ? "var(--surface-3)" : "transparent",
-                  color: modo === m ? "var(--text-1)" : "var(--text-3)",
-                  border: modo === m ? "1px solid var(--border)" : "1px solid transparent",
-                  cursor: "pointer", transition: "all 0.15s",
-                }}>
-                  {m === "mes" ? "Mes" : "Quinc."}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Balance grande */}
-        {cargando ? <Skel w="200px" h="52px" r="10px" /> : (
-          <p className="font-display" style={{
-            fontSize: "clamp(42px, 11vw, 54px)", fontWeight: 400, fontStyle: "italic",
-            color: balance < 0 ? "var(--danger)" : "var(--text-1)",
-            letterSpacing: "-0.025em", lineHeight: 1,
-          }}>
-            {formatearMonto(balance)}
-          </p>
-        )}
-
-        {/* Días restantes — solo en mes actual */}
-        {!cargando && mesOffset === 0 && modo === "mes" && (
-          <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6, fontWeight: 500 }}>
-            Día {diaActual} de {diasEnMes} · {diasRestantes === 0 ? "último día" : `quedan ${diasRestantes} días`}
-          </p>
-        )}
-
-        {/* Ingresos / Gastos */}
-        <div style={{ display: "flex", gap: 20, marginTop: 14 }}>
-          <div>
-            {cargando ? <Skel w="80px" h="16px" /> : (
-              <p className="font-number" style={{ fontSize: 13, fontWeight: 600, color: "var(--success)", letterSpacing: "-0.02em" }}>
-                +{formatearMonto(ingresos)}
+            {cargando ? <Skel w="200px" h="50px" r="10px" /> : (
+              <h2 style={{
+                fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic",
+                fontSize: 46, fontWeight: 900,
+                color: balance < 0 ? "#ff8a7a" : "#ffffff",
+                marginTop: 2, letterSpacing: "-1.2px", lineHeight: 1,
+              }}>
+                {balance < 0 ? `−${formatearMonto(Math.abs(balance))}` : formatearMonto(balance)}
+              </h2>
+            )}
+            {!cargando && mesOffset === 0 && modo === "mes" && (
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 6, fontWeight: 500 }}>
+                Día {diaActual} de {diasEnMes} · {diasRestantes === 0 ? "último día" : `quedan ${diasRestantes} días`}
               </p>
             )}
-            <p style={{ fontSize: 10, color: "var(--text-3)", marginTop: 2, fontWeight: 500 }}>Ingresos</p>
           </div>
-          <div style={{ width: 1, backgroundColor: "var(--border-2)", alignSelf: "stretch" }} />
-          <div>
-            {cargando ? <Skel w="80px" h="16px" /> : (
-              <p className="font-number" style={{ fontSize: 13, fontWeight: 600, color: "var(--danger)", letterSpacing: "-0.02em" }}>
-                −{formatearMonto(gastos)}
-              </p>
-            )}
-            <p style={{ fontSize: 10, color: "var(--text-3)", marginTop: 2, fontWeight: 500 }}>Gastos</p>
+
+          {/* Ingresos / Gastos mini cards */}
+          <div style={{ marginTop: 16, display: "flex", gap: 10, position: "relative", zIndex: 1 }}>
+            <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: "10px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#7dd3a8" }} />
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Ingresos</span>
+              </div>
+              {cargando ? <Skel w="70px" h="18px" r="6px" /> : (
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", marginTop: 2, letterSpacing: "-0.3px" }}>
+                  +{formatearMonto(ingresos)}
+                </p>
+              )}
+            </div>
+            <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: "10px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff8a7a" }} />
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Gastos</span>
+              </div>
+              {cargando ? <Skel w="70px" h="18px" r="6px" /> : (
+                <p style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", marginTop: 2, letterSpacing: "-0.3px" }}>
+                  −{formatearMonto(gastos)}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Barra de progreso */}
-        {!cargando && ingresos > 0 && (
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <p style={{ fontSize: 10, color: "var(--text-3)", fontWeight: 500 }}>
-                {spendingPct >= 90 ? "⚠ Casi al límite" : spendingPct >= 70 ? "Ojo con los gastos" : "Vas bien"}
-              </p>
-              <p className="font-number" style={{ fontSize: 10, fontWeight: 700, color: spendingColor }}>
-                {spendingPct.toFixed(0)}%
-              </p>
-            </div>
-            <div style={{ width: "100%", height: 3, borderRadius: 99, backgroundColor: "var(--surface-3)" }}>
-              <div style={{ height: 3, borderRadius: 99, width: `${spendingPct}%`, backgroundColor: spendingColor, transition: "width 0.8s cubic-bezier(0.22,1,0.36,1)" }} />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── SCORE: 3 rings ── */}
       {!cargando && scoreFinanciero && mesOffset === 0 && (
-        <div style={{ padding: "0 20px 8px", display: "flex", gap: 8 }}>
-          <div style={{ flex: 1, padding: "14px 10px 12px", borderRadius: 16, backgroundColor: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)" }}>Ahorro</p>
+        <div style={{ padding: "16px 16px 0", display: "flex", gap: 10 }}>
+          <div style={{ flex: 1, padding: "14px 10px 12px", borderRadius: 20, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Ahorro</span>
             <MetricaRing valor={scoreFinanciero.metricas[0].valor} label="" display={scoreFinanciero.metricas[0].display} color={scoreFinanciero.metricas[0].color} />
           </div>
-          <div style={{ flex: 1.4, padding: "14px 10px 12px", borderRadius: 16, backgroundColor: "var(--surface)", border: `1px solid ${scoreFinanciero.color}44`, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)" }}>Score</p>
+          <div style={{ flex: 1.4, padding: "16px 10px 14px", borderRadius: 20, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, position: "relative" }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Score</span>
             <MetricaRing valor={scoreFinanciero.pts} label={scoreFinanciero.label} display={`${scoreFinanciero.pts}%`} color={scoreFinanciero.color} grande />
           </div>
-          <div style={{ flex: 1, padding: "14px 10px 12px", borderRadius: 16, backgroundColor: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <p style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-3)" }}>Control</p>
+          <div style={{ flex: 1, padding: "14px 10px 12px", borderRadius: 20, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Control</span>
             <MetricaRing valor={scoreFinanciero.metricas[1].valor} label="" display={scoreFinanciero.metricas[1].display} color={scoreFinanciero.metricas[1].color} />
           </div>
         </div>
@@ -481,51 +498,80 @@ export default function DashboardPage() {
 
       {/* ── LANI INSIGHT ── */}
       {(insight || insightCargando) && (
-        <div style={{ padding: "0 20px 8px" }}>
-          <div style={{ padding: "12px 14px", borderRadius: 14, backgroundColor: "var(--gold-dim)", border: "1px solid var(--gold-border)", display: "flex", alignItems: "flex-start", gap: 10 }}>
-            <span style={{ fontSize: 16, flexShrink: 0, lineHeight: 1.5 }}>💡</span>
-            {insightCargando ? (
-              <div style={{ display: "flex", gap: 4, alignItems: "center", paddingTop: 4 }}>
-                {[0, 1, 2].map((i) => (
-                  <span key={i} className="animate-bounce" style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "var(--gold)", display: "block", animationDelay: `${i * 150}ms` }} />
-                ))}
+        <div style={{ padding: "14px 16px 0" }}>
+          <div style={{
+            background: CREMA,
+            borderRadius: 20,
+            padding: "14px",
+            display: "flex", gap: 12, alignItems: "flex-start",
+            border: "1px solid rgba(15,47,47,0.06)",
+          }}>
+            {/* Avatar Lani */}
+            <div style={{
+              width: 42, height: 42, borderRadius: "50%",
+              background: "#ffffff", flexShrink: 0,
+              border: "1.5px solid rgba(15,47,47,0.1)",
+              display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/Lani_Saludando_ec67ff06.png" alt="Lani" style={{ width: "90%", height: "90%", objectFit: "contain" }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: VERDE, letterSpacing: "-0.1px" }}>Lani dice</span>
+                <span style={{ fontSize: 10, color: "rgba(15,47,47,0.4)", fontWeight: 500 }}>hoy</span>
               </div>
-            ) : (
-              <p style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.55 }}>{insight}</p>
-            )}
+              {insightCargando ? (
+                <div style={{ display: "flex", gap: 4, alignItems: "center", paddingTop: 4 }}>
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className="animate-bounce" style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: VERDE, display: "block", animationDelay: `${i * 150}ms` }} />
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: 13, lineHeight: "18px", color: VERDE_SOFT, fontWeight: 450 }}>{insight}</p>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {/* ── TOP CATEGORÍAS ── */}
       {!cargando && topCategorias.length > 0 && (
-        <div style={{ padding: "0 20px 8px" }}>
-          <div style={{ padding: "14px 16px", borderRadius: 16, backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)" }}>En qué gastas más</p>
-              <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)" }}>este periodo</p>
+        <div style={{ padding: "14px 16px 0" }}>
+          <div style={{
+            background: "#ffffff",
+            borderRadius: 20,
+            padding: "16px 16px 14px",
+            border: "1px solid rgba(15,47,47,0.06)",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: VERDE, letterSpacing: "-0.2px" }}>En qué gastas más</h3>
+              <span style={{ fontSize: 11, color: "rgba(15,47,47,0.45)", fontWeight: 500 }}>este periodo</span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {topCategorias.map(({ cat, monto, pct }) => (
                 <div key={cat}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>
-                      {CAT_ICON[cat] || "📦"} {cat}
-                    </span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span className="font-number" style={{ fontSize: 11, color: "var(--text-3)" }}>
+                      <span style={{ fontSize: 16 }}>{CAT_ICON[cat] || "📦"}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: VERDE }}>{cat}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={{ fontSize: 13, color: "rgba(15,47,47,0.5)", fontWeight: 500 }}>
                         {formatearMonto(monto)}
                       </span>
-                      <span className="font-number" style={{ fontSize: 11, fontWeight: 700, color: "var(--text-1)", minWidth: 28, textAlign: "right" }}>
+                      <span style={{
+                        fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic",
+                        fontSize: 15, fontWeight: 700, color: VERDE,
+                      }}>
                         {pct}%
                       </span>
                     </div>
                   </div>
-                  <div style={{ width: "100%", height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)" }}>
+                  <div style={{ height: 8, background: "rgba(15,47,47,0.06)", borderRadius: 4, overflow: "hidden" }}>
                     <div style={{
-                      height: 4, borderRadius: 99,
-                      width: `${pct}%`,
-                      backgroundColor: "var(--gold)",
+                      height: "100%", width: `${pct}%`,
+                      background: VERDE, borderRadius: 4,
                       transition: "width 0.9s cubic-bezier(0.22,1,0.36,1)",
                     }} />
                   </div>
@@ -538,15 +584,15 @@ export default function DashboardPage() {
 
       {/* ── ALERTA URGENTE ── */}
       {!cargando && alertaUrgente && (
-        <div style={{ padding: "0 20px 8px" }}>
-          <div style={{ padding: "11px 14px", borderRadius: 14, backgroundColor: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <div style={{ padding: "14px 16px 0" }}>
+          <div style={{ padding: "12px 14px", borderRadius: 16, backgroundColor: "#fff8f7", border: "1px solid rgba(200,80,62,0.2)", display: "flex", alignItems: "flex-start", gap: 10 }}>
             <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1.6 }}>⚡</span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.4 }}>{alertaUrgente.mensaje}</p>
-              <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{alertaUrgente.detalle}</p>
+              <p style={{ fontSize: 13, fontWeight: 700, color: VERDE, lineHeight: 1.4 }}>{alertaUrgente.mensaje}</p>
+              <p style={{ fontSize: 11, color: "rgba(15,47,47,0.5)", marginTop: 2 }}>{alertaUrgente.detalle}</p>
             </div>
             <button onClick={() => dismissAlerta(alertaUrgente.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 0 0 4px", flexShrink: 0 }}>
-              <svg viewBox="0 0 14 14" fill="none" stroke="var(--text-3)" strokeWidth={1.8} strokeLinecap="round" style={{ width: 13, height: 13 }}>
+              <svg viewBox="0 0 14 14" fill="none" stroke="rgba(15,47,47,0.4)" strokeWidth={1.8} strokeLinecap="round" style={{ width: 13, height: 13 }}>
                 <path d="M2 2l10 10M12 2L2 12" />
               </svg>
             </button>
