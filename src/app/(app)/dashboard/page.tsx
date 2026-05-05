@@ -407,7 +407,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── BALANCE HERO ── */}
-      <div style={{ padding: "10px 14px 0", position: "relative" }}>
+      <div style={{ padding: "10px 14px 0" }}>
         <div style={{
           background: VERDE,
           borderRadius: 24,
@@ -415,6 +415,7 @@ export default function DashboardPage() {
           color: "#ffffff",
           position: "relative",
           boxShadow: "0 8px 24px rgba(15,47,47,0.18)",
+          overflow: "visible",
         }}>
           {/* Selector de periodo */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative", zIndex: 1 }}>
@@ -478,53 +479,56 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Ingresos / Gastos mini cards */}
-          <div style={{ marginTop: 10, display: "flex", gap: 8, position: "relative", zIndex: 1 }}>
-            <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "7px 10px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#7dd3a8" }} />
-                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Ingresos</span>
+          {/* Ingresos / Gastos mini cards — Lani se asoma detrás de Gastos */}
+          <div style={{ marginTop: 10, position: "relative" }}>
+            {/* Lani detrás de la mini card de gastos — zIndex 0 para que quede debajo */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/Lani_peek.png"
+              alt=""
+              style={{
+                position: "absolute",
+                bottom: -4,
+                right: 4,
+                width: 82,
+                height: 82,
+                objectFit: "contain",
+                zIndex: 0,
+                pointerEvents: "none",
+              }}
+            />
+            {/* Mini cards encima de Lani */}
+            <div style={{ display: "flex", gap: 8, position: "relative", zIndex: 1 }}>
+              <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "7px 10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#7dd3a8" }} />
+                  <span style={{ fontSize: 9, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Ingresos</span>
+                </div>
+                {cargando ? <Skel w="70px" h="16px" r="6px" /> : (
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", marginTop: 2, letterSpacing: "-0.3px" }}>
+                    +{formatearMonto(ingresos)}
+                  </p>
+                )}
               </div>
-              {cargando ? <Skel w="70px" h="16px" r="6px" /> : (
-                <p style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", marginTop: 2, letterSpacing: "-0.3px" }}>
-                  +{formatearMonto(ingresos)}
-                </p>
-              )}
-            </div>
-            <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "7px 10px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#ff8a7a" }} />
-                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Gastos</span>
+              <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "7px 10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#ff8a7a" }} />
+                  <span style={{ fontSize: 9, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Gastos</span>
+                </div>
+                {cargando ? <Skel w="70px" h="16px" r="6px" /> : (
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", marginTop: 2, letterSpacing: "-0.3px" }}>
+                    −{formatearMonto(gastos)}
+                  </p>
+                )}
               </div>
-              {cargando ? <Skel w="70px" h="16px" r="6px" /> : (
-                <p style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", marginTop: 2, letterSpacing: "-0.3px" }}>
-                  −{formatearMonto(gastos)}
-                </p>
-              )}
             </div>
           </div>
         </div>
-        {/* Lani asomándose desde el borde inferior de la card */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/Lani_peek.png"
-          alt=""
-          style={{
-            position: "absolute",
-            bottom: -52,
-            right: 28,
-            width: 104,
-            height: 104,
-            objectFit: "contain",
-            zIndex: 10,
-            pointerEvents: "none",
-          }}
-        />
       </div>
 
       {/* ── SCORE: 3 rings ── */}
       {!cargando && scoreFinanciero && mesOffset === 0 && (
-        <div style={{ padding: "60px 14px 0", display: "flex", gap: 8 }}>
+        <div style={{ padding: "10px 14px 0", display: "flex", gap: 8 }}>
           <div className="press-card" style={{ flex: 1, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Ahorro</span>
             <MetricaRing valor={scoreFinanciero.metricas[0].valor} label="" display={scoreFinanciero.metricas[0].display} color={scoreFinanciero.metricas[0].color} />
