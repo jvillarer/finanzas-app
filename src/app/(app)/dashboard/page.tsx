@@ -29,9 +29,9 @@ const CREMA = "#f5f1ea";
 function MetricaRing({ valor, label, display, color, grande = false }: {
   valor: number; label: string; display: string; color: string; grande?: boolean;
 }) {
-  const radio = grande ? 34 : 22;
-  const grosor = grande ? 7 : 5;
-  const tam = grande ? 86 : 64;
+  const radio = grande ? 28 : 18;
+  const grosor = grande ? 6 : 4.5;
+  const tam = grande ? 74 : 52;
   const cx = tam / 2;
   const circunferencia = 2 * Math.PI * radio;
   const offset = circunferencia * (1 - Math.min(Math.max(valor, 0), 100) / 100);
@@ -338,10 +338,10 @@ export default function DashboardPage() {
     : mesSeleccionado.toLocaleString("es-MX", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)", paddingBottom: 100 }}>
+    <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)", paddingBottom: 80 }}>
 
       {/* ── HEADER ── */}
-      <div style={{ padding: "56px 22px 8px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+      <div style={{ padding: "40px 22px 6px", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
           <p style={{ fontSize: 13, color: "rgba(15,47,47,0.55)", fontWeight: 500, letterSpacing: "0.1px" }}>{saludo},</p>
           <h1 style={{
@@ -373,11 +373,11 @@ export default function DashboardPage() {
       </div>
 
       {/* ── BALANCE HERO ── */}
-      <div style={{ padding: "16px 16px 0" }}>
+      <div style={{ padding: "10px 14px 0" }}>
         <div style={{
           background: VERDE,
-          borderRadius: 28,
-          padding: "20px 22px 22px",
+          borderRadius: 24,
+          padding: "14px 18px 16px",
           color: "#ffffff",
           position: "relative",
           overflow: "hidden",
@@ -429,14 +429,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Balance grande */}
-          <div style={{ marginTop: 14, position: "relative", zIndex: 1 }}>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase" }}>
+          <div style={{ marginTop: 10, position: "relative", zIndex: 1 }}>
+            <p style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase" }}>
               Balance del mes
             </p>
-            {cargando ? <Skel w="200px" h="50px" r="10px" /> : (
+            {cargando ? <Skel w="200px" h="44px" r="10px" /> : (
               <h2 style={{
                 fontFamily: "var(--font-display), Georgia, serif", fontStyle: "italic",
-                fontSize: 46, fontWeight: 900,
+                fontSize: 40, fontWeight: 900,
                 color: balance < 0 ? "#ff8a7a" : "#ffffff",
                 marginTop: 2, letterSpacing: "-1.2px", lineHeight: 1,
               }}>
@@ -444,32 +444,32 @@ export default function DashboardPage() {
               </h2>
             )}
             {!cargando && mesOffset === 0 && modo === "mes" && (
-              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginTop: 6, fontWeight: 500 }}>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 4, fontWeight: 500 }}>
                 Día {diaActual} de {diasEnMes} · {diasRestantes === 0 ? "último día" : `quedan ${diasRestantes} días`}
               </p>
             )}
           </div>
 
           {/* Ingresos / Gastos mini cards */}
-          <div style={{ marginTop: 16, display: "flex", gap: 10, position: "relative", zIndex: 1 }}>
-            <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: "10px 12px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#7dd3a8" }} />
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Ingresos</span>
+          <div style={{ marginTop: 10, display: "flex", gap: 8, position: "relative", zIndex: 1 }}>
+            <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "7px 10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#7dd3a8" }} />
+                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Ingresos</span>
               </div>
-              {cargando ? <Skel w="70px" h="18px" r="6px" /> : (
-                <p style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", marginTop: 2, letterSpacing: "-0.3px" }}>
+              {cargando ? <Skel w="70px" h="16px" r="6px" /> : (
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", marginTop: 2, letterSpacing: "-0.3px" }}>
                   +{formatearMonto(ingresos)}
                 </p>
               )}
             </div>
-            <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14, padding: "10px 12px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#ff8a7a" }} />
-                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Gastos</span>
+            <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12, padding: "7px 10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#ff8a7a" }} />
+                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Gastos</span>
               </div>
-              {cargando ? <Skel w="70px" h="18px" r="6px" /> : (
-                <p style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", marginTop: 2, letterSpacing: "-0.3px" }}>
+              {cargando ? <Skel w="70px" h="16px" r="6px" /> : (
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", marginTop: 2, letterSpacing: "-0.3px" }}>
                   −{formatearMonto(gastos)}
                 </p>
               )}
@@ -480,17 +480,17 @@ export default function DashboardPage() {
 
       {/* ── SCORE: 3 rings ── */}
       {!cargando && scoreFinanciero && mesOffset === 0 && (
-        <div style={{ padding: "16px 16px 0", display: "flex", gap: 10 }}>
-          <div style={{ flex: 1, padding: "14px 10px 12px", borderRadius: 20, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Ahorro</span>
+        <div style={{ padding: "8px 14px 0", display: "flex", gap: 8 }}>
+          <div style={{ flex: 1, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Ahorro</span>
             <MetricaRing valor={scoreFinanciero.metricas[0].valor} label="" display={scoreFinanciero.metricas[0].display} color={scoreFinanciero.metricas[0].color} />
           </div>
-          <div style={{ flex: 1.4, padding: "16px 10px 14px", borderRadius: 20, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, position: "relative" }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Score</span>
+          <div style={{ flex: 1.4, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Score</span>
             <MetricaRing valor={scoreFinanciero.pts} label={scoreFinanciero.label} display={`${scoreFinanciero.pts}%`} color={scoreFinanciero.color} grande />
           </div>
-          <div style={{ flex: 1, padding: "14px 10px 12px", borderRadius: 20, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Control</span>
+          <div style={{ flex: 1, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Control</span>
             <MetricaRing valor={scoreFinanciero.metricas[1].valor} label="" display={scoreFinanciero.metricas[1].display} color={scoreFinanciero.metricas[1].color} />
           </div>
         </div>
@@ -498,17 +498,17 @@ export default function DashboardPage() {
 
       {/* ── LANI INSIGHT ── */}
       {(insight || insightCargando) && (
-        <div style={{ padding: "14px 16px 0" }}>
+        <div style={{ padding: "8px 14px 0" }}>
           <div style={{
             background: CREMA,
-            borderRadius: 20,
-            padding: "14px",
-            display: "flex", gap: 12, alignItems: "flex-start",
+            borderRadius: 18,
+            padding: "10px 12px",
+            display: "flex", gap: 10, alignItems: "flex-start",
             border: "1px solid rgba(15,47,47,0.06)",
           }}>
             {/* Avatar Lani */}
             <div style={{
-              width: 42, height: 42, borderRadius: "50%",
+              width: 36, height: 36, borderRadius: "50%",
               background: "#ffffff", flexShrink: 0,
               border: "1.5px solid rgba(15,47,47,0.1)",
               display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
@@ -537,21 +537,21 @@ export default function DashboardPage() {
 
       {/* ── TOP CATEGORÍAS ── */}
       {!cargando && topCategorias.length > 0 && (
-        <div style={{ padding: "14px 16px 0" }}>
+        <div style={{ padding: "8px 14px 0" }}>
           <div style={{
             background: "#ffffff",
-            borderRadius: 20,
-            padding: "16px 16px 14px",
+            borderRadius: 18,
+            padding: "12px 14px 10px",
             border: "1px solid rgba(15,47,47,0.06)",
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: VERDE, letterSpacing: "-0.2px" }}>En qué gastas más</h3>
               <span style={{ fontSize: 11, color: "rgba(15,47,47,0.45)", fontWeight: 500 }}>este periodo</span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
               {topCategorias.map(({ cat, monto, pct }) => (
                 <div key={cat}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 16 }}>{CAT_ICON[cat] || "📦"}</span>
                       <span style={{ fontSize: 14, fontWeight: 600, color: VERDE }}>{cat}</span>
@@ -584,7 +584,7 @@ export default function DashboardPage() {
 
       {/* ── ALERTA URGENTE ── */}
       {!cargando && alertaUrgente && (
-        <div style={{ padding: "14px 16px 0" }}>
+        <div style={{ padding: "8px 14px 0" }}>
           <div style={{ padding: "12px 14px", borderRadius: 16, backgroundColor: "#fff8f7", border: "1px solid rgba(200,80,62,0.2)", display: "flex", alignItems: "flex-start", gap: 10 }}>
             <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1.6 }}>⚡</span>
             <div style={{ flex: 1, minWidth: 0 }}>
