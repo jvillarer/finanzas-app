@@ -368,8 +368,8 @@ export default function DashboardPage() {
           </div>
           <h1 style={{
             fontFamily: "var(--font-display), Georgia, serif",
-            fontSize: 34, fontWeight: 800, color: VERDE,
-            letterSpacing: "-0.5px", lineHeight: 1, marginTop: 2,
+            fontSize: 36, fontWeight: 400, color: VERDE,
+            letterSpacing: "-0.3px", lineHeight: 1, marginTop: 2,
           }}>
             {cargando ? <Skel w="100px" h="34px" r="8px" /> : (nombre || "Mis finanzas")}
           </h1>
@@ -459,9 +459,9 @@ export default function DashboardPage() {
               <h2 style={{
                 fontFamily: "var(--font-display), Georgia, serif",
                 fontStyle: "italic",
-                fontSize: 48, fontWeight: 900,
+                fontSize: 52, fontWeight: 400,
                 color: balance < 0 ? "#ff8a7a" : "#ffffff",
-                marginTop: 2, letterSpacing: "-1px", lineHeight: 1,
+                marginTop: 2, letterSpacing: "-0.5px", lineHeight: 1,
               }}>
                 {balance < 0 ? `−${formatearMonto(Math.abs(balance))}` : formatearMonto(balance)}
               </h2>
