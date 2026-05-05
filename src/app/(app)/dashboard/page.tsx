@@ -407,7 +407,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── BALANCE HERO ── */}
-      <div style={{ padding: "10px 14px 0" }}>
+      <div style={{ padding: "10px 14px 0", position: "relative" }}>
         <div style={{
           background: VERDE,
           borderRadius: 24,
@@ -453,8 +453,8 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Balance + Lani */}
-          <div style={{ marginTop: 10, display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+          {/* Balance */}
+          <div style={{ marginTop: 10 }}>
             <div key={animKey} className={saliendo ? "balance-out" : "balance-in"} style={{ position: "relative", zIndex: 1 }}>
               <p style={{ fontSize: 10, color: "rgba(255,255,255,0.65)", fontWeight: 600, letterSpacing: "0.6px", textTransform: "uppercase" }}>
                 Balance del mes
@@ -476,12 +476,6 @@ export default function DashboardPage() {
                 </p>
               )}
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/Lani_Saludando_ec67ff06.png"
-              alt=""
-              style={{ width: 90, height: 90, objectFit: "contain", flexShrink: 0, marginBottom: -16, marginRight: -6 }}
-            />
           </div>
 
           {/* Ingresos / Gastos mini cards */}
@@ -510,11 +504,27 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+        {/* Lani asomándose desde el borde inferior de la card */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/Lani_peek.png"
+          alt=""
+          style={{
+            position: "absolute",
+            bottom: -52,
+            right: 28,
+            width: 104,
+            height: 104,
+            objectFit: "contain",
+            zIndex: 10,
+            pointerEvents: "none",
+          }}
+        />
       </div>
 
       {/* ── SCORE: 3 rings ── */}
       {!cargando && scoreFinanciero && mesOffset === 0 && (
-        <div style={{ padding: "8px 14px 0", display: "flex", gap: 8 }}>
+        <div style={{ padding: "60px 14px 0", display: "flex", gap: 8 }}>
           <div className="press-card" style={{ flex: 1, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Ahorro</span>
             <MetricaRing valor={scoreFinanciero.metricas[0].valor} label="" display={scoreFinanciero.metricas[0].display} color={scoreFinanciero.metricas[0].color} />
