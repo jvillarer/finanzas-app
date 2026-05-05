@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Playfair_Display, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 // Display serif — nombre y balance en el dashboard
-const cormorant = Cormorant_Garamond({
+const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800", "900"],
   style: ["normal", "italic"],
 });
 
@@ -47,7 +47,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${cormorant.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
+    <html lang="es" className={`${playfair.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
       <body>{children}</body>
     </html>
   );
