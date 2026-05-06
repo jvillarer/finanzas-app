@@ -698,7 +698,7 @@ export default function PlanificacionPage() {
   const [showTour, setShowTour] = useState(false);
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "#0F2F2F" }}>
+    <main style={{ height: "100dvh", display: "flex", flexDirection: "column", backgroundColor: "#0F2F2F", overflow: "hidden" }}>
 
       <TourSheet
         tourKey="lani_tour_planificacion"
@@ -713,9 +713,9 @@ export default function PlanificacionPage() {
         onCerrar={() => setShowTour(false)}
       />
 
-      {/* ── HEADER ── */}
+      {/* ── HEADER — no sticky, permanece fijo en el flex ── */}
       <div style={{
-        position: "sticky", top: 0, zIndex: 40,
+        flexShrink: 0,
         backgroundColor: "#0F2F2F",
         paddingTop: "calc(env(safe-area-inset-top) + 14px)",
         paddingLeft: 20, paddingRight: 20,
@@ -755,8 +755,14 @@ export default function PlanificacionPage() {
         </div>
       </div>
 
-      {/* Contenido — fondo var(--bg) con esquinas superiores redondeadas */}
-      <div style={{ backgroundColor: "var(--bg)", borderRadius: "24px 24px 0 0", minHeight: "80vh" }}>
+      {/* Contenido — scroll propio, el header nunca se mueve */}
+      <div style={{
+        flex: 1,
+        overflowY: "auto",
+        backgroundColor: "var(--bg)",
+        borderRadius: "24px 24px 0 0",
+        paddingBottom: "calc(env(safe-area-inset-bottom) + 64px)",
+      }}>
         {tabActiva === "metas"        && <SeccionMetas />}
         {tabActiva === "presupuestos" && <SeccionPresupuestos />}
         {tabActiva === "movimientos"  && <SeccionMovimientos />}
