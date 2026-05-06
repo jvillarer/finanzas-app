@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import TourSheet from "@/components/TourSheet";
 import { createClient } from "@/lib/supabase";
 import { obtenerTransacciones, formatearMonto } from "@/lib/transacciones";
@@ -360,10 +360,34 @@ function ModalPresupuesto({ categoria, emoji, limiteActual, onGuardar, onElimina
   onGuardar: (limite: number) => void; onEliminar?: () => void; onCerrar: () => void;
 }) {
   const [valor, setValor] = useState(limiteActual ? String(limiteActual) : "");
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Sube el sheet cuando aparece el teclado en iOS
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const ajustar = () => {
+      if (!sheetRef.current) return;
+      const desplazamiento = window.innerHeight - vv.height - vv.offsetTop;
+      sheetRef.current.style.transform = `translateY(${-Math.max(desplazamiento, 0)}px)`;
+    };
+    vv.addEventListener("resize", ajustar);
+    vv.addEventListener("scroll", ajustar);
+    return () => { vv.removeEventListener("resize", ajustar); vv.removeEventListener("scroll", ajustar); };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
-      <div className="w-full px-5 pt-4 pb-10 slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTop: "1px solid var(--border)" }}>
+    <div
+      className="fixed inset-0 z-50"
+      style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+      onTouchMove={(e) => e.preventDefault()} // bloquea scroll del fondo
+      onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
+    >
+      <div
+        ref={sheetRef}
+        className="absolute bottom-0 left-0 right-0 px-5 pt-4 pb-10 slide-up"
+        style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTop: "1px solid var(--border)", transition: "transform 0.15s ease-out" }}
+      >
         <div className="w-8 h-0.5 rounded-full mx-auto mb-5" style={{ backgroundColor: "var(--surface-3)" }} />
         <div className="flex items-center gap-3 mb-6">
           <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl" style={{ backgroundColor: "#f5f7f5" }}>{emoji}</div>
