@@ -301,7 +301,7 @@ function NudgeContextual({ nudge, onEnviar, onNavegar }: {
   return (
     <div
       className="mx-2 mb-3 rounded-2xl overflow-hidden"
-      style={{ border: "1px solid rgba(0,0,0,0.07)", backgroundColor: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}
+      style={{ border: "1px solid rgba(15,47,47,0.08)", backgroundColor: "#EFECE5", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}
     >
       <div className="px-4 pt-3.5 pb-3">
         <div className="flex items-start gap-3">
@@ -690,7 +690,7 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="flex flex-col" style={{ position: "fixed", inset: 0, backgroundColor: "#f5f9f8", overflow: "hidden" }}>
+    <main className="flex flex-col" style={{ position: "fixed", inset: 0, backgroundColor: "#F5F3EE", overflow: "hidden" }}>
 
       {/* ── TOUR ── */}
       <TourSheet
