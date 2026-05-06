@@ -403,6 +403,8 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const inputImagenRef = useRef<HTMLInputElement>(null);
   const audioDesbloqueadoRef = useRef(false);
+  // Ref para evitar stale closure de enviar dentro de iniciarGrabacion (useCallback vacío)
+  const enviarRef = useRef<(texto?: string) => Promise<void>>(async () => {});
 
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -525,7 +527,8 @@ export default function ChatPage() {
     rec.onresult = (e: any) => {
       const texto = corregirSTT(e.results[0][0].transcript);
       setGrabando(false);
-      enviar(texto);
+      // Usar ref para obtener siempre el enviar más reciente (evita stale closure)
+      enviarRef.current(texto);
     };
     rec.onerror = () => setGrabando(false);
     rec.onend = () => setGrabando(false);
@@ -651,6 +654,9 @@ export default function ChatPage() {
       setCargando(false);
     }
   };
+
+  // Sincronizar enviarRef con la versión más reciente de enviar (sin deps = cada render)
+  useEffect(() => { enviarRef.current = enviar; });
 
   // Cerrar modo voz
   const cerrarModoVoz = () => {

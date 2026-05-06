@@ -275,6 +275,11 @@ export async function POST(req: NextRequest) {
 
     // Contexto de transacciones recientes (incluye IDs para editar/eliminar)
     let contextoTransacciones = "";
+    // Referencias al viaje activo para usarlas en los handlers de herramientas
+    let viajeIdActivo: string | null = null;
+    let viajeMoneda = "MXN";
+    let viajeTipoCambio = 1;
+
     if (incluirContexto) {
       // Fetch en paralelo: transacciones + metas + viaje activo + compromisos MSI
       const [{ data: transacciones }, { data: metas }, { data: viajeActivo }, { data: compromisosMsi }] = await Promise.all([
@@ -315,17 +320,13 @@ export async function POST(req: NextRequest) {
       }
 
       if (viajeActivo) {
+        // Extraer datos del viaje para los handlers (evita re-fetch)
+        viajeIdActivo = viajeActivo.id;
+        viajeMoneda = viajeActivo.moneda;
+        viajeTipoCambio = Number(viajeActivo.tipo_cambio);
+
         contextoTransacciones += `\n\n--- PROYECTO ACTIVO ---\nProyecto: "${viajeActivo.nombre}"\nMoneda: ${viajeActivo.moneda}\nTipo de cambio: 1 ${viajeActivo.moneda} = $${viajeActivo.tipo_cambio} MXN\n${viajeActivo.presupuesto ? `Presupuesto: ${viajeActivo.moneda === "MXN" ? "$" : viajeActivo.moneda + " "}${viajeActivo.presupuesto}` : ""}\n\nINSTRUCCIONES:\n- Todos los gastos que registres deben ir asociados a este proyecto\n- Si la moneda es ${viajeActivo.moneda !== "MXN" ? viajeActivo.moneda : "MXN"} y el usuario no especifica moneda, asume ${viajeActivo.moneda}\n- Usa moneda="${viajeActivo.moneda}" y monto_original=monto_en_${viajeActivo.moneda} en crear_transaccion\n- El campo monto debe ser monto_original × ${viajeActivo.tipo_cambio} (MXN)\n- Si el usuario dice "pesos" o "MXN" explícitamente, registra en MXN\n---`;
       }
-    }
-
-    // Guardar referencia al viaje activo para usarla en las herramientas
-    let viajeIdActivo: string | null = null;
-    let viajeMoneda = "MXN";
-    let viajeTipoCambio = 1;
-    if (incluirContexto) {
-      const { data: v } = await supabase.from("viajes").select("id, moneda, tipo_cambio").eq("activo", true).single();
-      if (v) { viajeIdActivo = v.id; viajeMoneda = v.moneda; viajeTipoCambio = Number(v.tipo_cambio); }
     }
 
     // Nombre del usuario para personalización
