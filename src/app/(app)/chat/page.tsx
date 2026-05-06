@@ -709,32 +709,32 @@ export default function ChatPage() {
 
       {/* ── HEADER ── */}
       <div
-        className="flex items-center gap-3 px-4 shrink-0"
-        style={{ backgroundColor: "#0F2F2F", paddingTop: 56, paddingBottom: 14 }}
+        className="shrink-0"
+        style={{ backgroundColor: "#0F2F2F", paddingTop: 56, paddingBottom: 14, position: "relative" }}
       >
-        {/* Avatar + dot */}
-        <div className="relative shrink-0">
-          <div
-            className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center"
-            style={{ backgroundColor: "#F5F3EE", border: "2px solid rgba(255,255,255,0.12)" }}
-          >
-            <img src="/Lani_cropped.png" alt="Lani" style={{ width: "90%", height: "90%", objectFit: "contain" }} />
-          </div>
-          <div
-            className="absolute rounded-full"
-            style={{ bottom: 1, right: 1, width: 9, height: 9, backgroundColor: "#4ade80", border: "2px solid #0F2F2F" }}
-          />
-        </div>
+        {/* Lani acostada en el borde inferior del header */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/lani_chat.png"
+          alt="Lani"
+          style={{
+            position: "absolute",
+            bottom: -28,
+            left: 16,
+            width: 160,
+            height: "auto",
+            objectFit: "contain",
+            zIndex: 10,
+            pointerEvents: "none",
+          }}
+        />
 
-        {/* Nombre / estado */}
-        <div className="flex-1">
-          <p style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", letterSpacing: "-0.2px", lineHeight: 1.2 }}>Lani</p>
-          <p style={{ fontSize: 12, color: "#4ade80", fontWeight: 500, marginTop: 1 }}>
-            {hablando ? "hablando…" : "en línea"}
-          </p>
-        </div>
+        <div className="flex items-center gap-3 px-4">
+          {/* Espacio para Lani (izq) + acciones (der) */}
+          <div style={{ width: 160, flexShrink: 0 }} />
+          <div className="flex-1" />
 
-        <TourBoton onClick={() => setShowTour(true)} />
+          <TourBoton onClick={() => setShowTour(true)} />
 
         {/* Toggle speaker */}
         {soportaVoz && (
@@ -796,7 +796,7 @@ export default function ChatPage() {
       )}
 
       {/* ── MENSAJES ── */}
-      <div ref={listaRef} className="flex-1 overflow-y-auto py-4 no-scroll" style={{ paddingLeft: 0, paddingRight: 0 }}>
+      <div ref={listaRef} className="flex-1 overflow-y-auto no-scroll" style={{ paddingLeft: 0, paddingRight: 0, paddingTop: 36, paddingBottom: 16 }}>
         {mensajes.map((msg, i) => (
           <div
             key={i}
