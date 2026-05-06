@@ -363,16 +363,16 @@ export default function DashboardPage() {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <p style={{ fontSize: 13, color: "rgba(15,47,47,0.55)", fontWeight: 500, letterSpacing: "0.1px" }}>{saludo},</p>
-            {/* Badge racha */}
-            {!cargando && racha.activa && (
+            {/* Badge racha — siempre visible */}
+            {!cargando && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 3,
                 padding: "2px 8px", borderRadius: 99,
-                backgroundColor: racha.enRiesgo ? "rgba(15,47,47,0.06)" : "rgba(255,160,0,0.12)",
-                border: `1px solid ${racha.enRiesgo ? "rgba(15,47,47,0.1)" : "rgba(255,160,0,0.25)"}`,
+                backgroundColor: !racha.activa ? "rgba(15,47,47,0.05)" : racha.enRiesgo ? "rgba(15,47,47,0.06)" : "rgba(255,160,0,0.12)",
+                border: `1px solid ${!racha.activa ? "rgba(15,47,47,0.08)" : racha.enRiesgo ? "rgba(15,47,47,0.1)" : "rgba(255,160,0,0.25)"}`,
               }}>
-                <span style={{ fontSize: 11 }}>🔥</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: racha.enRiesgo ? "rgba(15,47,47,0.4)" : "#d97706" }}>
+                <span style={{ fontSize: 11, opacity: racha.activa ? 1 : 0.35 }}>🔥</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: !racha.activa ? "rgba(15,47,47,0.3)" : racha.enRiesgo ? "rgba(15,47,47,0.4)" : "#d97706" }}>
                   {racha.dias}
                 </span>
               </div>
