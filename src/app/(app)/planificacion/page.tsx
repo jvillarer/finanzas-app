@@ -570,12 +570,13 @@ function SeccionMovimientos() {
             </div>
           </div>
           {/* Mini sparkline */}
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 6, marginTop: 14, height: 42 }}>
-            {sparkline7d.map((v, i) => (
-              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                <div style={{ width: "100%", height: `${Math.max((v / maxSpark) * 100, 4)}%`, background: i === 6 ? "#7dd3a8" : "rgba(255,255,255,0.2)", borderRadius: 3, minHeight: 3 }} />
-              </div>
-            ))}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 4, marginTop: 14, height: 40 }}>
+            {sparkline7d.map((v, i) => {
+              const h = Math.max((v / maxSpark) * 36, 3);
+              return (
+                <div key={i} style={{ flex: 1, height: h, background: i === 6 ? "#7dd3a8" : "rgba(255,255,255,0.25)", borderRadius: 3 }} />
+              );
+            })}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
             {diasLabels.map((d, i) => (
