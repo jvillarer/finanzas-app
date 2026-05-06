@@ -521,15 +521,22 @@ function SeccionMovimientos() {
 
   useEffect(() => { setPagina(30); }, [filtro]);
 
-  // Sparkline últimos 7 días (gastos)
+  // Sparkline últimos 7 días — se actualiza según filtro activo
   const sparkline7d = useMemo(() => {
     const hoy = new Date();
+    const tipoFiltro = filtro === "ingresos" ? "ingreso" : "gasto";
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(hoy); d.setDate(hoy.getDate() - (6 - i));
       const fecha = d.toISOString().split("T")[0];
-      return transacciones.filter((t) => t.tipo === "gasto" && t.fecha === fecha).reduce((s, t) => s + Number(t.monto), 0);
+      if (filtro === "todos") {
+        // Todos: muestra gastos menos ingresos (gasto neto) para cada día
+        const gastos = transacciones.filter((t) => t.tipo === "gasto" && t.fecha === fecha).reduce((s, t) => s + Number(t.monto), 0);
+        const ingresos = transacciones.filter((t) => t.tipo === "ingreso" && t.fecha === fecha).reduce((s, t) => s + Number(t.monto), 0);
+        return Math.max(gastos - ingresos, 0);
+      }
+      return transacciones.filter((t) => t.tipo === tipoFiltro && t.fecha === fecha).reduce((s, t) => s + Number(t.monto), 0);
     });
-  }, [transacciones]);
+  }, [transacciones, filtro]);
 
   const maxSpark = Math.max(...sparkline7d, 1);
   const DIAS_CORTOS = ["L", "M", "M", "J", "V", "S", "D"];
@@ -539,8 +546,9 @@ function SeccionMovimientos() {
     return DIAS_CORTOS[d === 0 ? 6 : d - 1];
   });
 
-  // Total últimos 7 días
+  // Total últimos 7 días según filtro
   const total7d = sparkline7d.reduce((s, v) => s + v, 0);
+  const labelTotal7d = filtro === "ingresos" ? `+${formatearMonto(total7d)}` : `−${formatearMonto(total7d)}`;
 
   const conteos = useMemo(() => ({
     todos: transacciones.length,
@@ -563,9 +571,11 @@ function SeccionMovimientos() {
         <div style={{ background: "linear-gradient(135deg, #0F2F2F 0%, #1f4640 100%)", borderRadius: 22, padding: "18px 20px", color: "#fff", position: "relative", overflow: "hidden", boxShadow: "0 6px 20px rgba(15,47,47,0.18)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" }}>Últimos 7 días</p>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" }}>
+                {filtro === "ingresos" ? "Ingresos · 7 días" : filtro === "gastos" ? "Gastos · 7 días" : "Neto · 7 días"}
+              </p>
               <h2 className="font-display" style={{ fontSize: 34, fontWeight: 400, fontStyle: "italic", color: "#fff", marginTop: 2, letterSpacing: "-1px", lineHeight: 1 }}>
-                {cargando ? "—" : `−${formatearMonto(total7d)}`}
+                {cargando ? "—" : labelTotal7d}
               </h2>
             </div>
           </div>
