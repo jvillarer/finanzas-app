@@ -698,7 +698,7 @@ export default function PlanificacionPage() {
   const [showTour, setShowTour] = useState(false);
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)" }}>
+    <main style={{ minHeight: "100vh", backgroundColor: "#0F2F2F" }}>
 
       <TourSheet
         tourKey="lani_tour_planificacion"
@@ -720,7 +720,6 @@ export default function PlanificacionPage() {
         paddingTop: "calc(env(safe-area-inset-top) + 14px)",
         paddingLeft: 20, paddingRight: 20,
         paddingBottom: 14,
-        borderRadius: "0 0 24px 24px",
       }}>
         {/* Título + botón ayuda */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 18 }}>
@@ -756,10 +755,12 @@ export default function PlanificacionPage() {
         </div>
       </div>
 
-      {/* Contenido */}
-      {tabActiva === "metas"        && <SeccionMetas />}
-      {tabActiva === "presupuestos" && <SeccionPresupuestos />}
-      {tabActiva === "movimientos"  && <SeccionMovimientos />}
+      {/* Contenido — fondo var(--bg) con esquinas superiores redondeadas */}
+      <div style={{ backgroundColor: "var(--bg)", borderRadius: "24px 24px 0 0", minHeight: "80vh" }}>
+        {tabActiva === "metas"        && <SeccionMetas />}
+        {tabActiva === "presupuestos" && <SeccionPresupuestos />}
+        {tabActiva === "movimientos"  && <SeccionMovimientos />}
+      </div>
     </main>
   );
 }
