@@ -488,7 +488,7 @@ export default function DashboardPage() {
               alt=""
               style={{
                 position: "absolute",
-                bottom: 22,
+                bottom: 14,
                 right: 2,
                 width: 135,
                 height: 135,
