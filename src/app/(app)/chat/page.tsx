@@ -381,7 +381,7 @@ export default function ChatPage() {
       {/* ── HEADER ── */}
       <div
         className="shrink-0"
-        style={{ backgroundColor: "#0F2F2F", paddingTop: "calc(env(safe-area-inset-top) + 8px)", paddingBottom: 8, position: "relative" }}
+        style={{ backgroundColor: "#0F2F2F", paddingTop: "calc(env(safe-area-inset-top) + 12px)", paddingBottom: 28, position: "relative" }}
       >
         {/* Lani acostada en el borde inferior del header */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
