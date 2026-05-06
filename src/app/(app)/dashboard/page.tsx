@@ -550,50 +550,37 @@ export default function DashboardPage() {
           <div className="press-card" style={{
             background: CREMA,
             borderRadius: 18,
-            padding: "10px 12px",
-            display: "flex", gap: 10, alignItems: "flex-start",
+            padding: "12px 14px",
             border: "1px solid rgba(15,47,47,0.06)",
           }}>
-            {/* Avatar Lani */}
-            <div style={{
-              width: 40, height: 40, borderRadius: "50%",
-              background: CREMA, flexShrink: 0,
-              border: "1.5px solid rgba(15,47,47,0.1)",
-              overflow: "hidden",
-            }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/Lani_peek.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: VERDE, letterSpacing: "0.08em", textTransform: "uppercase" }}>Lani dice</span>
+              <span style={{ fontSize: 10, color: "rgba(15,47,47,0.35)", fontWeight: 500 }}>hoy</span>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: VERDE, letterSpacing: "-0.1px" }}>Lani dice</span>
-                <span style={{ fontSize: 10, color: "rgba(15,47,47,0.4)", fontWeight: 500 }}>hoy</span>
+            {insightCargando ? (
+              <div style={{ display: "flex", gap: 4, alignItems: "center", paddingTop: 2 }}>
+                {[0, 1, 2].map((i) => (
+                  <span key={i} className="animate-bounce" style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: VERDE, display: "block", animationDelay: `${i * 150}ms` }} />
+                ))}
               </div>
-              {insightCargando ? (
-                <div style={{ display: "flex", gap: 4, alignItems: "center", paddingTop: 4 }}>
-                  {[0, 1, 2].map((i) => (
-                    <span key={i} className="animate-bounce" style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: VERDE, display: "block", animationDelay: `${i * 150}ms` }} />
-                  ))}
-                </div>
-              ) : (
-                <div>
-                  <p style={{
-                    fontSize: 13, lineHeight: "18px", color: VERDE_SOFT, fontWeight: 450,
-                    display: "-webkit-box", WebkitBoxOrient: "vertical",
-                    WebkitLineClamp: insightExpandido ? undefined : 2,
-                    overflow: insightExpandido ? "visible" : "hidden",
-                  }}>{insight}</p>
-                  {insight && insight.length > 80 && (
-                    <button
-                      onClick={() => setInsightExpandido(!insightExpandido)}
-                      style={{ background: "none", border: "none", padding: "4px 0 0", cursor: "pointer", fontSize: 12, fontWeight: 600, color: VERDE, opacity: 0.6 }}
-                    >
-                      {insightExpandido ? "Ver menos" : "Ver más"}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+            ) : (
+              <div>
+                <p style={{
+                  fontSize: 13, lineHeight: "19px", color: VERDE_SOFT, fontWeight: 400,
+                  display: "-webkit-box", WebkitBoxOrient: "vertical",
+                  WebkitLineClamp: insightExpandido ? undefined : 2,
+                  overflow: insightExpandido ? "visible" : "hidden",
+                }}>{insight}</p>
+                {insight && insight.length > 80 && (
+                  <button
+                    onClick={() => setInsightExpandido(!insightExpandido)}
+                    style={{ background: "none", border: "none", padding: "4px 0 0", cursor: "pointer", fontSize: 12, fontWeight: 600, color: VERDE, opacity: 0.6 }}
+                  >
+                    {insightExpandido ? "Ver menos" : "Ver más"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
