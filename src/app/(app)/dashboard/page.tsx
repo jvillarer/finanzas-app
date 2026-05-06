@@ -556,13 +556,13 @@ export default function DashboardPage() {
           }}>
             {/* Avatar Lani */}
             <div style={{
-              width: 36, height: 36, borderRadius: "50%",
-              background: "#ffffff", flexShrink: 0,
+              width: 40, height: 40, borderRadius: "50%",
+              background: CREMA, flexShrink: 0,
               border: "1.5px solid rgba(15,47,47,0.1)",
-              display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+              overflow: "hidden",
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/Lani_Saludando_ec67ff06.png" alt="Lani" style={{ width: "90%", height: "90%", objectFit: "contain" }} />
+              <img src="/Lani_peek.png" alt="Lani" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
