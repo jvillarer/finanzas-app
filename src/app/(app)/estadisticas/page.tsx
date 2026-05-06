@@ -426,7 +426,7 @@ export default function EstadisticasPage() {
       />
 
       {/* ── HEADER ── */}
-      <div style={{ padding: "56px 20px 16px" }}>
+      <div style={{ padding: "calc(env(safe-area-inset-top) + 20px) 20px 16px" }}>
         <p style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
           Análisis
         </p>

@@ -659,11 +659,29 @@ export default function PlanificacionPage() {
       />
 
       {/* Header fijo */}
-      <div style={{ position: "sticky", top: 0, zIndex: 40, backgroundColor: "var(--bg)", borderBottom: "1px solid var(--border-2)", paddingTop: 52 }}>
-        <div style={{ padding: "0 20px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", marginBottom: 14 }}>Planificación</h1>
-          <div style={{ marginBottom: 14 }}><TourBoton onClick={() => setShowTour(true)} /></div>
+      <div style={{
+        position: "sticky", top: 0, zIndex: 40,
+        backgroundColor: "#0F2F2F",
+        paddingTop: "calc(env(safe-area-inset-top) + 12px)",
+        paddingBottom: 12,
+      }}>
+        {/* Título + botón ayuda */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", marginBottom: 14 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#ffffff", letterSpacing: "-0.02em" }}>Planificación</h1>
+          <button
+            onClick={() => setShowTour(true)}
+            style={{
+              width: 28, height: 28, borderRadius: "50%",
+              backgroundColor: "rgba(255,255,255,0.09)",
+              border: "1px solid rgba(255,255,255,0.14)",
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+            aria-label="Cómo funciona"
+          >
+            <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.55)", lineHeight: 1 }}>?</span>
+          </button>
         </div>
+
         {/* Tab bar */}
         <div style={{ display: "flex", padding: "0 20px", gap: 4 }}>
           {TABS.map(({ key, label }) => {
@@ -678,9 +696,9 @@ export default function PlanificacionPage() {
                   borderRadius: 10,
                   fontSize: 13,
                   fontWeight: activa ? 700 : 500,
-                  color: activa ? "var(--gold)" : "var(--text-3)",
-                  backgroundColor: activa ? "var(--gold-dim)" : "transparent",
-                  border: activa ? "1px solid var(--gold-border)" : "1px solid transparent",
+                  color: activa ? "#ffffff" : "rgba(255,255,255,0.38)",
+                  backgroundColor: activa ? "rgba(255,255,255,0.11)" : "transparent",
+                  border: activa ? "1px solid rgba(255,255,255,0.16)" : "1px solid transparent",
                   cursor: "pointer",
                   transition: "all 0.15s",
                 }}
@@ -690,7 +708,6 @@ export default function PlanificacionPage() {
             );
           })}
         </div>
-        <div style={{ height: 12 }} />
       </div>
 
       {/* Contenido */}
