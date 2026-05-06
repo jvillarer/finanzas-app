@@ -725,7 +725,7 @@ export default function ChatPage() {
           alt="Lani"
           style={{
             position: "absolute",
-            bottom: -28,
+            bottom: 10,
             left: 16,
             width: 160,
             height: "auto",
@@ -803,7 +803,7 @@ export default function ChatPage() {
       )}
 
       {/* ── MENSAJES ── */}
-      <div ref={listaRef} className="flex-1 overflow-y-auto no-scroll" style={{ paddingLeft: 0, paddingRight: 0, paddingTop: 36, paddingBottom: 16 }}>
+      <div ref={listaRef} className="flex-1 overflow-y-auto no-scroll" style={{ paddingLeft: 0, paddingRight: 0, paddingTop: 12, paddingBottom: 16 }}>
         {mensajes.map((msg, i) => (
           <div
             key={i}
