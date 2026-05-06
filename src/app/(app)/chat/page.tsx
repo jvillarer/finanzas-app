@@ -330,7 +330,7 @@ function NudgeContextual({ nudge, onEnviar, onNavegar }: {
             <button
               onClick={() => onEnviar(nudge.sugerencia!)}
               className="flex-1 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]"
-              style={{ backgroundColor: nudge.accion ? "#f3f4f6" : "#0c0c0e", color: nudge.accion ? "#374151" : "#fff" }}
+              style={{ backgroundColor: nudge.accion ? "#EFECE5" : "#0c0c0e", color: nudge.accion ? "#0F2F2F" : "#fff" }}
             >
               {nudge.sugerencia.length > 28 ? nudge.sugerencia.slice(0, 26) + "…" : nudge.sugerencia}
             </button>
@@ -716,7 +716,7 @@ export default function ChatPage() {
         <div className="relative shrink-0">
           <div
             className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center"
-            style={{ backgroundColor: "#fff", border: "2px solid rgba(255,255,255,0.12)" }}
+            style={{ backgroundColor: "#F5F3EE", border: "2px solid rgba(255,255,255,0.12)" }}
           >
             <img src="/Lani_cropped.png" alt="Lani" style={{ width: "90%", height: "90%", objectFit: "contain" }} />
           </div>
@@ -910,7 +910,7 @@ export default function ChatPage() {
           onClick={() => inputImagenRef.current?.click()}
           disabled={cargando || grabando}
           className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-opacity active:opacity-70 disabled:opacity-40"
-          style={{ backgroundColor: "#ffffff", border: "none" }}
+          style={{ backgroundColor: "#F5F3EE", border: "none" }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="#0F2F2F" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
@@ -924,7 +924,7 @@ export default function ChatPage() {
           className="flex-1 flex items-center"
           style={{
             height: 42, borderRadius: 21,
-            backgroundColor: "#ffffff",
+            backgroundColor: "#F5F3EE",
             border: grabando ? "1.5px solid rgba(220,38,38,0.5)" : "1px solid rgba(255,255,255,0.1)",
             paddingLeft: 16, paddingRight: 10,
           }}
