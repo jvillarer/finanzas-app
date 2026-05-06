@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import TourSheet, { TourBoton } from "@/components/TourSheet";
+import { useEffect, useState, useMemo } from "react";
+import TourSheet from "@/components/TourSheet";
 import { createClient } from "@/lib/supabase";
 import { obtenerTransacciones, formatearMonto } from "@/lib/transacciones";
 import { verificarPresupuestos } from "@/lib/notificaciones";
@@ -16,8 +16,12 @@ type Tab = "metas" | "presupuestos" | "movimientos";
 type FiltroLista = "todos" | "gastos" | "ingresos";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers compartidos
+// Constantes y helpers
 // ─────────────────────────────────────────────────────────────────────────────
+const VERDE = "#0F2F2F";
+const MUTED = "rgba(15,47,47,0.55)";
+const FAINT = "rgba(15,47,47,0.08)";
+
 const EMOJIS_META = ["🎯", "🏠", "🚗", "✈️", "📱", "💻", "🎓", "💍", "🐶", "🌴", "💰", "🏋️", "🎸", "🏖️", "🚀"];
 
 const CATEGORIAS = [
@@ -39,14 +43,6 @@ const CAT_ICON: Record<string, string> = {
   Ropa: "👕", Hogar: "🏠", Educación: "📚", Otros: "📦",
 };
 
-function lbl(txt: string) {
-  return (
-    <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>
-      {txt}
-    </p>
-  );
-}
-
 function agruparPorFecha(txs: Transaccion[]): [string, Transaccion[]][] {
   const hoy = new Date().toISOString().split("T")[0];
   const ayer = new Date(Date.now() - 86400000).toISOString().split("T")[0];
@@ -55,7 +51,7 @@ function agruparPorFecha(txs: Transaccion[]): [string, Transaccion[]][] {
     const label =
       t.fecha === hoy ? "Hoy" :
       t.fecha === ayer ? "Ayer" :
-      new Date(t.fecha + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+      new Date(t.fecha + "T12:00:00").toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" });
     if (!grupos[label]) grupos[label] = [];
     grupos[label].push(t);
   }
@@ -63,7 +59,7 @@ function agruparPorFecha(txs: Transaccion[]): [string, Transaccion[]][] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SECCIÓN: METAS
+// Lock body scroll (modales iOS)
 // ─────────────────────────────────────────────────────────────────────────────
 function useLockBodyScroll() {
   useEffect(() => {
@@ -82,6 +78,9 @@ function useLockBodyScroll() {
   }, []);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SECCIÓN: METAS
+// ─────────────────────────────────────────────────────────────────────────────
 function ModalCrearMeta({ onGuardado, onCerrar }: { onGuardado: () => void; onCerrar: () => void }) {
   useLockBodyScroll();
   const [emoji, setEmoji] = useState("🎯");
@@ -101,7 +100,7 @@ function ModalCrearMeta({ onGuardado, onCerrar }: { onGuardado: () => void; onCe
     } catch { setError("Error al guardar."); setGuardando(false); }
   };
 
-  const inputStyle = { width: "100%", borderRadius: 12, padding: "12px 14px", fontSize: 14, fontWeight: 500, outline: "none", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" };
+  const inp = { width: "100%", borderRadius: 12, padding: "12px 14px", fontSize: 14, fontWeight: 500, outline: "none", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" } as const;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
@@ -114,38 +113,32 @@ function ModalCrearMeta({ onGuardado, onCerrar }: { onGuardado: () => void; onCe
             <svg viewBox="0 0 20 20" fill="var(--text-3)" style={{ width: 13, height: 13 }}><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
           </button>
         </div>
-
         <div style={{ marginBottom: 16 }}>
-          {lbl("Ícono")}
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>Ícono</p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {EMOJIS_META.map((e) => (
               <button key={e} onClick={() => setEmoji(e)} style={{ width: 40, height: 40, borderRadius: 10, fontSize: 20, backgroundColor: emoji === e ? "var(--gold-dim)" : "var(--surface-2)", border: emoji === e ? "1px solid var(--gold-border)" : "1px solid transparent", cursor: "pointer" }}>{e}</button>
             ))}
           </div>
         </div>
-
         <div style={{ marginBottom: 16 }}>
-          {lbl("¿Para qué estás ahorrando?")}
-          <input type="text" placeholder="Ej. Vacaciones, iPhone, Carro..." value={nombre} onChange={(e) => setNombre(e.target.value)} style={inputStyle} />
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>¿Para qué estás ahorrando?</p>
+          <input type="text" placeholder="Ej. Vacaciones, iPhone, Carro..." value={nombre} onChange={(e) => setNombre(e.target.value)} style={inp} />
         </div>
-
         <div style={{ marginBottom: 16 }}>
-          {lbl("¿Cuánto necesitas?")}
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>¿Cuánto necesitas?</p>
           <div style={{ position: "relative" }}>
             <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, fontWeight: 700, color: "var(--text-3)" }}>$</span>
-            <input type="number" inputMode="decimal" placeholder="0.00" value={montoObjetivo} onChange={(e) => setMontoObjetivo(e.target.value)} className="font-number" style={{ ...inputStyle, paddingLeft: 34, fontSize: 22, fontWeight: 800 }} />
+            <input type="number" inputMode="decimal" placeholder="0.00" value={montoObjetivo} onChange={(e) => setMontoObjetivo(e.target.value)} className="font-number" style={{ ...inp, paddingLeft: 34, fontSize: 22, fontWeight: 800 }} />
           </div>
         </div>
-
         <div style={{ marginBottom: 20 }}>
-          {lbl("¿Para cuándo? (opcional)")}
-          <input type="date" value={fechaLimite} min={new Date().toISOString().split("T")[0]} onChange={(e) => setFechaLimite(e.target.value)} style={{ ...inputStyle, colorScheme: "light" as const }} />
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>¿Para cuándo? (opcional)</p>
+          <input type="date" value={fechaLimite} min={new Date().toISOString().split("T")[0]} onChange={(e) => setFechaLimite(e.target.value)} style={{ ...inp, colorScheme: "light" as const }} />
           {fechaLimite && <button onClick={() => setFechaLimite("")} style={{ marginTop: 6, fontSize: 11, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>× Quitar fecha límite</button>}
         </div>
-
         {error && <div style={{ marginBottom: 12, padding: "10px 12px", borderRadius: 10, backgroundColor: "rgba(217,74,74,0.08)", border: "1px solid rgba(217,74,74,0.2)" }}><p style={{ fontSize: 12, fontWeight: 600, color: "var(--danger)" }}>{error}</p></div>}
-
-        <button onClick={handleGuardar} disabled={guardando} className="active:scale-[0.98] transition-transform" style={{ width: "100%", padding: "14px 0", borderRadius: 12, fontSize: 14, fontWeight: 700, backgroundColor: "var(--gold)", color: "#ffffff", border: "none", cursor: "pointer", opacity: guardando ? 0.4 : 1 }}>
+        <button onClick={handleGuardar} disabled={guardando} className="active:scale-[0.98] transition-transform" style={{ width: "100%", padding: "14px 0", borderRadius: 12, fontSize: 14, fontWeight: 700, backgroundColor: VERDE, color: "#ffffff", border: "none", cursor: "pointer", opacity: guardando ? 0.4 : 1 }}>
           {guardando ? "Creando..." : "Crear meta"}
         </button>
       </div>
@@ -173,14 +166,12 @@ function ModalAbonarMeta({ meta, onGuardado, onCerrar, onEliminar }: { meta: Met
     await abonarMeta(meta.id, v);
     onGuardado();
   };
-
   const handleGuardarEdit = async () => {
     if (!editNombre.trim() || !editObjetivo || Number(editObjetivo) <= 0) return;
     setGuardandoEdit(true);
     await actualizarMeta(meta.id, { nombre: editNombre.trim(), emoji: editEmoji, monto_objetivo: Number(editObjetivo), fecha_limite: null });
     onGuardado();
   };
-
   const handleEliminar = async () => { setEliminando(true); await eliminarMeta(meta.id); onEliminar(); };
 
   return (
@@ -201,7 +192,6 @@ function ModalAbonarMeta({ meta, onGuardado, onCerrar, onEliminar }: { meta: Met
             <svg viewBox="0 0 20 20" fill="var(--text-3)" style={{ width: 13, height: 13 }}><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg>
           </button>
         </div>
-
         {editando && (
           <div style={{ marginBottom: 20, padding: 16, borderRadius: 14, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)" }}>
             <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>Ícono</p>
@@ -214,35 +204,32 @@ function ModalAbonarMeta({ meta, onGuardado, onCerrar, onEliminar }: { meta: Met
             <input type="text" value={editNombre} onChange={(e) => setEditNombre(e.target.value)} style={{ width: "100%", borderRadius: 10, padding: "10px 12px", fontSize: 13, fontWeight: 600, backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none", marginBottom: 12 }} />
             <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 6 }}>Meta ($)</p>
             <input type="number" inputMode="decimal" value={editObjetivo} onChange={(e) => setEditObjetivo(e.target.value)} className="font-number" style={{ width: "100%", borderRadius: 10, padding: "10px 12px", fontSize: 16, fontWeight: 700, backgroundColor: "var(--surface)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none", marginBottom: 14 }} />
-            <button onClick={handleGuardarEdit} disabled={guardandoEdit} className="active:scale-[0.98] transition-transform" style={{ width: "100%", padding: "12px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: "var(--gold)", color: "#ffffff", border: "none", cursor: "pointer", opacity: guardandoEdit ? 0.5 : 1 }}>
+            <button onClick={handleGuardarEdit} disabled={guardandoEdit} className="active:scale-[0.98] transition-transform" style={{ width: "100%", padding: "12px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: VERDE, color: "#ffffff", border: "none", cursor: "pointer", opacity: guardandoEdit ? 0.5 : 1 }}>
               {guardandoEdit ? "Guardando..." : "Guardar cambios"}
             </button>
           </div>
         )}
-
         <div style={{ marginBottom: 20 }}>
           <div style={{ width: "100%", height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)" }}>
-            <div style={{ height: 4, borderRadius: 99, width: `${calc.pct}%`, backgroundColor: calc.completada ? "var(--success)" : "var(--gold)", transition: "width 0.6s cubic-bezier(0.22,1,0.36,1)" }} />
+            <div style={{ height: 4, borderRadius: 99, width: `${calc.pct}%`, backgroundColor: calc.completada ? "var(--success)" : VERDE, transition: "width 0.6s cubic-bezier(0.22,1,0.36,1)" }} />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
             <p style={{ fontSize: 11, color: "var(--text-3)" }}>{calc.pct.toFixed(0)}% completado</p>
             <p style={{ fontSize: 11, color: "var(--text-3)" }}>Falta {formatearMonto(calc.restante)}</p>
           </div>
         </div>
-
         {!calc.completada && (
           <>
-            {lbl("¿Cuánto abonás hoy?")}
+            <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>¿Cuánto abonás hoy?</p>
             <div style={{ position: "relative", marginBottom: 16 }}>
               <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, fontWeight: 700, color: "var(--text-3)" }}>$</span>
               <input type="number" inputMode="decimal" placeholder="0.00" autoFocus value={monto} onChange={(e) => setMonto(e.target.value)} className="font-number" style={{ width: "100%", borderRadius: 12, paddingLeft: 34, paddingRight: 14, paddingTop: 14, paddingBottom: 14, fontSize: 26, fontWeight: 800, outline: "none", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" }} />
             </div>
-            <button onClick={handleAbonar} disabled={guardando || !monto || Number(monto) <= 0} className="active:scale-[0.98] transition-transform" style={{ width: "100%", padding: "14px 0", borderRadius: 12, marginBottom: 10, fontSize: 14, fontWeight: 700, backgroundColor: "var(--gold)", color: "#ffffff", border: "none", cursor: "pointer", opacity: (guardando || !monto || Number(monto) <= 0) ? 0.4 : 1 }}>
+            <button onClick={handleAbonar} disabled={guardando || !monto || Number(monto) <= 0} className="active:scale-[0.98] transition-transform" style={{ width: "100%", padding: "14px 0", borderRadius: 12, marginBottom: 10, fontSize: 14, fontWeight: 700, backgroundColor: VERDE, color: "#ffffff", border: "none", cursor: "pointer", opacity: (guardando || !monto || Number(monto) <= 0) ? 0.4 : 1 }}>
               {guardando ? "Guardando..." : "Abonar"}
             </button>
           </>
         )}
-
         {!confirmarEliminar ? (
           <button onClick={() => setConfirmarEliminar(true)} style={{ width: "100%", padding: "12px 0", borderRadius: 12, fontSize: 13, fontWeight: 600, backgroundColor: "transparent", color: "var(--text-3)", border: "none", cursor: "pointer" }}>Eliminar meta</button>
         ) : (
@@ -275,68 +262,81 @@ function SeccionMetas() {
 
   const totalAhorrado = metas.reduce((s, m) => s + m.monto_actual, 0);
   const totalObjetivo = metas.reduce((s, m) => s + m.monto_objetivo, 0);
+  const pctTotal = totalObjetivo > 0 ? Math.min((totalAhorrado / totalObjetivo) * 100, 100) : 0;
 
   return (
-    <div style={{ padding: "16px 20px 120px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <p style={{ fontSize: 13, color: "var(--text-3)" }}>Tus metas de ahorro</p>
-        <button onClick={() => setModalCrear(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700, backgroundColor: "var(--gold)", color: "#ffffff", border: "none", cursor: "pointer" }}>
-          <svg viewBox="0 0 16 16" fill="currentColor" style={{ width: 11, height: 11 }}><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z" /></svg>
+    <div style={{ padding: "18px 20px 120px" }}>
+      {/* Título sección */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+        <div>
+          <p style={{ fontSize: 11, color: MUTED, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" }}>Tus metas</p>
+          <h2 className="font-display" style={{ fontSize: 28, color: VERDE, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.3px", marginTop: 2, lineHeight: 1.05 }}>Hacia dónde vas</h2>
+        </div>
+        <button
+          onClick={() => setModalCrear(true)}
+          style={{ height: 36, paddingLeft: 14, paddingRight: 14, borderRadius: 18, background: VERDE, color: "#fff", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, marginTop: 4, flexShrink: 0 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Nueva
         </button>
       </div>
 
+      {/* Card resumen oscura */}
       {!cargando && metas.length > 0 && (
-        <div style={{ padding: "14px 16px", borderRadius: 16, backgroundColor: "var(--surface)", border: "1px solid var(--border)", marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <p style={{ fontSize: 12, color: "var(--text-2)", fontWeight: 500 }}>Total ahorrado</p>
-            <p className="font-number" style={{ fontSize: 12, color: "var(--text-3)" }}>{formatearMonto(totalAhorrado)} / {formatearMonto(totalObjetivo)}</p>
+        <div style={{ background: VERDE, borderRadius: 22, padding: "18px 20px", marginTop: 18, color: "#fff", position: "relative", overflow: "hidden", boxShadow: "0 6px 20px rgba(15,47,47,0.18)" }}>
+          {/* Lani watermark */}
+          <div style={{ position: "absolute", right: -10, bottom: -10, width: 100, height: 100, opacity: 0.15, pointerEvents: "none" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/lani_chat.png" alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           </div>
-          <div style={{ width: "100%", height: 3, borderRadius: 99, backgroundColor: "var(--surface-3)" }}>
-            <div style={{ height: 3, borderRadius: 99, width: `${totalObjetivo > 0 ? Math.min((totalAhorrado / totalObjetivo) * 100, 100) : 0}%`, backgroundColor: "var(--gold)", transition: "width 0.7s" }} />
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" }}>Ahorrado en total</p>
+          <h2 className="font-display" style={{ fontSize: 42, fontWeight: 400, fontStyle: "italic", color: "#fff", marginTop: 2, letterSpacing: "-1px", lineHeight: 1 }}>
+            {formatearMonto(totalAhorrado)}
+          </h2>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 4, fontWeight: 500 }}>
+            de {formatearMonto(totalObjetivo)} · {pctTotal.toFixed(0)}% completo
+          </p>
+          <div style={{ height: 6, background: "rgba(255,255,255,0.12)", borderRadius: 3, marginTop: 12, overflow: "hidden", position: "relative", zIndex: 1 }}>
+            <div style={{ height: "100%", width: `${pctTotal}%`, background: "#7dd3a8", borderRadius: 3, transition: "width 0.7s" }} />
           </div>
         </div>
       )}
 
+      {/* Lista de metas */}
       {cargando ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {[1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 96, borderRadius: 16 }} />)}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+          {[1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 88, borderRadius: 18 }} />)}
         </div>
       ) : metas.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "48px 20px", borderRadius: 20, backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div style={{ textAlign: "center", padding: "48px 20px", borderRadius: 20, backgroundColor: "var(--surface)", border: `1px solid ${FAINT}`, marginTop: 18 }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🎯</div>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Sin metas todavía</p>
-          <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5, marginBottom: 20 }}>Define a dónde quieres llegar con tu dinero.</p>
-          <button onClick={() => setModalCrear(true)} style={{ padding: "10px 20px", borderRadius: 99, fontSize: 13, fontWeight: 700, backgroundColor: "var(--gold)", color: "#ffffff", border: "none", cursor: "pointer" }}>Crear mi primera meta</button>
+          <p style={{ fontSize: 14, fontWeight: 600, color: VERDE, marginBottom: 6 }}>Sin metas todavía</p>
+          <p style={{ fontSize: 12, color: MUTED, lineHeight: 1.5, marginBottom: 20 }}>Define a dónde quieres llegar con tu dinero.</p>
+          <button onClick={() => setModalCrear(true)} style={{ padding: "10px 22px", borderRadius: 18, fontSize: 13, fontWeight: 700, backgroundColor: VERDE, color: "#fff", border: "none", cursor: "pointer" }}>Crear mi primera meta</button>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
           {metas.map((meta) => {
             const calc = calcularMeta(meta);
-            const barColor = calc.completada ? "var(--success)" : calc.urgente ? "var(--danger)" : "var(--gold)";
+            const barColor = calc.completada ? "var(--success)" : calc.urgente ? "var(--danger)" : VERDE;
             return (
-              <button key={meta.id} onClick={() => setModalAbonar(meta)} className="active:scale-[0.98] transition-transform" style={{ width: "100%", textAlign: "left", padding: 16, borderRadius: 18, backgroundColor: "var(--surface)", border: "1px solid var(--border)", cursor: "pointer" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: "var(--surface-2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{meta.emoji}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)", marginBottom: 2 }}>{meta.nombre}</p>
-                    <p className="font-number" style={{ fontSize: 11, color: "var(--text-3)" }}>{formatearMonto(meta.monto_actual)} de {formatearMonto(meta.monto_objetivo)}</p>
+              <button key={meta.id} onClick={() => setModalAbonar(meta)} className="active:scale-[0.98] transition-transform" style={{ width: "100%", textAlign: "left", padding: 14, borderRadius: 18, backgroundColor: "#fff", border: `1px solid ${FAINT}`, cursor: "pointer", boxShadow: "0 1px 2px rgba(15,47,47,0.04)", display: "flex", gap: 12, alignItems: "center" }}>
+                <div style={{ width: 46, height: 46, borderRadius: 14, background: "#f5f7f5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{meta.emoji}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: VERDE, letterSpacing: "-0.1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{meta.nombre}</span>
+                    <span className="font-display" style={{ fontSize: 15, fontWeight: 700, fontStyle: "italic", color: barColor, flexShrink: 0 }}>{calc.pct.toFixed(0)}%</span>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <p style={{ fontSize: 16, fontWeight: 800, color: barColor, lineHeight: 1 }}>{calc.pct.toFixed(0)}%</p>
-                    {calc.completada && <p style={{ fontSize: 9, fontWeight: 700, color: "var(--success)", marginTop: 2 }}>✓ Lista</p>}
-                    {calc.urgente && <p style={{ fontSize: 9, fontWeight: 700, color: "var(--danger)", marginTop: 2 }}>Pronto</p>}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 2 }}>
+                    <span style={{ fontSize: 11, color: MUTED, fontWeight: 500 }}>{formatearMonto(meta.monto_actual)} / {formatearMonto(meta.monto_objetivo)}</span>
+                    {calc.diasRestantes !== null && !calc.completada && (
+                      <span style={{ fontSize: 10, color: calc.urgente ? "var(--danger)" : MUTED, fontWeight: 600 }}>{calc.diasRestantes > 0 ? `${calc.diasRestantes} días` : "Venció"}</span>
+                    )}
+                  </div>
+                  <div style={{ height: 5, background: FAINT, borderRadius: 3, marginTop: 8, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${calc.pct}%`, background: barColor, borderRadius: 3, transition: "width 0.6s" }} />
                   </div>
                 </div>
-                <div style={{ width: "100%", height: 3, borderRadius: 99, backgroundColor: "var(--surface-3)" }}>
-                  <div style={{ height: 3, borderRadius: 99, width: `${calc.pct}%`, backgroundColor: barColor, transition: "width 0.7s" }} />
-                </div>
-                {(calc.diasRestantes !== null || calc.porMes !== null) && !calc.completada && (
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
-                    {calc.diasRestantes !== null && <p style={{ fontSize: 10, color: calc.urgente ? "var(--danger)" : "var(--text-3)", fontWeight: 500 }}>{calc.diasRestantes > 0 ? `${calc.diasRestantes} días` : "Venció"}</p>}
-                    {calc.porMes !== null && calc.porMes > 0 && <p style={{ fontSize: 10, color: "var(--text-3)", fontWeight: 500 }}>Ahorra {formatearMonto(calc.porMes)}/mes</p>}
-                  </div>
-                )}
               </button>
             );
           })}
@@ -366,18 +366,18 @@ function ModalPresupuesto({ categoria, emoji, limiteActual, onGuardar, onElimina
       <div className="w-full px-5 pt-4 pb-10 slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTop: "1px solid var(--border)" }}>
         <div className="w-8 h-0.5 rounded-full mx-auto mb-5" style={{ backgroundColor: "var(--surface-3)" }} />
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl" style={{ backgroundColor: "var(--surface-2)" }}>{emoji}</div>
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl" style={{ backgroundColor: "#f5f7f5" }}>{emoji}</div>
           <div>
-            <p className="text-base font-bold" style={{ color: "var(--text-1)" }}>{categoria}</p>
-            <p className="text-xs" style={{ color: "var(--text-3)" }}>Límite mensual</p>
+            <p className="text-base font-bold" style={{ color: VERDE }}>{categoria}</p>
+            <p className="text-xs" style={{ color: MUTED }}>Límite mensual</p>
           </div>
         </div>
-        <label className="block text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--text-3)" }}>Monto límite</label>
+        <label className="block text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: MUTED }}>Monto límite</label>
         <div className="relative mb-6">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold" style={{ color: "var(--text-3)" }}>$</span>
-          <input type="number" inputMode="decimal" placeholder="0.00" value={valor} onChange={(e) => setValor(e.target.value)} autoFocus className="w-full rounded-xl pl-8 pr-4 py-3.5 text-2xl font-black outline-none font-number" style={{ backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" }} />
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold" style={{ color: MUTED }}>$</span>
+          <input type="number" inputMode="decimal" placeholder="0.00" value={valor} onChange={(e) => setValor(e.target.value)} autoFocus className="w-full rounded-xl pl-8 pr-4 py-3.5 text-2xl font-black outline-none font-number" style={{ backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: VERDE }} />
         </div>
-        <button onClick={() => { if (Number(valor) > 0) onGuardar(Number(valor)); }} className="w-full font-bold py-3.5 rounded-xl text-sm mb-3" style={{ backgroundColor: "var(--gold)", color: "#ffffff" }}>Guardar presupuesto</button>
+        <button onClick={() => { if (Number(valor) > 0) onGuardar(Number(valor)); }} className="w-full font-bold py-3.5 rounded-xl text-sm mb-3" style={{ backgroundColor: VERDE, color: "#ffffff" }}>Guardar presupuesto</button>
         {onEliminar && <button onClick={onEliminar} className="w-full font-semibold py-3.5 rounded-xl text-sm" style={{ backgroundColor: "rgba(217,74,74,0.08)", color: "var(--danger)", border: "1px solid rgba(217,74,74,0.15)" }}>Quitar presupuesto</button>}
       </div>
     </div>
@@ -432,68 +432,72 @@ function SeccionPresupuestos() {
   const sinPresupuesto = conDatos.filter((c) => c.limite === 0);
   const totalGastado = conPresupuesto.reduce((s, c) => s + c.gastado, 0);
   const totalLimite = conPresupuesto.reduce((s, c) => s + c.limite, 0);
-  const mesLabel = (() => { const m = new Date().toLocaleString("es-MX", { month: "long" }); return m.charAt(0).toUpperCase() + m.slice(1); })();
+  const mesLabel = new Date().toLocaleString("es-MX", { month: "long", year: "numeric" }).replace(/^\w/, (c) => c.toUpperCase());
 
   return (
-    <div style={{ padding: "16px 20px 120px" }}>
-      <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 16 }}>Límites por categoría · {mesLabel}</p>
+    <div style={{ padding: "18px 20px 120px" }}>
+      {/* Título sección */}
+      <p style={{ fontSize: 11, color: MUTED, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" }}>{mesLabel}</p>
+      <h2 className="font-display" style={{ fontSize: 28, color: VERDE, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.3px", marginTop: 2, lineHeight: 1.05, marginBottom: 0 }}>Límites por categoría</h2>
 
+      {/* Card resumen */}
       {!cargando && conPresupuesto.length > 0 && (
-        <div className="rounded-2xl p-4 mb-5" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold" style={{ color: "var(--text-2)" }}>Total comprometido</p>
-            <p className="text-xs font-number" style={{ color: "var(--text-3)" }}>{formatearMonto(totalGastado)} / {formatearMonto(totalLimite)}</p>
+        <div style={{ marginTop: 18, background: "#f5f7f5", borderRadius: 18, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <p style={{ fontSize: 11, color: MUTED, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>Total gastado</p>
+            <p className="font-display" style={{ fontSize: 24, color: VERDE, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.5px", marginTop: 2, lineHeight: 1 }}>{formatearMonto(totalGastado)}</p>
           </div>
-          <div className="w-full rounded-full h-1.5" style={{ backgroundColor: "var(--surface-3)" }}>
-            <div className="h-1.5 rounded-full transition-all duration-700" style={{ width: `${totalLimite > 0 ? Math.min((totalGastado / totalLimite) * 100, 100) : 0}%`, backgroundColor: "var(--gold)" }} />
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontSize: 11, color: MUTED, fontWeight: 600, letterSpacing: "0.4px", textTransform: "uppercase" }}>De {formatearMonto(totalLimite)} límite</p>
+            <p style={{ fontSize: 13, color: VERDE, fontWeight: 600, marginTop: 4 }}>{totalLimite > 0 ? `${Math.round((totalGastado / totalLimite) * 100)}% usado` : "—"}</p>
           </div>
         </div>
       )}
 
       {cargando ? (
-        <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="skeleton rounded-2xl" style={{ height: 76 }} />)}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+          {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 72, borderRadius: 16 }} />)}
+        </div>
       ) : (
-        <>
-          {conPresupuesto.length > 0 && (
-            <div className="space-y-2 mb-6">
-              {conPresupuesto.map((cat) => {
-                const pasado = cat.gastado > cat.limite;
-                const cerca = cat.pct >= 80 && !pasado;
-                const barColor = pasado ? "var(--danger)" : cerca ? "var(--warning)" : "var(--gold)";
-                return (
-                  <button key={cat.categoria} onClick={() => setModal({ categoria: cat.categoria, emoji: cat.emoji, limiteActual: cat.limite, id: cat.id })} className="w-full rounded-2xl p-4 text-left transition-all active:scale-[0.98]" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ backgroundColor: "var(--surface-2)" }}>{cat.emoji}</div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold" style={{ color: "var(--text-1)" }}>{cat.categoria}</p>
-                        <p className="text-xs font-number mt-0.5" style={{ color: "var(--text-3)" }}>{formatearMonto(cat.gastado)} de {formatearMonto(cat.limite)}</p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-bold font-number" style={{ color: barColor }}>{cat.pct.toFixed(0)}%</p>
-                        {pasado && <p className="text-[9px] font-bold mt-0.5" style={{ color: "var(--danger)" }}>Excedido</p>}
-                        {cerca && <p className="text-[9px] font-bold mt-0.5" style={{ color: "var(--warning)" }}>Casi</p>}
-                      </div>
+        <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+          {conDatos.map((cat) => {
+            const pasado = cat.limite > 0 && cat.gastado > cat.limite;
+            const cerca = cat.limite > 0 && cat.pct >= 80 && !pasado;
+            const barColor = pasado ? "var(--danger)" : cerca ? "var(--warning)" : VERDE;
+            return (
+              <button
+                key={cat.categoria}
+                onClick={() => setModal({ categoria: cat.categoria, emoji: cat.emoji, limiteActual: cat.limite || undefined, id: cat.id })}
+                className="active:scale-[0.98] transition-transform"
+                style={{ width: "100%", textAlign: "left", background: "#fff", borderRadius: 16, padding: "12px 14px", border: `1px solid ${pasado ? "rgba(217,74,74,0.3)" : FAINT}`, boxShadow: "0 1px 2px rgba(15,47,47,0.04)", display: "flex", gap: 12, alignItems: "center", cursor: "pointer" }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: 11, background: "#f5f7f5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{cat.emoji}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: VERDE }}>{cat.categoria}</span>
+                    {cat.limite > 0 ? (
+                      <span style={{ fontSize: 12, color: pasado ? "var(--danger)" : MUTED, fontWeight: 600 }}>
+                        {formatearMonto(cat.gastado)} / <span style={{ color: MUTED }}>{formatearMonto(cat.limite)}</span>
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 11, color: MUTED, fontWeight: 500, fontStyle: "italic" }}>Sin límite</span>
+                    )}
+                  </div>
+                  {cat.limite > 0 && (
+                    <div style={{ height: 4, background: FAINT, borderRadius: 2, marginTop: 6, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${cat.pct}%`, background: barColor, borderRadius: 2 }} />
                     </div>
-                    <div className="w-full rounded-full h-1" style={{ backgroundColor: "var(--surface-3)" }}>
-                      <div className="h-1 rounded-full transition-all duration-500" style={{ width: `${cat.pct}%`, backgroundColor: barColor }} />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <p className="text-[10px] font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--text-3)" }}>
-            {conPresupuesto.length > 0 ? "Agregar categoría" : "Elige una categoría para empezar"}
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {sinPresupuesto.map((cat) => (
-              <button key={cat.categoria} onClick={() => setModal({ categoria: cat.categoria, emoji: cat.emoji })} className="flex items-center gap-3 p-3.5 rounded-2xl text-left transition-all active:scale-[0.97]" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-                <span className="text-xl">{cat.emoji}</span>
-                <div><p className="text-sm font-semibold" style={{ color: "var(--text-1)" }}>{cat.categoria}</p><p className="text-[10px]" style={{ color: "var(--text-3)" }}>Sin límite</p></div>
+                  )}
+                </div>
+                {cat.limite === 0 && (
+                  <div style={{ background: "transparent", border: `1px solid ${FAINT}`, borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: VERDE, flexShrink: 0 }}>
+                    Definir
+                  </div>
+                )}
               </button>
-            ))}
-          </div>
-        </>
+            );
+          })}
+        </div>
       )}
 
       {modal && <ModalPresupuesto categoria={modal.categoria} emoji={modal.emoji} limiteActual={modal.limiteActual} onGuardar={(limite) => guardarPresupuesto(modal.categoria, limite)} onEliminar={modal.id ? () => eliminarPresupuesto(modal.id!) : undefined} onCerrar={() => setModal(null)} />}
@@ -517,6 +521,33 @@ function SeccionMovimientos() {
 
   useEffect(() => { setPagina(30); }, [filtro]);
 
+  // Sparkline últimos 7 días (gastos)
+  const sparkline7d = useMemo(() => {
+    const hoy = new Date();
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(hoy); d.setDate(hoy.getDate() - (6 - i));
+      const fecha = d.toISOString().split("T")[0];
+      return transacciones.filter((t) => t.tipo === "gasto" && t.fecha === fecha).reduce((s, t) => s + Number(t.monto), 0);
+    });
+  }, [transacciones]);
+
+  const maxSpark = Math.max(...sparkline7d, 1);
+  const DIAS_CORTOS = ["L", "M", "M", "J", "V", "S", "D"];
+  const hoyDow = new Date().getDay(); // 0=dom
+  const diasLabels = Array.from({ length: 7 }, (_, i) => {
+    const d = (hoyDow - 6 + i + 7) % 7;
+    return DIAS_CORTOS[d === 0 ? 6 : d - 1];
+  });
+
+  // Total últimos 7 días
+  const total7d = sparkline7d.reduce((s, v) => s + v, 0);
+
+  const conteos = useMemo(() => ({
+    todos: transacciones.length,
+    gastos: transacciones.filter((t) => t.tipo === "gasto").length,
+    ingresos: transacciones.filter((t) => t.tipo === "ingreso").length,
+  }), [transacciones]);
+
   const listaBase = transacciones.filter((t) =>
     filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
   );
@@ -525,96 +556,120 @@ function SeccionMovimientos() {
   const grupos = agruparPorFecha(lista);
 
   return (
-    <div style={{ padding: "16px 20px 120px" }}>
-      {/* Filtros */}
-      <div style={{ display: "flex", gap: 20, marginBottom: 16 }}>
-        {(["todos", "gastos", "ingresos"] as FiltroLista[]).map((f) => {
-          const activo = filtro === f;
-          return (
-            <button key={f} onClick={() => setFiltro(f)} style={{
-              fontSize: 13, fontWeight: activo ? 700 : 500,
-              color: activo ? "var(--text-1)" : "var(--text-3)",
-              background: "none", border: "none", padding: 0, cursor: "pointer",
-              position: "relative", paddingBottom: 6, transition: "color 0.15s",
-            }}>
-              {f === "todos" ? "Todos" : f === "gastos" ? "Gastos" : "Ingresos"}
-              {activo && (
-                <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1.5, borderRadius: 99, backgroundColor: "var(--gold)" }} />
-              )}
-            </button>
-          );
-        })}
-      </div>
+    <div style={{ paddingTop: 18, paddingBottom: 120 }}>
 
-      {cargando ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 16 }} />)}
-        </div>
-      ) : transacciones.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "48px 20px", borderRadius: 20, backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-          <p style={{ fontSize: 32, marginBottom: 12 }}>💸</p>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Sin movimientos</p>
-          <p style={{ fontSize: 12, color: "var(--text-3)" }}>Registra tus gastos con Lani o con el botón +</p>
-        </div>
-      ) : (
-        <>
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            {grupos.map(([fecha, txs]) => (
-              <div key={fecha}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-3)", whiteSpace: "nowrap" }}>
-                    {fecha}
-                  </p>
-                  <div style={{ flex: 1, height: 1, backgroundColor: "var(--border-2)" }} />
-                </div>
-                <div style={{ borderRadius: 20, overflow: "hidden", backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-                  {txs.map((t, idx) => {
-                    const emoji = t.tipo === "ingreso" ? "💰" : (CAT_ICON[t.categoria] || "📦");
-                    const esIngreso = t.tipo === "ingreso";
-                    return (
-                      <div
-                        key={t.id}
-                        onClick={() => setTransaccionEditar(t)}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 12,
-                          padding: "13px 16px", cursor: "pointer",
-                          borderBottom: idx < txs.length - 1 ? "1px solid var(--border-2)" : "none",
-                          transition: "background-color 0.1s",
-                        }}
-                        onTouchStart={(e) => (e.currentTarget.style.backgroundColor = "var(--surface-2)")}
-                        onTouchEnd={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                      >
-                        <div style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: "var(--surface-2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>
-                          {emoji}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {t.descripcion || t.categoria || "Sin descripción"}
-                          </p>
-                          {t.categoria && t.descripcion && (
-                            <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{t.categoria}</p>
-                          )}
-                        </div>
-                        <p className="font-number" style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, color: esIngreso ? "var(--success)" : "var(--text-1)" }}>
-                          {esIngreso ? "+" : "−"}{formatearMonto(t.monto)}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
+      {/* Hero card oscura */}
+      <div style={{ paddingLeft: 20, paddingRight: 20 }}>
+        <div style={{ background: "linear-gradient(135deg, #0F2F2F 0%, #1f4640 100%)", borderRadius: 22, padding: "18px 20px", color: "#fff", position: "relative", overflow: "hidden", boxShadow: "0 6px 20px rgba(15,47,47,0.18)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase" }}>Últimos 7 días</p>
+              <h2 className="font-display" style={{ fontSize: 34, fontWeight: 400, fontStyle: "italic", color: "#fff", marginTop: 2, letterSpacing: "-1px", lineHeight: 1 }}>
+                {cargando ? "—" : `−${formatearMonto(total7d)}`}
+              </h2>
+            </div>
+          </div>
+          {/* Mini sparkline */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 6, marginTop: 14, height: 42 }}>
+            {sparkline7d.map((v, i) => (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                <div style={{ width: "100%", height: `${Math.max((v / maxSpark) * 100, 4)}%`, background: i === 6 ? "#7dd3a8" : "rgba(255,255,255,0.2)", borderRadius: 3, minHeight: 3 }} />
               </div>
             ))}
           </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+            {diasLabels.map((d, i) => (
+              <span key={i} style={{ fontSize: 9, color: i === 6 ? "#7dd3a8" : "rgba(255,255,255,0.4)", fontWeight: 700, flex: 1, textAlign: "center" }}>{d}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Filter chips */}
+      <div style={{ paddingLeft: 20, paddingRight: 20, marginTop: 16, display: "flex", gap: 8, overflowX: "auto" }} className="no-scroll">
+        {([
+          { key: "todos" as FiltroLista, label: "Todos", count: conteos.todos },
+          { key: "gastos" as FiltroLista, label: "Gastos", count: conteos.gastos },
+          { key: "ingresos" as FiltroLista, label: "Ingresos", count: conteos.ingresos },
+        ]).map(({ key, label, count }) => (
+          <button
+            key={key}
+            onClick={() => setFiltro(key)}
+            style={{ flexShrink: 0, height: 34, paddingLeft: 14, paddingRight: 10, borderRadius: 17, border: `1px solid ${filtro === key ? VERDE : FAINT}`, background: filtro === key ? VERDE : "#fff", color: filtro === key ? "#fff" : VERDE, fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}
+          >
+            {label}
+            <span style={{ background: filtro === key ? "rgba(255,255,255,0.2)" : FAINT, color: filtro === key ? "#fff" : MUTED, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>
+              {count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Lista */}
+      {cargando ? (
+        <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+          {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 16 }} />)}
+        </div>
+      ) : transacciones.length === 0 ? (
+        <div style={{ margin: "16px 20px", textAlign: "center", padding: "48px 20px", borderRadius: 20, backgroundColor: "#fff", border: `1px solid ${FAINT}` }}>
+          <p style={{ fontSize: 32, marginBottom: 12 }}>💸</p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: VERDE, marginBottom: 6 }}>Sin movimientos</p>
+          <p style={{ fontSize: 12, color: MUTED }}>Registra tus gastos con Lani o con el botón +</p>
+        </div>
+      ) : (
+        <div style={{ marginTop: 18 }}>
+          {grupos.map(([fecha, txs]) => {
+            const totalGrupo = txs.filter((t) => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
+            return (
+              <div key={fecha} style={{ marginBottom: 18 }}>
+                <div style={{ paddingLeft: 20, paddingRight: 20, display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: MUTED, letterSpacing: "1px", textTransform: "uppercase", whiteSpace: "nowrap" }}>{fecha}</span>
+                  <div style={{ flex: 1, height: 1, background: FAINT }} />
+                  {totalGrupo > 0 && <span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>−{formatearMonto(totalGrupo)}</span>}
+                </div>
+                <div style={{ paddingLeft: 20, paddingRight: 20 }}>
+                  <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${FAINT}`, boxShadow: "0 1px 2px rgba(15,47,47,0.04)", overflow: "hidden" }}>
+                    {txs.map((t, idx) => {
+                      const emoji = t.tipo === "ingreso" ? "💰" : (CAT_ICON[t.categoria] || "📦");
+                      const esIngreso = t.tipo === "ingreso";
+                      return (
+                        <div
+                          key={t.id}
+                          onClick={() => setTransaccionEditar(t)}
+                          style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, borderTop: idx > 0 ? `1px solid ${FAINT}` : "none", cursor: "pointer" }}
+                          onTouchStart={(e) => (e.currentTarget.style.backgroundColor = "#f5f7f5")}
+                          onTouchEnd={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                        >
+                          <div style={{ width: 38, height: 38, borderRadius: 11, background: "#f5f7f5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{emoji}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 14, fontWeight: 700, color: VERDE, letterSpacing: "-0.1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {t.descripcion || t.categoria || "Sin descripción"}
+                            </p>
+                            <p style={{ fontSize: 11, color: MUTED, fontWeight: 500, marginTop: 1 }}>{t.categoria}</p>
+                          </div>
+                          <span className="font-display" style={{ fontSize: 16, fontWeight: 700, fontStyle: "italic", color: esIngreso ? "var(--success)" : "var(--danger)", letterSpacing: "-0.3px", flexShrink: 0 }}>
+                            {esIngreso ? "+" : "−"}{formatearMonto(t.monto)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
 
           {hayMas && (
-            <button
-              onClick={() => setPagina((p) => p + 30)}
-              style={{ width: "100%", padding: "13px 0", marginTop: 8, borderRadius: 14, fontSize: 12, fontWeight: 600, backgroundColor: "var(--surface)", color: "var(--text-3)", border: "1px solid var(--border)", cursor: "pointer" }}
-            >
-              Ver más ({listaBase.length - pagina} restantes)
-            </button>
+            <div style={{ paddingLeft: 20, paddingRight: 20 }}>
+              <button
+                onClick={() => setPagina((p) => p + 30)}
+                style={{ width: "100%", padding: "13px 0", borderRadius: 14, fontSize: 12, fontWeight: 600, backgroundColor: "#fff", color: MUTED, border: `1px solid ${FAINT}`, cursor: "pointer" }}
+              >
+                Ver más ({listaBase.length - pagina} restantes)
+              </button>
+            </div>
           )}
-        </>
+        </div>
       )}
 
       {transaccionEditar && (
@@ -643,8 +698,8 @@ export default function PlanificacionPage() {
   const [showTour, setShowTour] = useState(false);
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: "var(--bg)" }}>
-      {/* ── TOUR ── */}
+    <main style={{ minHeight: "100vh", backgroundColor: "var(--bg)" }}>
+
       <TourSheet
         tourKey="lani_tour_planificacion"
         titulo="Planificación financiera"
@@ -658,50 +713,41 @@ export default function PlanificacionPage() {
         onCerrar={() => setShowTour(false)}
       />
 
-      {/* Header fijo */}
+      {/* ── HEADER ── */}
       <div style={{
         position: "sticky", top: 0, zIndex: 40,
         backgroundColor: "#0F2F2F",
-        paddingTop: "calc(env(safe-area-inset-top) + 12px)",
-        paddingBottom: 12,
+        paddingTop: "calc(env(safe-area-inset-top) + 14px)",
+        paddingLeft: 20, paddingRight: 20,
+        paddingBottom: 14,
+        borderRadius: "0 0 24px 24px",
       }}>
         {/* Título + botón ayuda */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", marginBottom: 14 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#ffffff", letterSpacing: "-0.02em" }}>Planificación</h1>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 18 }}>
+          <div>
+            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 700, letterSpacing: "1.2px", textTransform: "uppercase" }}>Lani · Plan</p>
+            <h1 className="font-display" style={{ fontSize: 30, color: "#fff", fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.5px", lineHeight: 1, marginTop: 2 }}>Planificación</h1>
+          </div>
           <button
             onClick={() => setShowTour(true)}
-            style={{
-              width: 28, height: 28, borderRadius: "50%",
-              backgroundColor: "rgba(255,255,255,0.09)",
-              border: "1px solid rgba(255,255,255,0.14)",
-              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-            }}
+            style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(255,255,255,0.85)", cursor: "pointer", flexShrink: 0 }}
             aria-label="Cómo funciona"
           >
-            <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.55)", lineHeight: 1 }}>?</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
           </button>
         </div>
 
-        {/* Tab bar */}
-        <div style={{ display: "flex", padding: "0 20px", gap: 4 }}>
+        {/* Tabs — segmento pill */}
+        <div style={{ background: "rgba(255,255,255,0.07)", borderRadius: 14, padding: 4, display: "flex", gap: 4 }}>
           {TABS.map(({ key, label }) => {
             const activa = tabActiva === key;
             return (
               <button
                 key={key}
                 onClick={() => setTabActiva(key)}
-                style={{
-                  flex: 1,
-                  padding: "8px 4px",
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: activa ? 700 : 500,
-                  color: activa ? "#ffffff" : "rgba(255,255,255,0.38)",
-                  backgroundColor: activa ? "rgba(255,255,255,0.11)" : "transparent",
-                  border: activa ? "1px solid rgba(255,255,255,0.16)" : "1px solid transparent",
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                }}
+                style={{ flex: 1, height: 34, border: "none", cursor: "pointer", borderRadius: 11, background: activa ? "#fff" : "transparent", color: activa ? VERDE : "rgba(255,255,255,0.65)", fontSize: 12.5, fontWeight: 700, boxShadow: activa ? "0 1px 3px rgba(0,0,0,0.1)" : "none", transition: "all 0.15s" }}
               >
                 {label}
               </button>
