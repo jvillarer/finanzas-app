@@ -360,49 +360,71 @@ function ModalPresupuesto({ categoria, emoji, limiteActual, onGuardar, onElimina
   onGuardar: (limite: number) => void; onEliminar?: () => void; onCerrar: () => void;
 }) {
   const [valor, setValor] = useState(limiteActual ? String(limiteActual) : "");
-  const sheetRef = useRef<HTMLDivElement>(null);
 
-  // Sube el sheet cuando aparece el teclado en iOS
+  // Mismo patrón que NuevaTransaccion: bloquear overflow del body
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const ajustar = () => {
-      if (!sheetRef.current) return;
-      const desplazamiento = window.innerHeight - vv.height - vv.offsetTop;
-      sheetRef.current.style.transform = `translateY(${-Math.max(desplazamiento, 0)}px)`;
-    };
-    vv.addEventListener("resize", ajustar);
-    vv.addEventListener("scroll", ajustar);
-    return () => { vv.removeEventListener("resize", ajustar); vv.removeEventListener("scroll", ajustar); };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
   }, []);
 
   return (
     <div
-      className="fixed inset-0 z-50"
-      style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
-      onTouchMove={(e) => e.preventDefault()} // bloquea scroll del fondo
+      className="fixed inset-0 z-50 flex items-end"
+      style={{ backgroundColor: "rgba(0,0,0,0.7)", touchAction: "none" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
     >
       <div
-        ref={sheetRef}
-        className="absolute bottom-0 left-0 right-0 px-5 pt-4 pb-10 slide-up"
-        style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTop: "1px solid var(--border)", transition: "transform 0.15s ease-out" }}
+        className="w-full slide-up"
+        style={{
+          backgroundColor: "var(--surface)",
+          borderTopLeftRadius: 24, borderTopRightRadius: 24,
+          borderTop: "1px solid var(--border)",
+          maxHeight: "92dvh",
+          display: "flex", flexDirection: "column",
+        }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-8 h-0.5 rounded-full mx-auto mb-5" style={{ backgroundColor: "var(--surface-3)" }} />
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl" style={{ backgroundColor: "#f5f7f5" }}>{emoji}</div>
-          <div>
-            <p className="text-base font-bold" style={{ color: VERDE }}>{categoria}</p>
-            <p className="text-xs" style={{ color: MUTED }}>Límite mensual</p>
+        {/* Handle */}
+        <div style={{ padding: "16px 20px 0", flexShrink: 0 }}>
+          <div style={{ width: 32, height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 20px" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "#f5f7f5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{emoji}</div>
+            <div>
+              <p style={{ fontSize: 16, fontWeight: 700, color: VERDE }}>{categoria}</p>
+              <p style={{ fontSize: 12, color: MUTED }}>Límite mensual</p>
+            </div>
           </div>
         </div>
-        <label className="block text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ color: MUTED }}>Monto límite</label>
-        <div className="relative mb-6">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold" style={{ color: MUTED }}>$</span>
-          <input type="number" inputMode="decimal" placeholder="0.00" value={valor} onChange={(e) => setValor(e.target.value)} autoFocus className="w-full rounded-xl pl-8 pr-4 py-3.5 text-2xl font-black outline-none font-number" style={{ backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: VERDE }} />
+
+        {/* Zona scrolleable — iOS hace scroll para mostrar el input enfocado */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 32px", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+          <label style={{ display: "block", fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: MUTED, marginBottom: 8 }}>Monto límite</label>
+          <div style={{ position: "relative", marginBottom: 20 }}>
+            <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 18, fontWeight: 700, color: MUTED }}>$</span>
+            <input
+              type="number" inputMode="decimal" placeholder="0.00"
+              value={valor} onChange={(e) => setValor(e.target.value)}
+              autoFocus
+              className="font-number"
+              style={{ width: "100%", borderRadius: 12, paddingLeft: 34, paddingRight: 14, paddingTop: 14, paddingBottom: 14, fontSize: 26, fontWeight: 800, outline: "none", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: VERDE }}
+            />
+          </div>
+          <button
+            onClick={() => { if (Number(valor) > 0) onGuardar(Number(valor)); }}
+            style={{ width: "100%", padding: "14px 0", borderRadius: 12, fontSize: 14, fontWeight: 700, backgroundColor: VERDE, color: "#fff", border: "none", cursor: "pointer", marginBottom: 10 }}
+          >
+            Guardar presupuesto
+          </button>
+          {onEliminar && (
+            <button
+              onClick={onEliminar}
+              style={{ width: "100%", padding: "13px 0", borderRadius: 12, fontSize: 13, fontWeight: 600, backgroundColor: "rgba(217,74,74,0.08)", color: "var(--danger)", border: "1px solid rgba(217,74,74,0.15)", cursor: "pointer" }}
+            >
+              Quitar presupuesto
+            </button>
+          )}
         </div>
-        <button onClick={() => { if (Number(valor) > 0) onGuardar(Number(valor)); }} className="w-full font-bold py-3.5 rounded-xl text-sm mb-3" style={{ backgroundColor: VERDE, color: "#ffffff" }}>Guardar presupuesto</button>
-        {onEliminar && <button onClick={onEliminar} className="w-full font-semibold py-3.5 rounded-xl text-sm" style={{ backgroundColor: "rgba(217,74,74,0.08)", color: "var(--danger)", border: "1px solid rgba(217,74,74,0.15)" }}>Quitar presupuesto</button>}
       </div>
     </div>
   );
