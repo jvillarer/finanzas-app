@@ -710,7 +710,7 @@ export default function ChatPage() {
       {/* ── HEADER ── */}
       <div
         className="flex items-center gap-3 px-4 shrink-0"
-        style={{ backgroundColor: "#091f1f", paddingTop: 56, paddingBottom: 14 }}
+        style={{ backgroundColor: "#0F2F2F", paddingTop: 56, paddingBottom: 14 }}
       >
         {/* Avatar + dot */}
         <div className="relative shrink-0">
@@ -722,7 +722,7 @@ export default function ChatPage() {
           </div>
           <div
             className="absolute rounded-full"
-            style={{ bottom: 1, right: 1, width: 9, height: 9, backgroundColor: "#4ade80", border: "2px solid #091f1f" }}
+            style={{ bottom: 1, right: 1, width: 9, height: 9, backgroundColor: "#4ade80", border: "2px solid #0F2F2F" }}
           />
         </div>
 
