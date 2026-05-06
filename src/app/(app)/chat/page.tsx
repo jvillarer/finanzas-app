@@ -778,7 +778,8 @@ export default function ChatPage() {
           </svg>
           <span style={{ fontSize: 12, fontWeight: 500, color: "#fff" }}>Reiniciar</span>
         </button>
-      </div>
+        </div>{/* cierra inner flex items */}
+      </div>{/* cierra header shrink-0 */}
 
       {/* Notificación */}
       {notificacion && (
