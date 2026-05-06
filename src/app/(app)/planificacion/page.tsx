@@ -550,15 +550,26 @@ function SeccionMovimientos() {
   const total7d = sparkline7d.reduce((s, v) => s + v, 0);
   const labelTotal7d = filtro === "ingresos" ? `+${formatearMonto(total7d)}` : `−${formatearMonto(total7d)}`;
 
-  const conteos = useMemo(() => ({
-    todos: transacciones.length,
-    gastos: transacciones.filter((t) => t.tipo === "gasto").length,
-    ingresos: transacciones.filter((t) => t.tipo === "ingreso").length,
-  }), [transacciones]);
+  // Fechas de los últimos 7 días
+  const fechas7d = useMemo(() => {
+    const hoy = new Date();
+    return new Set(Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(hoy); d.setDate(hoy.getDate() - i);
+      return d.toISOString().split("T")[0];
+    }));
+  }, []);
 
-  const listaBase = transacciones.filter((t) =>
-    filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
-  );
+  const conteos = useMemo(() => ({
+    todos: transacciones.filter((t) => fechas7d.has(t.fecha)).length,
+    gastos: transacciones.filter((t) => t.tipo === "gasto" && fechas7d.has(t.fecha)).length,
+    ingresos: transacciones.filter((t) => t.tipo === "ingreso" && fechas7d.has(t.fecha)).length,
+  }), [transacciones, fechas7d]);
+
+  const listaBase = transacciones.filter((t) => {
+    const dentroDeRango = fechas7d.has(t.fecha);
+    const porTipo = filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso";
+    return dentroDeRango && porTipo;
+  });
   const lista = listaBase.slice(0, pagina);
   const hayMas = listaBase.length > pagina;
   const grupos = agruparPorFecha(lista);
