@@ -9,8 +9,11 @@ import {
   obtenerMetas, crearMeta, abonarMeta, eliminarMeta, actualizarMeta,
   calcularMeta, type Meta,
 } from "@/lib/metas";
+import type { Transaccion } from "@/lib/supabase";
+import EditarTransaccion from "@/components/EditarTransaccion";
 
-type Tab = "metas" | "presupuestos" | "proyectos";
+type Tab = "metas" | "presupuestos" | "movimientos";
+type FiltroLista = "todos" | "gastos" | "ingresos";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers compartidos
@@ -30,7 +33,11 @@ const CATEGORIAS = [
   { nombre: "Otros",           emoji: "📦" },
 ];
 
-const SIMBOLOS: Record<string, string> = { MXN: "$", USD: "US$", EUR: "€" };
+const CAT_ICON: Record<string, string> = {
+  Comida: "🍽", Supermercado: "🛒", Transporte: "🚗",
+  Entretenimiento: "🎬", Salud: "💊", Servicios: "⚡",
+  Ropa: "👕", Hogar: "🏠", Educación: "📚", Otros: "📦",
+};
 
 function lbl(txt: string) {
   return (
@@ -40,10 +47,24 @@ function lbl(txt: string) {
   );
 }
 
+function agruparPorFecha(txs: Transaccion[]): [string, Transaccion[]][] {
+  const hoy = new Date().toISOString().split("T")[0];
+  const ayer = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  const grupos: Record<string, Transaccion[]> = {};
+  for (const t of txs) {
+    const label =
+      t.fecha === hoy ? "Hoy" :
+      t.fecha === ayer ? "Ayer" :
+      new Date(t.fecha + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+    if (!grupos[label]) grupos[label] = [];
+    grupos[label].push(t);
+  }
+  return Object.entries(grupos);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SECCIÓN: METAS
 // ─────────────────────────────────────────────────────────────────────────────
-// Bloquea el scroll del body mientras un modal está abierto (fix iOS)
 function useLockBodyScroll() {
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -142,7 +163,6 @@ function ModalAbonarMeta({ meta, onGuardado, onCerrar, onEliminar }: { meta: Met
   const [editEmoji, setEditEmoji] = useState(meta.emoji);
   const [editNombre, setEditNombre] = useState(meta.nombre);
   const [editObjetivo, setEditObjetivo] = useState(String(meta.monto_objetivo));
-  const [editFecha, setEditFecha] = useState(meta.fecha_limite || "");
   const [guardandoEdit, setGuardandoEdit] = useState(false);
   const calc = calcularMeta(meta);
 
@@ -157,7 +177,7 @@ function ModalAbonarMeta({ meta, onGuardado, onCerrar, onEliminar }: { meta: Met
   const handleGuardarEdit = async () => {
     if (!editNombre.trim() || !editObjetivo || Number(editObjetivo) <= 0) return;
     setGuardandoEdit(true);
-    await actualizarMeta(meta.id, { nombre: editNombre.trim(), emoji: editEmoji, monto_objetivo: Number(editObjetivo), fecha_limite: editFecha || null });
+    await actualizarMeta(meta.id, { nombre: editNombre.trim(), emoji: editEmoji, monto_objetivo: Number(editObjetivo), fecha_limite: null });
     onGuardado();
   };
 
@@ -258,7 +278,6 @@ function SeccionMetas() {
 
   return (
     <div style={{ padding: "16px 20px 120px" }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <p style={{ fontSize: 13, color: "var(--text-3)" }}>Tus metas de ahorro</p>
         <button onClick={() => setModalCrear(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700, backgroundColor: "var(--gold)", color: "#ffffff", border: "none", cursor: "pointer" }}>
@@ -483,251 +502,128 @@ function SeccionPresupuestos() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SECCIÓN: PROYECTOS
+// SECCIÓN: MOVIMIENTOS
 // ─────────────────────────────────────────────────────────────────────────────
-interface Proyecto { id: string; nombre: string; moneda: string; presupuesto: number | null; tipo_cambio: number; fecha_inicio: string | null; fecha_fin: string | null; activo: boolean; }
-interface TxProyecto { id: string; monto: number; monto_original: number | null; moneda: string | null; descripcion: string; categoria: string; tipo: string; fecha: string; }
-
-function SeccionProyectos() {
-  const [proyectoActivo, setProyectoActivo] = useState<Proyecto | null>(null);
-  const [transacciones, setTransacciones] = useState<TxProyecto[]>([]);
+function SeccionMovimientos() {
+  const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [creando, setCreando] = useState(false);
-  const [guardando, setGuardando] = useState(false);
-  const [nombre, setNombre] = useState("");
-  const [moneda, setMoneda] = useState("MXN");
-  const [presupuesto, setPresupuesto] = useState("");
-  const [tipoCambio, setTipoCambio] = useState("17.5");
-  const [fechaInicio, setFechaInicio] = useState(new Date().toISOString().split("T")[0]);
-  const [fechaFin, setFechaFin] = useState("");
+  const [filtro, setFiltro] = useState<FiltroLista>("todos");
+  const [pagina, setPagina] = useState(30);
+  const [transaccionEditar, setTransaccionEditar] = useState<Transaccion | null>(null);
 
-  useEffect(() => { cargarDatos(); }, []);
+  useEffect(() => {
+    obtenerTransacciones().then(setTransacciones).finally(() => setCargando(false));
+  }, []);
 
-  const cargarDatos = async () => {
-    const supabase = createClient();
-    const { data: proyecto } = await supabase.from("viajes").select("*").eq("activo", true).single();
-    setProyectoActivo(proyecto || null);
-    if (proyecto) {
-      const { data: txs } = await supabase.from("transacciones").select("id, monto, monto_original, moneda, descripcion, categoria, tipo, fecha").eq("viaje_id", proyecto.id).order("fecha", { ascending: false });
-      setTransacciones(txs || []);
-    }
-    setCargando(false);
-  };
+  useEffect(() => { setPagina(30); }, [filtro]);
 
-  const crearProyecto = async () => {
-    if (!nombre.trim()) return;
-    setGuardando(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setGuardando(false); return; }
-    const { error } = await supabase.from("viajes").insert({
-      usuario_id: user.id,
-      nombre: nombre.trim(),
-      moneda,
-      presupuesto: presupuesto ? Number(presupuesto) : null,
-      tipo_cambio: Number(tipoCambio) || 17.5,
-      fecha_inicio: fechaInicio || null,
-      fecha_fin: fechaFin || null,
-      activo: true,
-    });
-    if (!error) { setCreando(false); await cargarDatos(); }
-    setGuardando(false);
-  };
-
-  const terminarProyecto = async () => {
-    if (!proyectoActivo) return;
-    const supabase = createClient();
-    await supabase.from("viajes").update({ activo: false }).eq("id", proyectoActivo.id);
-    setProyectoActivo(null); setTransacciones([]);
-  };
-
-  // Totales agrupados por moneda — soporta gastos mixtos USD/MXN/etc.
-  const gastosPorMoneda: Record<string, number> = {};
-  transacciones.filter(t => t.tipo === "gasto").forEach(t => {
-    const mon = t.moneda || proyectoActivo?.moneda || "MXN";
-    const monto = (mon !== "MXN" && t.monto_original != null) ? Number(t.monto_original) : Number(t.monto);
-    gastosPorMoneda[mon] = (gastosPorMoneda[mon] || 0) + monto;
-  });
-
-  // Total en la moneda base del proyecto (para la barra de presupuesto)
-  const monedaBase = proyectoActivo?.moneda || "MXN";
-  const tc = proyectoActivo?.tipo_cambio || 1;
-  const gastosTotalesMXN = transacciones.filter(t => t.tipo === "gasto").reduce((s, t) => s + Number(t.monto), 0);
-  const gastosTotalesBase = monedaBase === "MXN" ? gastosTotalesMXN : gastosTotalesMXN / tc;
-
-  const simbolo = SIMBOLOS[monedaBase] || "$";
-  const presupuestoNum = proyectoActivo?.presupuesto || 0;
-  const pctGastado = presupuestoNum > 0 ? Math.min((gastosTotalesBase / presupuestoNum) * 100, 100) : 0;
-  const restante = Math.max(0, presupuestoNum - gastosTotalesBase);
-  const esMultimoneda = Object.keys(gastosPorMoneda).length > 1;
-
-  const inputStyle = { backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" };
-
-  if (cargando) return <div style={{ padding: "60px 0", textAlign: "center" }}><p style={{ fontSize: 13, color: "var(--text-3)" }}>Cargando...</p></div>;
+  const listaBase = transacciones.filter((t) =>
+    filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso"
+  );
+  const lista = listaBase.slice(0, pagina);
+  const hayMas = listaBase.length > pagina;
+  const grupos = agruparPorFecha(lista);
 
   return (
     <div style={{ padding: "16px 20px 120px" }}>
-      <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 16 }}>Separa gastos de un evento o proyecto específico</p>
-
-      {!proyectoActivo && !creando && (
-        <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-          <p className="text-4xl mb-3">🎯</p>
-          <p className="text-sm font-bold mb-1" style={{ color: "var(--text-1)" }}>Sin proyecto activo</p>
-          <p className="text-xs leading-relaxed mb-5" style={{ color: "var(--text-3)" }}>Crea un proyecto para separar esos gastos y ver exactamente cuánto llevas</p>
-          <button onClick={() => setCreando(true)} className="px-6 py-3 rounded-xl text-sm font-bold" style={{ backgroundColor: "var(--gold)", color: "#ffffff" }}>Nuevo proyecto</button>
-        </div>
-      )}
-
-      {creando && (
-        <div className="rounded-2xl p-5 mb-4 space-y-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-          <p className="text-sm font-bold" style={{ color: "var(--text-1)" }}>Nuevo proyecto</p>
-          <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Nombre</label>
-            <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej. Boda, USA 2026, Remodelación..." className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none" style={inputStyle} />
-          </div>
-          <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Moneda</label>
-            <div className="flex gap-2">
-              {["MXN", "USD", "EUR"].map(m => (
-                <button key={m} type="button" onClick={() => setMoneda(m)} className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all" style={{ backgroundColor: moneda === m ? "var(--gold-dim)" : "var(--surface-2)", border: moneda === m ? "1px solid var(--gold-border)" : "1px solid transparent", color: moneda === m ? "var(--gold)" : "var(--text-2)" }}>{m}</button>
-              ))}
-            </div>
-          </div>
-          {moneda !== "MXN" && (
-            <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Tipo de cambio (1 {moneda} = ? MXN)</label>
-              <input type="number" inputMode="decimal" value={tipoCambio} onChange={e => setTipoCambio(e.target.value)} placeholder="17.50" className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none" style={inputStyle} />
-            </div>
-          )}
-          <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Presupuesto en {moneda} — opcional</label>
-            <input type="number" inputMode="decimal" value={presupuesto} onChange={e => setPresupuesto(e.target.value)} placeholder="Ej. 50000" className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none" style={inputStyle} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Fecha inicio</label>
-              <input
-                type="date"
-                value={fechaInicio}
-                onChange={e => {
-                  setFechaInicio(e.target.value);
-                  // Si fecha fin ya está puesta y queda antes del nuevo inicio, limpiarla
-                  if (fechaFin && e.target.value && fechaFin < e.target.value) setFechaFin("");
-                }}
-                className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none"
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-3)" }}>Fecha fin</label>
-              <input
-                type="date"
-                value={fechaFin}
-                min={fechaInicio || undefined}   /* no permite elegir antes del inicio */
-                onChange={e => setFechaFin(e.target.value)}
-                className="w-full rounded-xl px-4 py-3 text-sm font-medium outline-none"
-                style={inputStyle}
-              />
-            </div>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <button onClick={() => setCreando(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ backgroundColor: "var(--surface-2)", color: "var(--text-2)", border: "1px solid var(--border)" }}>Cancelar</button>
-            <button onClick={crearProyecto} disabled={guardando || !nombre.trim()} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50" style={{ backgroundColor: "var(--gold)", color: "#ffffff" }}>{guardando ? "Creando..." : "Activar proyecto"}</button>
-          </div>
-        </div>
-      )}
-
-      {proyectoActivo && (
-        <>
-          <div className="rounded-2xl p-5 mb-4" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-base font-bold" style={{ color: "var(--text-1)" }}>🎯 {proyectoActivo.nombre}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
-                  {proyectoActivo.moneda !== "MXN" ? `1 ${proyectoActivo.moneda} = $${proyectoActivo.tipo_cambio} MXN` : "Pesos mexicanos"}
-                  {proyectoActivo.fecha_inicio ? ` · desde ${proyectoActivo.fecha_inicio}` : ""}
-                  {proyectoActivo.fecha_fin ? ` hasta ${proyectoActivo.fecha_fin}` : ""}
-                </p>
-              </div>
-              <span className="text-[10px] px-2 py-1 rounded-full font-bold" style={{ backgroundColor: "rgba(50,200,100,0.15)", color: "var(--success)" }}>ACTIVO</span>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: "var(--text-3)" }}>Total gastado</p>
-              {esMultimoneda ? (
-                // Desglose por moneda cuando hay mezcla
-                <div className="flex flex-wrap gap-3 mb-1">
-                  {Object.entries(gastosPorMoneda).map(([mon, total]) => (
-                    <div key={mon}>
-                      <p className="text-3xl font-bold font-number" style={{ color: "var(--text-1)" }}>
-                        {SIMBOLOS[mon] || "$"}{total.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: "var(--text-3)" }}>{mon}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-4xl font-bold font-number" style={{ color: "var(--text-1)" }}>
-                  {simbolo}{gastosTotalesBase.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                </p>
+      {/* Filtros */}
+      <div style={{ display: "flex", gap: 20, marginBottom: 16 }}>
+        {(["todos", "gastos", "ingresos"] as FiltroLista[]).map((f) => {
+          const activo = filtro === f;
+          return (
+            <button key={f} onClick={() => setFiltro(f)} style={{
+              fontSize: 13, fontWeight: activo ? 700 : 500,
+              color: activo ? "var(--text-1)" : "var(--text-3)",
+              background: "none", border: "none", padding: 0, cursor: "pointer",
+              position: "relative", paddingBottom: 6, transition: "color 0.15s",
+            }}>
+              {f === "todos" ? "Todos" : f === "gastos" ? "Gastos" : "Ingresos"}
+              {activo && (
+                <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1.5, borderRadius: 99, backgroundColor: "var(--gold)" }} />
               )}
-              {presupuestoNum > 0 && <p className="text-xs mt-1" style={{ color: "var(--text-3)" }}>de {simbolo}{presupuestoNum.toLocaleString("es-MX")} presupuestados</p>}
-            </div>
+            </button>
+          );
+        })}
+      </div>
 
-            {presupuestoNum > 0 && (
-              <div className="mb-4">
-                <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--surface-2)" }}>
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pctGastado}%`, backgroundColor: pctGastado >= 90 ? "var(--danger)" : pctGastado >= 70 ? "#f59e0b" : "var(--success)" }} />
+      {cargando ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 16 }} />)}
+        </div>
+      ) : transacciones.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "48px 20px", borderRadius: 20, backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+          <p style={{ fontSize: 32, marginBottom: 12 }}>💸</p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-2)", marginBottom: 6 }}>Sin movimientos</p>
+          <p style={{ fontSize: 12, color: "var(--text-3)" }}>Registra tus gastos con Lani o con el botón +</p>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {grupos.map(([fecha, txs]) => (
+              <div key={fecha}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-3)", whiteSpace: "nowrap" }}>
+                    {fecha}
+                  </p>
+                  <div style={{ flex: 1, height: 1, backgroundColor: "var(--border-2)" }} />
                 </div>
-                <div className="flex justify-between mt-1.5">
-                  <p className="text-[10px] font-number" style={{ color: "var(--text-3)" }}>{pctGastado.toFixed(0)}% usado</p>
-                  <p className="text-[10px] font-number" style={{ color: pctGastado >= 90 ? "var(--danger)" : "var(--success)" }}>Quedan {simbolo}{restante.toLocaleString("es-MX", { maximumFractionDigits: 0 })}</p>
+                <div style={{ borderRadius: 20, overflow: "hidden", backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+                  {txs.map((t, idx) => {
+                    const emoji = t.tipo === "ingreso" ? "💰" : (CAT_ICON[t.categoria] || "📦");
+                    const esIngreso = t.tipo === "ingreso";
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => setTransaccionEditar(t)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 12,
+                          padding: "13px 16px", cursor: "pointer",
+                          borderBottom: idx < txs.length - 1 ? "1px solid var(--border-2)" : "none",
+                          transition: "background-color 0.1s",
+                        }}
+                        onTouchStart={(e) => (e.currentTarget.style.backgroundColor = "var(--surface-2)")}
+                        onTouchEnd={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                      >
+                        <div style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: "var(--surface-2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>
+                          {emoji}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {t.descripcion || t.categoria || "Sin descripción"}
+                          </p>
+                          {t.categoria && t.descripcion && (
+                            <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{t.categoria}</p>
+                          )}
+                        </div>
+                        <p className="font-number" style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, color: esIngreso ? "var(--success)" : "var(--text-1)" }}>
+                          {esIngreso ? "+" : "−"}{formatearMonto(t.monto)}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            )}
-
-            <button onClick={terminarProyecto} className="w-full py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.98]" style={{ backgroundColor: "var(--surface-2)", color: "var(--text-2)", border: "1px solid var(--border)" }}>Terminar proyecto</button>
+            ))}
           </div>
 
-          <div className="rounded-xl px-4 py-3 mb-4 text-xs leading-relaxed" style={{ backgroundColor: "var(--gold-dim)", border: "1px solid var(--gold-border)", color: "var(--gold)" }}>
-            💬 Dile a Lani cualquier gasto en MXN o USD — lo anota en el proyecto con su moneda. Ej: <span style={{ fontWeight: 700 }}>"50 dólares de comida"</span>
-          </div>
-
-          {transacciones.length > 0 ? (
-            <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="px-5 py-3.5 text-sm font-bold" style={{ color: "var(--text-1)", borderBottom: "1px solid var(--border)" }}>
-                Gastos del proyecto ({transacciones.length})
-                {esMultimoneda && <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "var(--gold-dim)", color: "var(--gold)", border: "1px solid var(--gold-border)" }}>MULTIMONEDA</span>}
-              </p>
-              {transacciones.map((tx) => {
-                const txMoneda = tx.moneda || monedaBase;
-                const txSimbolo = SIMBOLOS[txMoneda] || "$";
-                const montoOriginal = tx.monto_original != null ? Number(tx.monto_original) : null;
-                const montoMostrar = montoOriginal != null && txMoneda !== "MXN"
-                  ? `${txSimbolo}${montoOriginal.toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
-                  : `$${Number(tx.monto).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-                return (
-                  <div key={tx.id} className="flex items-center justify-between px-5 py-3.5" style={{ borderBottom: "1px solid var(--border-2)" }}>
-                    <div className="flex-1 min-w-0 mr-3">
-                      <p className="text-sm font-semibold truncate" style={{ color: "var(--text-1)" }}>{tx.descripcion}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <p className="text-xs" style={{ color: "var(--text-3)" }}>{tx.categoria} · {tx.fecha}</p>
-                        {txMoneda !== "MXN" && (
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--gold-dim)", color: "var(--gold)" }}>{txMoneda}</span>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-sm font-bold font-number shrink-0" style={{ color: tx.tipo === "gasto" ? "var(--danger)" : "var(--success)" }}>{tx.tipo === "gasto" ? "-" : "+"}{montoMostrar}</p>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
-              <p className="text-sm" style={{ color: "var(--text-3)" }}>Aún no hay gastos en este proyecto. Dile algo a Lani.</p>
-            </div>
+          {hayMas && (
+            <button
+              onClick={() => setPagina((p) => p + 30)}
+              style={{ width: "100%", padding: "13px 0", marginTop: 8, borderRadius: 14, fontSize: 12, fontWeight: 600, backgroundColor: "var(--surface)", color: "var(--text-3)", border: "1px solid var(--border)", cursor: "pointer" }}
+            >
+              Ver más ({listaBase.length - pagina} restantes)
+            </button>
           )}
         </>
+      )}
+
+      {transaccionEditar && (
+        <EditarTransaccion
+          transaccion={transaccionEditar}
+          onCerrar={() => setTransaccionEditar(null)}
+          onGuardado={() => { setTransaccionEditar(null); obtenerTransacciones().then(setTransacciones); }}
+          onEliminado={() => { setTransaccionEditar(null); obtenerTransacciones().then(setTransacciones); }}
+        />
       )}
     </div>
   );
@@ -739,7 +635,7 @@ function SeccionProyectos() {
 const TABS: { key: Tab; label: string }[] = [
   { key: "metas",        label: "Metas" },
   { key: "presupuestos", label: "Presupuestos" },
-  { key: "proyectos",    label: "Proyectos" },
+  { key: "movimientos",  label: "Movimientos" },
 ];
 
 export default function PlanificacionPage() {
@@ -756,7 +652,7 @@ export default function PlanificacionPage() {
         pasos={[
           { icono: "🎯", titulo: "Metas de ahorro", desc: "Define para qué estás ahorrando (vacaciones, iPhone, emergencias) y lleva el progreso con abonos." },
           { icono: "📊", titulo: "Presupuestos", desc: "Pon límites de gasto por categoría cada mes. Lani te manda alerta antes de que te pases del tope." },
-          { icono: "🎒", titulo: "Proyectos", desc: "Separa los gastos de un viaje, boda o evento. Soporta USD y MXN mezclados en el mismo proyecto." },
+          { icono: "📋", titulo: "Movimientos", desc: "Historial completo de tus gastos e ingresos. Filtra por tipo y toca cualquier transacción para editarla o borrarla." },
         ]}
         abierto={showTour}
         onCerrar={() => setShowTour(false)}
@@ -800,7 +696,7 @@ export default function PlanificacionPage() {
       {/* Contenido */}
       {tabActiva === "metas"        && <SeccionMetas />}
       {tabActiva === "presupuestos" && <SeccionPresupuestos />}
-      {tabActiva === "proyectos"    && <SeccionProyectos />}
+      {tabActiva === "movimientos"  && <SeccionMovimientos />}
     </main>
   );
 }
