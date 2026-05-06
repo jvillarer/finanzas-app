@@ -725,7 +725,7 @@ export default function ChatPage() {
           alt="Lani"
           style={{
             position: "absolute",
-            bottom: -16,
+            bottom: -14,
             left: 16,
             width: 160,
             height: "auto",
