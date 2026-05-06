@@ -527,7 +527,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── SCORE: 3 rings ── */}
-      {!cargando && scoreFinanciero && mesOffset === 0 && (
+      {!cargando && scoreFinanciero && (
         <div style={{ padding: "10px 14px 0", display: "flex", gap: 8 }}>
           <div className="press-card" style={{ flex: 1, padding: "10px 8px 10px", borderRadius: 18, backgroundColor: "#ffffff", border: "1px solid rgba(15,47,47,0.06)", boxShadow: "0 1px 3px rgba(15,47,47,0.04)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", color: "rgba(15,47,47,0.5)" }}>Ahorro</span>
