@@ -828,21 +828,47 @@ export default function PlanificacionPage() {
           </button>
         </div>
 
-        {/* Tabs — segmento pill */}
-        <div style={{ background: "rgba(255,255,255,0.07)", borderRadius: 14, padding: 4, display: "flex", gap: 4 }}>
-          {TABS.map(({ key, label }) => {
-            const activa = tabActiva === key;
-            return (
-              <button
-                key={key}
-                onClick={() => cambiarTab(key)}
-                style={{ flex: 1, height: 34, border: "none", cursor: "pointer", borderRadius: 11, background: activa ? "#fff" : "transparent", color: activa ? VERDE : "rgba(255,255,255,0.65)", fontSize: 12.5, fontWeight: 700, boxShadow: activa ? "0 1px 3px rgba(0,0,0,0.1)" : "none", transition: "all 0.15s" }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Tabs — sliding pill */}
+        {(() => {
+          const idxActivo = TABS.findIndex((t) => t.key === tabActiva);
+          return (
+            <div style={{ position: "relative", background: "rgba(255,255,255,0.07)", borderRadius: 14, padding: 4, display: "flex" }}>
+              {/* Pill deslizante */}
+              <div style={{
+                position: "absolute",
+                top: 4, bottom: 4,
+                left: 4,
+                width: `calc((100% - 8px) / ${TABS.length})`,
+                transform: `translateX(calc(${idxActivo} * 100%))`,
+                transition: "transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                background: "#fff",
+                borderRadius: 11,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.13)",
+                pointerEvents: "none",
+              }} />
+              {/* Botones — solo texto, sin fondo propio */}
+              {TABS.map(({ key, label }) => {
+                const activa = tabActiva === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => cambiarTab(key)}
+                    style={{
+                      flex: 1, height: 34, border: "none", cursor: "pointer",
+                      borderRadius: 11, background: "transparent",
+                      color: activa ? VERDE : "rgba(255,255,255,0.6)",
+                      fontSize: 12.5, fontWeight: 700,
+                      position: "relative", zIndex: 1,
+                      transition: "color 0.2s ease",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Contenido — overflow:hidden en X para clipear el slide, scroll en Y */}
