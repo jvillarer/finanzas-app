@@ -74,17 +74,18 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end"
-      style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+      className="fixed inset-0 flex items-end"
+      style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
     >
       <div
-        className="w-full pt-4 pb-10 px-5 slide-up"
+        className="w-full pt-4 px-5 slide-up"
         style={{
           backgroundColor: "var(--surface)",
           borderTopLeftRadius: "24px",
           borderTopRightRadius: "24px",
-          maxHeight: "92vh",
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)",
+          maxHeight: "92dvh",
           overflowY: "auto",
           borderTop: "1px solid var(--border)",
         }}

@@ -65,8 +65,8 @@ export default function TourSheet({ tourKey, titulo, subtitulo, pasos, abierto, 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end"
-      style={{ backgroundColor: "rgba(0,0,0,0.65)" }}
+      className="fixed inset-0 flex items-end"
+      style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.65)" }}
       onClick={(e) => { if (e.target === e.currentTarget) cerrar(); }}
     >
       <div
@@ -75,9 +75,10 @@ export default function TourSheet({ tourKey, titulo, subtitulo, pasos, abierto, 
           backgroundColor: "var(--surface)",
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
-          padding: "20px 20px 40px",
+          padding: "20px 20px",
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)",
           borderTop: "1px solid var(--border)",
-          maxHeight: "85vh",
+          maxHeight: "85dvh",
           overflowY: "auto",
         }}
       >

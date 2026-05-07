@@ -68,8 +68,8 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end"
-      style={{ backgroundColor: "rgba(0,0,0,0.55)", touchAction: "none" }}
+      className="fixed inset-0 flex items-end"
+      style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.55)", touchAction: "none" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
     >
       <div

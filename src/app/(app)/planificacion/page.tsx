@@ -103,9 +103,9 @@ function ModalCrearMeta({ onGuardado, onCerrar }: { onGuardado: () => void; onCe
   const inp = { width: "100%", borderRadius: 12, padding: "12px 14px", fontSize: 14, fontWeight: 500, outline: "none", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)" } as const;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+    <div className="fixed inset-0 flex items-end" style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
-      <div className="w-full slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "16px 20px 40px", maxHeight: "88vh", overflowY: "auto", borderTop: "1px solid var(--border)" }}>
+      <div className="w-full slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "16px 20px", paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)", maxHeight: "88dvh", overflowY: "auto", borderTop: "1px solid var(--border)" }}>
         <div style={{ width: 32, height: 2, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 20px" }} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>Nueva meta</h2>
@@ -175,9 +175,9 @@ function ModalAbonarMeta({ meta, onGuardado, onCerrar, onEliminar }: { meta: Met
   const handleEliminar = async () => { setEliminando(true); await eliminarMeta(meta.id); onEliminar(); };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+    <div className="fixed inset-0 flex items-end" style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
-      <div className="w-full slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "16px 20px 40px", borderTop: "1px solid var(--border)" }}>
+      <div className="w-full slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "16px 20px", paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)", borderTop: "1px solid var(--border)" }}>
         <div style={{ width: 32, height: 2, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 20px" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "var(--surface-2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{meta.emoji}</div>
