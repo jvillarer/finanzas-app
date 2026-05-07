@@ -105,7 +105,7 @@ function ModalCrearMeta({ onGuardado, onCerrar }: { onGuardado: () => void; onCe
   return (
     <div className="fixed inset-0 flex items-end" style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}>
-      <div className="w-full slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "16px 20px", paddingBottom: "calc(env(safe-area-inset-bottom) + 56px)", maxHeight: "92dvh", overflowY: "auto", borderTop: "1px solid var(--border)" }}>
+      <div className="w-full slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "16px 20px", paddingBottom: "calc(env(safe-area-inset-bottom) + 80px)", maxHeight: "92dvh", overflowY: "auto", borderTop: "1px solid var(--border)" }}>
         <div style={{ width: 32, height: 2, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 20px" }} />
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>Nueva meta</h2>
