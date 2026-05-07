@@ -388,8 +388,8 @@ function ModalPresupuesto({ categoria, emoji, limiteActual, onGuardar, onElimina
 
   return (
     <div
-      className="fixed inset-0 z-50"
-      style={{ backgroundColor: "rgba(0,0,0,0.7)", touchAction: "none" }}
+      className="fixed inset-0"
+      style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)", touchAction: "none" }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
     >
       <div
@@ -401,7 +401,8 @@ function ModalPresupuesto({ categoria, emoji, limiteActual, onGuardar, onElimina
           borderTopLeftRadius: 24, borderTopRightRadius: 24,
           borderTop: "1px solid var(--border)",
           transition: "bottom 0.15s ease-out",
-          padding: "16px 20px 40px",
+          padding: "16px 20px",
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
