@@ -90,8 +90,8 @@ export default function TourSheet({ tourKey, titulo, subtitulo, pasos, abierto, 
           <div className="flex items-center gap-3">
             <div style={{
               width: 40, height: 40, borderRadius: 12,
-              backgroundColor: "var(--gold-dim)",
-              border: "1px solid var(--gold-border)",
+              backgroundColor: "rgba(15,47,47,0.08)",
+              border: "1px solid rgba(15,47,47,0.15)",
               display: "flex", alignItems: "center", justifyContent: "center",
               flexShrink: 0, overflow: "hidden",
             }}>
@@ -129,8 +129,8 @@ export default function TourSheet({ tourKey, titulo, subtitulo, pasos, abierto, 
             }}>
               <div style={{
                 width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-                backgroundColor: "var(--gold-dim)",
-                border: "1px solid var(--gold-border)",
+                backgroundColor: "rgba(15,47,47,0.08)",
+                border: "1px solid rgba(15,47,47,0.15)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 18,
               }}>{paso.icono}</div>
@@ -148,7 +148,7 @@ export default function TourSheet({ tourKey, titulo, subtitulo, pasos, abierto, 
           style={{
             width: "100%", padding: "14px 0", borderRadius: 12,
             fontSize: 14, fontWeight: 700,
-            backgroundColor: "var(--gold)", color: "#ffffff",
+            backgroundColor: "#0F2F2F", color: "#ffffff",
             border: "none", cursor: "pointer",
           }}
         >
