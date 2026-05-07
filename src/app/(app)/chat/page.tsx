@@ -361,7 +361,7 @@ export default function ChatPage() {
   };
 
   return (
-    <main className="flex flex-col" style={{ position: "fixed", inset: 0, backgroundColor: "#F5F3EE", overflow: "hidden" }}>
+    <main className="flex flex-col" style={{ position: "fixed", inset: 0, backgroundColor: "#0F2F2F", overflow: "hidden" }}>
 
       {/* ── TOUR ── */}
       <TourSheet
@@ -424,6 +424,9 @@ export default function ChatPage() {
           </button>
         </div>{/* cierra inner flex items */}
       </div>{/* cierra header shrink-0 */}
+
+      {/* ── ÁREA CREAM con bordes redondeados ── */}
+      <div className="flex-1 flex flex-col" style={{ backgroundColor: "#F5F3EE", borderRadius: "24px 24px 0 0", overflow: "hidden" }}>
 
       {/* Notificación */}
       {notificacion && (
@@ -533,6 +536,8 @@ export default function ChatPage() {
           </div>
         </div>
       )}
+
+      </div>{/* cierra área cream */}
 
       {/* ── INPUT ── */}
       <div
