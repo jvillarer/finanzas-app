@@ -110,18 +110,18 @@ textarea::placeholder {
 }
 
 @keyframes tabSlideFromRight {
-  from { transform: translateX(32px); opacity: 0; }
+  from { transform: translateX(100%); opacity: 0; }
   to   { transform: translateX(0);    opacity: 1; }
 }
 @keyframes tabSlideFromLeft {
-  from { transform: translateX(-32px); opacity: 0; }
+  from { transform: translateX(-100%); opacity: 0; }
   to   { transform: translateX(0);     opacity: 1; }
 }
 .tab-slide-right {
-  animation: tabSlideFromRight 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: tabSlideFromRight 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 .tab-slide-left {
-  animation: tabSlideFromLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: tabSlideFromLeft 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes fadeIn {

@@ -845,19 +845,19 @@ export default function PlanificacionPage() {
         </div>
       </div>
 
-      {/* Contenido — scroll propio, el header nunca se mueve */}
+      {/* Contenido — overflow:hidden en X para clipear el slide, scroll en Y */}
       <div style={{
         flex: 1,
-        overflowY: "auto",
+        overflowX: "hidden",
         backgroundColor: "var(--bg)",
         borderRadius: "24px 24px 0 0",
-        paddingBottom: "calc(env(safe-area-inset-bottom) + 64px)",
-        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
       }}>
         <div
           key={tabActiva}
           className={direccion === "right" ? "tab-slide-right" : "tab-slide-left"}
-          style={{ height: "100%", overflowY: "auto" }}
+          style={{ flex: 1, overflowY: "auto", paddingBottom: "calc(env(safe-area-inset-bottom) + 64px)" }}
         >
           {tabActiva === "metas"        && <SeccionMetas />}
           {tabActiva === "presupuestos" && <SeccionPresupuestos />}
