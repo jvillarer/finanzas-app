@@ -777,7 +777,15 @@ const TABS: { key: Tab; label: string }[] = [
 
 export default function PlanificacionPage() {
   const [tabActiva, setTabActiva] = useState<Tab>("metas");
+  const [direccion, setDireccion] = useState<"left" | "right">("right");
   const [showTour, setShowTour] = useState(false);
+
+  const cambiarTab = (nueva: Tab) => {
+    const idxActual = TABS.findIndex((t) => t.key === tabActiva);
+    const idxNueva  = TABS.findIndex((t) => t.key === nueva);
+    setDireccion(idxNueva > idxActual ? "right" : "left");
+    setTabActiva(nueva);
+  };
 
   return (
     <main style={{ height: "100dvh", display: "flex", flexDirection: "column", backgroundColor: "#0F2F2F", overflow: "hidden" }}>
@@ -827,7 +835,7 @@ export default function PlanificacionPage() {
             return (
               <button
                 key={key}
-                onClick={() => setTabActiva(key)}
+                onClick={() => cambiarTab(key)}
                 style={{ flex: 1, height: 34, border: "none", cursor: "pointer", borderRadius: 11, background: activa ? "#fff" : "transparent", color: activa ? VERDE : "rgba(255,255,255,0.65)", fontSize: 12.5, fontWeight: 700, boxShadow: activa ? "0 1px 3px rgba(0,0,0,0.1)" : "none", transition: "all 0.15s" }}
               >
                 {label}
@@ -844,10 +852,17 @@ export default function PlanificacionPage() {
         backgroundColor: "var(--bg)",
         borderRadius: "24px 24px 0 0",
         paddingBottom: "calc(env(safe-area-inset-bottom) + 64px)",
+        overflow: "hidden",
       }}>
-        {tabActiva === "metas"        && <SeccionMetas />}
-        {tabActiva === "presupuestos" && <SeccionPresupuestos />}
-        {tabActiva === "movimientos"  && <SeccionMovimientos />}
+        <div
+          key={tabActiva}
+          className={direccion === "right" ? "tab-slide-right" : "tab-slide-left"}
+          style={{ height: "100%", overflowY: "auto" }}
+        >
+          {tabActiva === "metas"        && <SeccionMetas />}
+          {tabActiva === "presupuestos" && <SeccionPresupuestos />}
+          {tabActiva === "movimientos"  && <SeccionMovimientos />}
+        </div>
       </div>
     </main>
   );
