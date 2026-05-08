@@ -565,6 +565,7 @@ function SeccionMovimientos({ onEditar, onConfirmarEliminar }: { onEditar: (t: T
   const [cargando, setCargando] = useState(true);
   const [filtro, setFiltro] = useState<FiltroLista>("todos");
   const [pagina, setPagina] = useState(30);
+  const [swipeId, setSwipeId] = useState<string | null>(null);
   const touchStartX = useRef<number>(0);
 
   useEffect(() => {
@@ -706,22 +707,46 @@ function SeccionMovimientos({ onEditar, onConfirmarEliminar }: { onEditar: (t: T
                     {txs.map((t, idx) => {
                       const emoji = t.tipo === "ingreso" ? "💰" : (CAT_ICON[t.categoria] || "📦");
                       const esIngreso = t.tipo === "ingreso";
+                      const estaSwipeado = swipeId === t.id;
+                      const SWIPE_W = 76;
                       return (
                         <div
                           key={t.id}
-                          style={{ borderTop: idx > 0 ? `1px solid ${FAINT}` : "none" }}
+                          style={{ position: "relative", overflow: "hidden", borderTop: idx > 0 ? `1px solid ${FAINT}` : "none" }}
                         >
-                          {/* Fila de transacción */}
+                          {/* Botón rojo revelado — abre confirmación */}
+                          <button
+                            onClick={() => { haptico.peligro(); setSwipeId(null); onConfirmarEliminar(t); }}
+                            style={{
+                              position: "absolute", right: 0, top: 0, bottom: 0, width: SWIPE_W,
+                              backgroundColor: "#e03535", color: "#fff",
+                              border: "none", cursor: "pointer",
+                              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
+                            }}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
+                              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                            </svg>
+                            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.05em" }}>ELIMINAR</span>
+                          </button>
+
+                          {/* Fila deslizable */}
                           <div
                             style={{
                               padding: "12px 14px", display: "flex", alignItems: "center", gap: 12,
-                              cursor: "pointer", backgroundColor: "transparent",
+                              cursor: "pointer", backgroundColor: "#fff",
+                              transform: estaSwipeado ? `translateX(-${SWIPE_W}px)` : "translateX(0)",
+                              transition: "transform 0.25s cubic-bezier(0.22,1,0.36,1)",
                             }}
-                            onClick={() => { haptico.ligero(); onEditar(t); }}
+                            onClick={() => {
+                              if (estaSwipeado) { setSwipeId(null); return; }
+                              haptico.ligero(); onEditar(t);
+                            }}
                             onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
                             onTouchEnd={(e) => {
                               const dx = e.changedTouches[0].clientX - touchStartX.current;
-                              if (dx < -55) { haptico.peligro(); onConfirmarEliminar(t); }
+                              if (dx < -40) { haptico.ligero(); setSwipeId(t.id); }
+                              else if (dx > 15) setSwipeId(null);
                             }}
                           >
                             <div style={{ width: 38, height: 38, borderRadius: 11, background: "#f5f7f5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{emoji}</div>
