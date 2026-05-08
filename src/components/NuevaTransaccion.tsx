@@ -159,7 +159,7 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
         <div style={{ marginBottom: 16 }}>
           {lbl("Descripción")}
           <input
-            type="text" placeholder="¿En qué gastaste?"
+            type="text" placeholder={tipo === "ingreso" ? "¿De dónde viene?" : "¿En qué gastaste?"}
             value={descripcion} onChange={(e) => setDescripcion(e.target.value)}
             style={{
               width: "100%", borderRadius: 12, padding: "12px 14px",
