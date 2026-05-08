@@ -560,13 +560,11 @@ function SeccionPresupuestos({ onNuevaCategoria, refreshKey }: { onNuevaCategori
 // ─────────────────────────────────────────────────────────────────────────────
 // SECCIÓN: MOVIMIENTOS
 // ─────────────────────────────────────────────────────────────────────────────
-function SeccionMovimientos() {
+function SeccionMovimientos({ onEditar, onConfirmarEliminar }: { onEditar: (t: Transaccion) => void; onConfirmarEliminar: (t: Transaccion) => void }) {
   const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
   const [cargando, setCargando] = useState(true);
   const [filtro, setFiltro] = useState<FiltroLista>("todos");
   const [pagina, setPagina] = useState(30);
-  const [transaccionEditar, setTransaccionEditar] = useState<Transaccion | null>(null);
-  const [swipeId, setSwipeId] = useState<string | null>(null);
   const touchStartX = useRef<number>(0);
 
   useEffect(() => {
@@ -708,52 +706,22 @@ function SeccionMovimientos() {
                     {txs.map((t, idx) => {
                       const emoji = t.tipo === "ingreso" ? "💰" : (CAT_ICON[t.categoria] || "📦");
                       const esIngreso = t.tipo === "ingreso";
-                      const estaSwipeado = swipeId === t.id;
                       return (
                         <div
                           key={t.id}
-                          style={{ position: "relative", overflow: "hidden", borderTop: idx > 0 ? `1px solid ${FAINT}` : "none" }}
+                          style={{ borderTop: idx > 0 ? `1px solid ${FAINT}` : "none" }}
                         >
-                          {/* Botón eliminar revelado por swipe */}
-                          <button
-                            onClick={async () => {
-                              haptico.peligro();
-                              const supabase = createClient();
-                              await supabase.from("transacciones").delete().eq("id", t.id);
-                              localStorage.removeItem("lani_insight_fecha");
-                              window.dispatchEvent(new CustomEvent("lani:transaccion-guardada"));
-                              setSwipeId(null);
-                              obtenerTransacciones().then(setTransacciones);
-                            }}
-                            style={{
-                              position: "absolute", right: 0, top: 0, bottom: 0, width: 80,
-                              backgroundColor: "var(--danger)", color: "#fff",
-                              border: "none", cursor: "pointer",
-                              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
-                              fontSize: 18,
-                            }}
-                          >
-                            <span>🗑</span>
-                            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.04em" }}>ELIMINAR</span>
-                          </button>
-
-                          {/* Fila de transacción (deslizable) */}
+                          {/* Fila de transacción */}
                           <div
                             style={{
                               padding: "12px 14px", display: "flex", alignItems: "center", gap: 12,
                               cursor: "pointer", backgroundColor: "transparent",
-                              transform: estaSwipeado ? "translateX(-80px)" : "translateX(0)",
-                              transition: "transform 0.22s cubic-bezier(0.22,1,0.36,1)",
                             }}
-                            onClick={() => {
-                              if (estaSwipeado) { setSwipeId(null); return; }
-                              setTransaccionEditar(t);
-                            }}
+                            onClick={() => { haptico.ligero(); onEditar(t); }}
                             onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
                             onTouchEnd={(e) => {
                               const dx = e.changedTouches[0].clientX - touchStartX.current;
-                              if (dx < -55) { haptico.ligero(); setSwipeId(t.id); }
-                              else if (dx > 20) setSwipeId(null);
+                              if (dx < -55) { haptico.peligro(); onConfirmarEliminar(t); }
                             }}
                           >
                             <div style={{ width: 38, height: 38, borderRadius: 11, background: "#f5f7f5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{emoji}</div>
@@ -789,14 +757,6 @@ function SeccionMovimientos() {
         </div>
       )}
 
-      {transaccionEditar && (
-        <EditarTransaccion
-          transaccion={transaccionEditar}
-          onCerrar={() => setTransaccionEditar(null)}
-          onGuardado={() => { setTransaccionEditar(null); obtenerTransacciones().then(setTransacciones); }}
-          onEliminado={() => { setTransaccionEditar(null); obtenerTransacciones().then(setTransacciones); }}
-        />
-      )}
     </div>
   );
 }
@@ -905,6 +865,22 @@ export default function PlanificacionPage() {
   const [modalNuevaCat, setModalNuevaCat] = useState(false);
   const [presupuestosRefreshKey, setPresupuestosRefreshKey] = useState(0);
 
+  // Estado para editar/eliminar transacción (fuera del overflow container)
+  const [transaccionEditar, setTransaccionEditar] = useState<Transaccion | null>(null);
+  const [confirmarEliminarTx, setConfirmarEliminarTx] = useState<Transaccion | null>(null);
+  const [eliminando, setEliminando] = useState(false);
+
+  const handleEliminarConfirmado = async () => {
+    if (!confirmarEliminarTx) return;
+    setEliminando(true);
+    const supabase = createClient();
+    await supabase.from("transacciones").delete().eq("id", confirmarEliminarTx.id);
+    localStorage.removeItem("lani_insight_fecha");
+    window.dispatchEvent(new CustomEvent("lani:transaccion-guardada"));
+    setConfirmarEliminarTx(null);
+    setEliminando(false);
+  };
+
   const cambiarTab = (nueva: Tab) => {
     const idxActual = TABS.findIndex((t) => t.key === tabActiva);
     const idxNueva  = TABS.findIndex((t) => t.key === nueva);
@@ -1012,16 +988,64 @@ export default function PlanificacionPage() {
         >
           {tabActiva === "metas"        && <SeccionMetas />}
           {tabActiva === "presupuestos" && <SeccionPresupuestos onNuevaCategoria={() => setModalNuevaCat(true)} refreshKey={presupuestosRefreshKey} />}
-          {tabActiva === "movimientos"  && <SeccionMovimientos />}
+          {tabActiva === "movimientos"  && <SeccionMovimientos onEditar={setTransaccionEditar} onConfirmarEliminar={setConfirmarEliminarTx} />}
         </div>
       </div>
 
-      {/* Modal nueva categoría — componente propio con visualViewport para subir sobre el teclado iOS */}
+      {/* Modal nueva categoría */}
       {modalNuevaCat && (
         <ModalNuevaCategoria
           onCreado={() => { setModalNuevaCat(false); setPresupuestosRefreshKey((k) => k + 1); }}
           onCerrar={() => setModalNuevaCat(false)}
         />
+      )}
+
+      {/* Editar transacción — fuera del overflow para que position:fixed funcione en iOS */}
+      {transaccionEditar && (
+        <EditarTransaccion
+          transaccion={transaccionEditar}
+          onCerrar={() => setTransaccionEditar(null)}
+          onGuardado={() => { setTransaccionEditar(null); window.dispatchEvent(new CustomEvent("lani:transaccion-guardada")); }}
+          onEliminado={() => { setTransaccionEditar(null); window.dispatchEvent(new CustomEvent("lani:transaccion-guardada")); }}
+        />
+      )}
+
+      {/* Confirmación eliminar — sheet minimalista */}
+      {confirmarEliminarTx && (
+        <div
+          style={{ position: "fixed", top: 0, left: 0, right: 0, height: "100dvh", zIndex: 300, backgroundColor: "rgba(0,0,0,0.55)", display: "flex", flexDirection: "column", justifyContent: "flex-end", touchAction: "none" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setConfirmarEliminarTx(null); }}
+        >
+          <div
+            className="slide-up"
+            style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "24px 20px", paddingBottom: "calc(env(safe-area-inset-bottom) + 20px)", borderTop: "1px solid var(--border)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: 32, height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 20px" }} />
+            <p style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600, textAlign: "center", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Eliminar movimiento</p>
+            <p style={{ fontSize: 17, fontWeight: 700, color: "var(--text-1)", textAlign: "center", marginBottom: 4 }}>
+              {confirmarEliminarTx.descripcion || confirmarEliminarTx.categoria || "Sin descripción"}
+            </p>
+            <p style={{ fontSize: 13, color: "var(--text-3)", textAlign: "center", marginBottom: 24 }}>
+              Esta acción no se puede deshacer
+            </p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => setConfirmarEliminarTx(null)}
+                style={{ flex: 1, padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--surface-2)", color: "var(--text-2)", border: "none", cursor: "pointer" }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEliminarConfirmado}
+                disabled={eliminando}
+                style={{ flex: 1, padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--danger)", color: "#fff", border: "none", cursor: "pointer", opacity: eliminando ? 0.5 : 1 }}
+              >
+                {eliminando ? "Eliminando..." : "Sí, eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );
