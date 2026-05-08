@@ -78,8 +78,12 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
 
   return (
     <div
-      className="fixed inset-0 flex items-end"
-      style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)" }}
+      style={{
+        position: "fixed", top: 0, left: 0, right: 0,
+        height: "100dvh",
+        zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)", touchAction: "none",
+        display: "flex", flexDirection: "column", justifyContent: "flex-end",
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
     >
       <div
@@ -89,10 +93,11 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
           borderTopLeftRadius: "24px",
           borderTopRightRadius: "24px",
           paddingBottom: "calc(env(safe-area-inset-bottom) + 24px)",
-          maxHeight: "92dvh",
+          maxHeight: "88dvh",
           overflowY: "auto",
           borderTop: "1px solid var(--border)",
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}
         <div className="w-8 h-0.5 rounded-full mx-auto mb-5" style={{ backgroundColor: "var(--surface-3)" }} />

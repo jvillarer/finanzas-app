@@ -565,6 +565,8 @@ function SeccionMovimientos() {
   const [filtro, setFiltro] = useState<FiltroLista>("todos");
   const [pagina, setPagina] = useState(30);
   const [transaccionEditar, setTransaccionEditar] = useState<Transaccion | null>(null);
+  const [swipeId, setSwipeId] = useState<string | null>(null);
+  const touchStartX = useRef<number>(0);
 
   useEffect(() => {
     obtenerTransacciones().then(setTransacciones).finally(() => setCargando(false));
@@ -705,24 +707,65 @@ function SeccionMovimientos() {
                     {txs.map((t, idx) => {
                       const emoji = t.tipo === "ingreso" ? "💰" : (CAT_ICON[t.categoria] || "📦");
                       const esIngreso = t.tipo === "ingreso";
+                      const estaSwipeado = swipeId === t.id;
                       return (
                         <div
                           key={t.id}
-                          onClick={() => setTransaccionEditar(t)}
-                          style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 12, borderTop: idx > 0 ? `1px solid ${FAINT}` : "none", cursor: "pointer" }}
-                          onTouchStart={(e) => (e.currentTarget.style.backgroundColor = "#f5f7f5")}
-                          onTouchEnd={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                          style={{ position: "relative", overflow: "hidden", borderTop: idx > 0 ? `1px solid ${FAINT}` : "none" }}
                         >
-                          <div style={{ width: 38, height: 38, borderRadius: 11, background: "#f5f7f5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{emoji}</div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 14, fontWeight: 700, color: VERDE, letterSpacing: "-0.1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {t.descripcion || t.categoria || "Sin descripción"}
-                            </p>
-                            <p style={{ fontSize: 11, color: MUTED, fontWeight: 500, marginTop: 1 }}>{t.categoria}</p>
+                          {/* Botón eliminar revelado por swipe */}
+                          <button
+                            onClick={async () => {
+                              haptico.peligro();
+                              const supabase = createClient();
+                              await supabase.from("transacciones").delete().eq("id", t.id);
+                              localStorage.removeItem("lani_insight_fecha");
+                              window.dispatchEvent(new CustomEvent("lani:transaccion-guardada"));
+                              setSwipeId(null);
+                              obtenerTransacciones().then(setTransacciones);
+                            }}
+                            style={{
+                              position: "absolute", right: 0, top: 0, bottom: 0, width: 80,
+                              backgroundColor: "var(--danger)", color: "#fff",
+                              border: "none", cursor: "pointer",
+                              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
+                              fontSize: 18,
+                            }}
+                          >
+                            <span>🗑</span>
+                            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.04em" }}>ELIMINAR</span>
+                          </button>
+
+                          {/* Fila de transacción (deslizable) */}
+                          <div
+                            style={{
+                              padding: "12px 14px", display: "flex", alignItems: "center", gap: 12,
+                              cursor: "pointer", backgroundColor: "transparent",
+                              transform: estaSwipeado ? "translateX(-80px)" : "translateX(0)",
+                              transition: "transform 0.22s cubic-bezier(0.22,1,0.36,1)",
+                            }}
+                            onClick={() => {
+                              if (estaSwipeado) { setSwipeId(null); return; }
+                              setTransaccionEditar(t);
+                            }}
+                            onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+                            onTouchEnd={(e) => {
+                              const dx = e.changedTouches[0].clientX - touchStartX.current;
+                              if (dx < -55) { haptico.ligero(); setSwipeId(t.id); }
+                              else if (dx > 20) setSwipeId(null);
+                            }}
+                          >
+                            <div style={{ width: 38, height: 38, borderRadius: 11, background: "#f5f7f5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{emoji}</div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: 14, fontWeight: 700, color: VERDE, letterSpacing: "-0.1px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {t.descripcion || t.categoria || "Sin descripción"}
+                              </p>
+                              <p style={{ fontSize: 11, color: MUTED, fontWeight: 500, marginTop: 1 }}>{t.categoria}</p>
+                            </div>
+                            <span className="font-display" style={{ fontSize: 16, fontWeight: 700, fontStyle: "italic", color: esIngreso ? "var(--success)" : "var(--danger)", letterSpacing: "-0.3px", flexShrink: 0 }}>
+                              {esIngreso ? "+" : "−"}{formatearMonto(t.monto)}
+                            </span>
                           </div>
-                          <span className="font-display" style={{ fontSize: 16, fontWeight: 700, fontStyle: "italic", color: esIngreso ? "var(--success)" : "var(--danger)", letterSpacing: "-0.3px", flexShrink: 0 }}>
-                            {esIngreso ? "+" : "−"}{formatearMonto(t.monto)}
-                          </span>
                         </div>
                       );
                     })}
