@@ -774,6 +774,105 @@ function SeccionMovimientos() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MODAL: NUEVA CATEGORÍA (con visualViewport para subir sobre el teclado iOS)
+// ─────────────────────────────────────────────────────────────────────────────
+function ModalNuevaCategoria({ onCreado, onCerrar }: { onCreado: () => void; onCerrar: () => void }) {
+  const [nombre, setNombre] = useState("");
+  const [emoji, setEmoji] = useState("📦");
+  const [guardando, setGuardando] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Bloquear scroll body
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Subir sheet exactamente la altura del teclado
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const reposicionar = () => {
+      if (!sheetRef.current) return;
+      const alturasTeclado = Math.max(window.innerHeight - vv.height - vv.offsetTop, 0);
+      sheetRef.current.style.bottom = `${alturasTeclado}px`;
+    };
+    vv.addEventListener("resize", reposicionar);
+    vv.addEventListener("scroll", reposicionar);
+    return () => {
+      vv.removeEventListener("resize", reposicionar);
+      vv.removeEventListener("scroll", reposicionar);
+    };
+  }, []);
+
+  const handleCrear = async () => {
+    if (!nombre.trim()) return;
+    setGuardando(true);
+    try {
+      await crearCategoriaCustom(nombre.trim(), emoji);
+      onCreado();
+    } catch (e) { console.error(e); }
+    finally { setGuardando(false); }
+  };
+
+  return (
+    <div
+      className="fixed inset-0"
+      style={{ zIndex: 300, backgroundColor: "rgba(0,0,0,0.6)", touchAction: "none" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
+    >
+      <div
+        ref={sheetRef}
+        className="slide-up"
+        style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          backgroundColor: "var(--surface)",
+          borderTopLeftRadius: 20, borderTopRightRadius: 20,
+          borderTop: "1px solid var(--border)",
+          transition: "bottom 0.15s ease-out",
+          padding: "20px 20px",
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ width: 32, height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 18px" }} />
+        <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 16 }}>Nueva categoría</p>
+        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+          <input
+            type="text"
+            placeholder="📦"
+            value={emoji}
+            onChange={(e) => setEmoji(e.target.value)}
+            autoComplete="off"
+            style={{ width: 56, borderRadius: 10, padding: "10px 0", fontSize: 22, textAlign: "center", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", outline: "none" }}
+          />
+          <input
+            type="text"
+            placeholder="Nombre (ej. Mascotas)"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            autoFocus
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="words"
+            spellCheck={false}
+            style={{ flex: 1, borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none" }}
+          />
+        </div>
+        <button
+          onClick={handleCrear}
+          disabled={guardando || !nombre.trim()}
+          style={{ width: "100%", padding: "13px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: VERDE, color: "#fff", border: "none", cursor: "pointer", opacity: (!nombre.trim() || guardando) ? 0.4 : 1 }}
+        >
+          {guardando ? "Guardando..." : "Crear categoría"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PÁGINA PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
 const TABS: { key: Tab; label: string }[] = [
@@ -787,25 +886,9 @@ export default function PlanificacionPage() {
   const [direccion, setDireccion] = useState<"left" | "right">("right");
   const [showTour, setShowTour] = useState(false);
 
-  // Estado para modal nueva categoría (renderizado aquí, fuera del overflow container)
+  // Estado para modal nueva categoría
   const [modalNuevaCat, setModalNuevaCat] = useState(false);
-  const [nuevaCatNombre, setNuevaCatNombre] = useState("");
-  const [nuevaCatEmoji, setNuevaCatEmoji] = useState("📦");
-  const [guardandoCat, setGuardandoCat] = useState(false);
   const [presupuestosRefreshKey, setPresupuestosRefreshKey] = useState(0);
-
-  const handleCrearCategoria = async () => {
-    if (!nuevaCatNombre.trim()) return;
-    setGuardandoCat(true);
-    try {
-      await crearCategoriaCustom(nuevaCatNombre.trim(), nuevaCatEmoji);
-      setModalNuevaCat(false);
-      setNuevaCatNombre("");
-      setNuevaCatEmoji("📦");
-      setPresupuestosRefreshKey((k) => k + 1);
-    } catch (e) { console.error(e); }
-    finally { setGuardandoCat(false); }
-  };
 
   const cambiarTab = (nueva: Tab) => {
     const idxActual = TABS.findIndex((t) => t.key === tabActiva);
@@ -918,57 +1001,12 @@ export default function PlanificacionPage() {
         </div>
       </div>
 
-      {/* Modal nueva categoría — renderizado aquí, fuera del overflowX:hidden, para que position:fixed funcione en iOS */}
+      {/* Modal nueva categoría — componente propio con visualViewport para subir sobre el teclado iOS */}
       {modalNuevaCat && (
-        <div
-          className="fixed inset-0 flex items-end"
-          style={{ zIndex: 300, backgroundColor: "rgba(0,0,0,0.6)", touchAction: "none" }}
-          onClick={(e) => { if (e.target === e.currentTarget) setModalNuevaCat(false); }}
-        >
-          <div
-            className="w-full slide-up"
-            style={{
-              backgroundColor: "var(--surface)",
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              padding: "20px 20px",
-              paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)",
-              borderTop: "1px solid var(--border)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ width: 32, height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 18px" }} />
-            <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 16 }}>Nueva categoría</p>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-              <input
-                type="text"
-                placeholder="📦"
-                value={nuevaCatEmoji}
-                onChange={(e) => setNuevaCatEmoji(e.target.value)}
-                style={{ width: 56, borderRadius: 10, padding: "10px 0", fontSize: 22, textAlign: "center", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", outline: "none" }}
-              />
-              <input
-                type="text"
-                placeholder="Nombre (ej. Mascotas)"
-                value={nuevaCatNombre}
-                onChange={(e) => setNuevaCatNombre(e.target.value)}
-                autoFocus
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="words"
-                spellCheck={false}
-                style={{ flex: 1, borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none" }}
-              />
-            </div>
-            <button
-              onClick={handleCrearCategoria}
-              disabled={guardandoCat || !nuevaCatNombre.trim()}
-              style={{ width: "100%", padding: "13px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: VERDE, color: "#fff", border: "none", cursor: "pointer", opacity: (!nuevaCatNombre.trim() || guardandoCat) ? 0.4 : 1 }}
-            >
-              {guardandoCat ? "Guardando..." : "Crear categoría"}
-            </button>
-          </div>
-        </div>
+        <ModalNuevaCategoria
+          onCreado={() => { setModalNuevaCat(false); setPresupuestosRefreshKey((k) => k + 1); }}
+          onCerrar={() => setModalNuevaCat(false)}
+        />
       )}
     </main>
   );
