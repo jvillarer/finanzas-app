@@ -9,6 +9,7 @@ import {
   obtenerMetas, crearMeta, abonarMeta, eliminarMeta, actualizarMeta,
   calcularMeta, type Meta,
 } from "@/lib/metas";
+import { obtenerTodasLasCategorias, crearCategoriaCustom } from "@/lib/categorias";
 import type { Transaccion } from "@/lib/supabase";
 import EditarTransaccion from "@/components/EditarTransaccion";
 
@@ -457,12 +458,22 @@ function SeccionPresupuestos() {
   const [gastosPorCat, setGastosPorCat] = useState<Record<string, number>>({});
   const [cargando, setCargando] = useState(true);
   const [modal, setModal] = useState<{ categoria: string; emoji: string; limiteActual?: number; id?: string } | null>(null);
+  const [todasCategorias, setTodasCategorias] = useState<{ nombre: string; emoji: string }[]>([]);
+  const [modalNuevaCat, setModalNuevaCat] = useState(false);
+  const [nuevaCatNombre, setNuevaCatNombre] = useState("");
+  const [nuevaCatEmoji, setNuevaCatEmoji] = useState("📦");
+  const [guardandoCat, setGuardandoCat] = useState(false);
 
   const cargar = async () => {
     setCargando(true);
     const supabase = createClient();
-    const [{ data: presData }, txs] = await Promise.all([supabase.from("presupuestos").select("*"), obtenerTransacciones()]);
+    const [{ data: presData }, txs, cats] = await Promise.all([
+      supabase.from("presupuestos").select("*"),
+      obtenerTransacciones(),
+      obtenerTodasLasCategorias(),
+    ]);
     setPresupuestos(presData || []);
+    setTodasCategorias(cats);
     const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
     const gastados: Record<string, number> = {};
     txs.filter((t) => t.tipo === "gasto" && new Date(t.fecha + "T12:00:00") >= inicioMes)
@@ -472,6 +483,18 @@ function SeccionPresupuestos() {
     setCargando(false);
   };
   useEffect(() => { cargar(); }, []);
+
+  const handleCrearCategoria = async () => {
+    if (!nuevaCatNombre.trim()) return;
+    setGuardandoCat(true);
+    try {
+      await crearCategoriaCustom(nuevaCatNombre, nuevaCatEmoji);
+      await cargar();
+      setModalNuevaCat(false);
+      setNuevaCatNombre(""); setNuevaCatEmoji("📦");
+    } catch (e) { console.error(e); }
+    finally { setGuardandoCat(false); }
+  };
 
   const guardarPresupuesto = async (categoria: string, limite: number) => {
     const supabase = createClient();
@@ -488,7 +511,7 @@ function SeccionPresupuestos() {
     setModal(null); cargar();
   };
 
-  const conDatos: PresupuestoConGasto[] = CATEGORIAS.map((cat) => {
+  const conDatos: PresupuestoConGasto[] = todasCategorias.map((cat) => {
     const p = presupuestos.find((x) => x.categoria === cat.nombre);
     const gastado = gastosPorCat[cat.nombre] || 0;
     const limite = p?.limite || 0;
@@ -568,7 +591,36 @@ function SeccionPresupuestos() {
         </div>
       )}
 
+      {/* Botón nueva categoría */}
+      <button
+        onClick={() => setModalNuevaCat(true)}
+        style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "11px 16px", borderRadius: 14, border: `1px dashed ${FAINT}`, background: "transparent", width: "100%", cursor: "pointer" }}
+      >
+        <span style={{ fontSize: 18 }}>➕</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: MUTED }}>Nueva categoría</span>
+      </button>
+
       {modal && <ModalPresupuesto categoria={modal.categoria} emoji={modal.emoji} limiteActual={modal.limiteActual} onGuardar={(limite) => guardarPresupuesto(modal.categoria, limite)} onEliminar={modal.id ? () => eliminarPresupuesto(modal.id!) : undefined} onCerrar={() => setModal(null)} />}
+
+      {/* Modal nueva categoría */}
+      {modalNuevaCat && (
+        <div className="fixed inset-0 flex items-end" style={{ zIndex: 300, backgroundColor: "rgba(0,0,0,0.6)" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setModalNuevaCat(false); }}>
+          <div className="w-full slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: "20px 20px", paddingBottom: "calc(env(safe-area-inset-bottom) + 40px)", borderTop: "1px solid var(--border)" }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: VERDE, marginBottom: 16 }}>Nueva categoría</p>
+            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+              <input type="text" placeholder="😀" value={nuevaCatEmoji} onChange={(e) => setNuevaCatEmoji(e.target.value)}
+                style={{ width: 56, borderRadius: 10, padding: "10px 0", fontSize: 22, textAlign: "center", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", outline: "none" }} />
+              <input type="text" placeholder="Nombre (ej. Mascotas)" value={nuevaCatNombre} onChange={(e) => setNuevaCatNombre(e.target.value)} autoFocus
+                style={{ flex: 1, borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none" }} />
+            </div>
+            <button onClick={handleCrearCategoria} disabled={guardandoCat || !nuevaCatNombre.trim()}
+              style={{ width: "100%", padding: "13px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: VERDE, color: "#fff", border: "none", cursor: "pointer", opacity: (!nuevaCatNombre.trim() || guardandoCat) ? 0.4 : 1 }}>
+              {guardandoCat ? "Guardando..." : "Crear categoría"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

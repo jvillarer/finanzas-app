@@ -3,19 +3,7 @@
 import { useState, useEffect } from "react";
 import { crearTransaccion } from "@/lib/transacciones";
 import { haptico } from "@/lib/haptics";
-
-const CATEGORIAS = [
-  { nombre: "Comida",          emoji: "🍽" },
-  { nombre: "Supermercado",    emoji: "🛒" },
-  { nombre: "Transporte",      emoji: "🚗" },
-  { nombre: "Entretenimiento", emoji: "🎬" },
-  { nombre: "Salud",           emoji: "💊" },
-  { nombre: "Servicios",       emoji: "⚡" },
-  { nombre: "Ropa",            emoji: "👕" },
-  { nombre: "Hogar",           emoji: "🏠" },
-  { nombre: "Educación",       emoji: "📚" },
-  { nombre: "Otros",           emoji: "📦" },
-];
+import { obtenerTodasLasCategorias, crearCategoriaCustom } from "@/lib/categorias";
 
 interface Props {
   onCerrar: () => void;
@@ -29,6 +17,31 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
   }, []);
+
+  const [categorias, setCategorias] = useState<{ nombre: string; emoji: string }[]>([]);
+  const [modalNuevaCat, setModalNuevaCat] = useState(false);
+  const [nuevaCatNombre, setNuevaCatNombre] = useState("");
+  const [nuevaCatEmoji, setNuevaCatEmoji] = useState("📦");
+  const [guardandoCat, setGuardandoCat] = useState(false);
+
+  useEffect(() => {
+    obtenerTodasLasCategorias().then(setCategorias);
+  }, []);
+
+  const handleCrearCategoria = async () => {
+    if (!nuevaCatNombre.trim()) return;
+    setGuardandoCat(true);
+    try {
+      await crearCategoriaCustom(nuevaCatNombre, nuevaCatEmoji);
+      const actualizadas = await obtenerTodasLasCategorias();
+      setCategorias(actualizadas);
+      setCategoria(nuevaCatNombre.trim());
+      setModalNuevaCat(false);
+      setNuevaCatNombre("");
+      setNuevaCatEmoji("📦");
+    } catch (e) { console.error(e); }
+    finally { setGuardandoCat(false); }
+  };
 
   const [tipo, setTipo] = useState<"ingreso" | "gasto">("gasto");
   const [monto, setMonto] = useState("");
@@ -161,7 +174,7 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
         <div style={{ marginBottom: 16 }}>
           {lbl("Categoría")}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
-            {CATEGORIAS.map((cat) => {
+            {categorias.map((cat) => {
               const activa = categoria === cat.nombre;
               return (
                 <button
@@ -170,22 +183,66 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
                   className="active:scale-95 transition-transform"
                   style={{
                     display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                    padding: "9px 4px",
-                    borderRadius: 10,
-                    backgroundColor: activa ? "var(--gold-dim)" : "var(--surface-2)",
-                    border: activa ? "1px solid var(--gold-border)" : "1px solid transparent",
+                    padding: "9px 4px", borderRadius: 10,
+                    backgroundColor: activa ? "rgba(15,47,47,0.08)" : "var(--surface-2)",
+                    border: activa ? "1px solid rgba(15,47,47,0.2)" : "1px solid transparent",
                     cursor: "pointer",
                   }}
                 >
                   <span style={{ fontSize: 16 }}>{cat.emoji}</span>
-                  <span style={{ fontSize: 9, fontWeight: 600, color: activa ? "var(--gold)" : "var(--text-3)" }}>
+                  <span style={{ fontSize: 9, fontWeight: 600, color: activa ? "#0F2F2F" : "var(--text-3)" }}>
                     {cat.nombre.length > 6 ? cat.nombre.slice(0, 6) + "…" : cat.nombre}
                   </span>
                 </button>
               );
             })}
+            {/* Botón nueva categoría */}
+            <button
+              onClick={() => setModalNuevaCat(true)}
+              className="active:scale-95 transition-transform"
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                padding: "9px 4px", borderRadius: 10,
+                backgroundColor: "var(--surface-2)",
+                border: "1px dashed var(--border)",
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ fontSize: 16 }}>➕</span>
+              <span style={{ fontSize: 9, fontWeight: 600, color: "var(--text-3)" }}>Nueva</span>
+            </button>
           </div>
         </div>
+
+        {/* Modal nueva categoría */}
+        {modalNuevaCat && (
+          <div className="fixed inset-0 flex items-end" style={{ zIndex: 300, backgroundColor: "rgba(0,0,0,0.6)" }}
+            onClick={(e) => { if (e.target === e.currentTarget) setModalNuevaCat(false); }}>
+            <div className="w-full slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: "20px 20px", paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)", borderTop: "1px solid var(--border)" }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginBottom: 16 }}>Nueva categoría</p>
+              <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                <input
+                  type="text" placeholder="Emoji" value={nuevaCatEmoji}
+                  onChange={(e) => setNuevaCatEmoji(e.target.value)}
+                  style={{ width: 56, borderRadius: 10, padding: "10px 0", fontSize: 22, textAlign: "center", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", outline: "none" }}
+                />
+                <input
+                  type="text" placeholder="Nombre (ej. Mascotas)" value={nuevaCatNombre}
+                  onChange={(e) => setNuevaCatNombre(e.target.value)}
+                  autoFocus
+                  style={{ flex: 1, borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none" }}
+                />
+              </div>
+              <button
+                onClick={handleCrearCategoria}
+                disabled={guardandoCat || !nuevaCatNombre.trim()}
+                style={{ width: "100%", padding: "13px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: "#0F2F2F", color: "#fff", border: "none", cursor: "pointer", opacity: (!nuevaCatNombre.trim() || guardandoCat) ? 0.4 : 1 }}
+              >
+                {guardandoCat ? "Guardando..." : "Crear categoría"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Fecha */}
         <div style={{ marginBottom: 20 }}>
