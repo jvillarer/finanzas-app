@@ -25,19 +25,6 @@ const FAINT = "rgba(15,47,47,0.08)";
 
 const EMOJIS_META = ["🎯", "🏠", "🚗", "✈️", "📱", "💻", "🎓", "💍", "🐶", "🌴", "💰", "🏋️", "🎸", "🏖️", "🚀"];
 
-const CATEGORIAS = [
-  { nombre: "Comida",          emoji: "🍽" },
-  { nombre: "Supermercado",    emoji: "🛒" },
-  { nombre: "Transporte",      emoji: "🚗" },
-  { nombre: "Entretenimiento", emoji: "🎬" },
-  { nombre: "Salud",           emoji: "💊" },
-  { nombre: "Servicios",       emoji: "⚡" },
-  { nombre: "Ropa",            emoji: "👕" },
-  { nombre: "Hogar",           emoji: "🏠" },
-  { nombre: "Educación",       emoji: "📚" },
-  { nombre: "Otros",           emoji: "📦" },
-];
-
 const CAT_ICON: Record<string, string> = {
   Comida: "🍽", Supermercado: "🛒", Transporte: "🚗",
   Entretenimiento: "🎬", Salud: "💊", Servicios: "⚡",
@@ -453,16 +440,12 @@ function ModalPresupuesto({ categoria, emoji, limiteActual, onGuardar, onElimina
   );
 }
 
-function SeccionPresupuestos() {
+function SeccionPresupuestos({ onNuevaCategoria, refreshKey }: { onNuevaCategoria: () => void; refreshKey: number }) {
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [gastosPorCat, setGastosPorCat] = useState<Record<string, number>>({});
   const [cargando, setCargando] = useState(true);
   const [modal, setModal] = useState<{ categoria: string; emoji: string; limiteActual?: number; id?: string } | null>(null);
   const [todasCategorias, setTodasCategorias] = useState<{ nombre: string; emoji: string }[]>([]);
-  const [modalNuevaCat, setModalNuevaCat] = useState(false);
-  const [nuevaCatNombre, setNuevaCatNombre] = useState("");
-  const [nuevaCatEmoji, setNuevaCatEmoji] = useState("📦");
-  const [guardandoCat, setGuardandoCat] = useState(false);
 
   const cargar = async () => {
     setCargando(true);
@@ -482,19 +465,7 @@ function SeccionPresupuestos() {
     if (presData && presData.length > 0) verificarPresupuestos(presData, gastados);
     setCargando(false);
   };
-  useEffect(() => { cargar(); }, []);
-
-  const handleCrearCategoria = async () => {
-    if (!nuevaCatNombre.trim()) return;
-    setGuardandoCat(true);
-    try {
-      await crearCategoriaCustom(nuevaCatNombre, nuevaCatEmoji);
-      await cargar();
-      setModalNuevaCat(false);
-      setNuevaCatNombre(""); setNuevaCatEmoji("📦");
-    } catch (e) { console.error(e); }
-    finally { setGuardandoCat(false); }
-  };
+  useEffect(() => { cargar(); }, [refreshKey]);
 
   const guardarPresupuesto = async (categoria: string, limite: number) => {
     const supabase = createClient();
@@ -529,7 +500,12 @@ function SeccionPresupuestos() {
     <div style={{ padding: "18px 20px 120px" }}>
       {/* Título sección */}
       <p style={{ fontSize: 11, color: MUTED, fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase" }}>{mesLabel}</p>
-      <h2 className="font-display" style={{ fontSize: 28, color: VERDE, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.3px", marginTop: 2, lineHeight: 1.05, marginBottom: 0 }}>Límites por categoría</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2, marginBottom: 0 }}>
+        <h2 className="font-display" style={{ fontSize: 28, color: VERDE, fontWeight: 400, fontStyle: "italic", letterSpacing: "-0.3px", lineHeight: 1.05 }}>Límites por categoría</h2>
+        <button onClick={onNuevaCategoria} style={{ width: 34, height: 34, borderRadius: "50%", background: VERDE, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
 
       {/* Card resumen */}
       {!cargando && conPresupuesto.length > 0 && (
@@ -591,36 +567,7 @@ function SeccionPresupuestos() {
         </div>
       )}
 
-      {/* Botón nueva categoría */}
-      <button
-        onClick={() => setModalNuevaCat(true)}
-        style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, padding: "11px 16px", borderRadius: 14, border: `1px dashed ${FAINT}`, background: "transparent", width: "100%", cursor: "pointer" }}
-      >
-        <span style={{ fontSize: 18 }}>➕</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: MUTED }}>Nueva categoría</span>
-      </button>
-
       {modal && <ModalPresupuesto categoria={modal.categoria} emoji={modal.emoji} limiteActual={modal.limiteActual} onGuardar={(limite) => guardarPresupuesto(modal.categoria, limite)} onEliminar={modal.id ? () => eliminarPresupuesto(modal.id!) : undefined} onCerrar={() => setModal(null)} />}
-
-      {/* Modal nueva categoría */}
-      {modalNuevaCat && (
-        <div className="fixed inset-0 flex items-end" style={{ zIndex: 300, backgroundColor: "rgba(0,0,0,0.6)" }}
-          onClick={(e) => { if (e.target === e.currentTarget) setModalNuevaCat(false); }}>
-          <div className="w-full slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: "20px 20px", paddingBottom: "calc(env(safe-area-inset-bottom) + 40px)", borderTop: "1px solid var(--border)" }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: VERDE, marginBottom: 16 }}>Nueva categoría</p>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-              <input type="text" placeholder="😀" value={nuevaCatEmoji} onChange={(e) => setNuevaCatEmoji(e.target.value)}
-                style={{ width: 56, borderRadius: 10, padding: "10px 0", fontSize: 22, textAlign: "center", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", outline: "none" }} />
-              <input type="text" placeholder="Nombre (ej. Mascotas)" value={nuevaCatNombre} onChange={(e) => setNuevaCatNombre(e.target.value)} autoFocus
-                style={{ flex: 1, borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none" }} />
-            </div>
-            <button onClick={handleCrearCategoria} disabled={guardandoCat || !nuevaCatNombre.trim()}
-              style={{ width: "100%", padding: "13px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: VERDE, color: "#fff", border: "none", cursor: "pointer", opacity: (!nuevaCatNombre.trim() || guardandoCat) ? 0.4 : 1 }}>
-              {guardandoCat ? "Guardando..." : "Crear categoría"}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -840,6 +787,26 @@ export default function PlanificacionPage() {
   const [direccion, setDireccion] = useState<"left" | "right">("right");
   const [showTour, setShowTour] = useState(false);
 
+  // Estado para modal nueva categoría (renderizado aquí, fuera del overflow container)
+  const [modalNuevaCat, setModalNuevaCat] = useState(false);
+  const [nuevaCatNombre, setNuevaCatNombre] = useState("");
+  const [nuevaCatEmoji, setNuevaCatEmoji] = useState("📦");
+  const [guardandoCat, setGuardandoCat] = useState(false);
+  const [presupuestosRefreshKey, setPresupuestosRefreshKey] = useState(0);
+
+  const handleCrearCategoria = async () => {
+    if (!nuevaCatNombre.trim()) return;
+    setGuardandoCat(true);
+    try {
+      await crearCategoriaCustom(nuevaCatNombre.trim(), nuevaCatEmoji);
+      setModalNuevaCat(false);
+      setNuevaCatNombre("");
+      setNuevaCatEmoji("📦");
+      setPresupuestosRefreshKey((k) => k + 1);
+    } catch (e) { console.error(e); }
+    finally { setGuardandoCat(false); }
+  };
+
   const cambiarTab = (nueva: Tab) => {
     const idxActual = TABS.findIndex((t) => t.key === tabActiva);
     const idxNueva  = TABS.findIndex((t) => t.key === nueva);
@@ -946,10 +913,59 @@ export default function PlanificacionPage() {
           style={{ flex: 1, overflowY: "auto", paddingBottom: "calc(env(safe-area-inset-bottom) + 64px)" }}
         >
           {tabActiva === "metas"        && <SeccionMetas />}
-          {tabActiva === "presupuestos" && <SeccionPresupuestos />}
+          {tabActiva === "presupuestos" && <SeccionPresupuestos onNuevaCategoria={() => setModalNuevaCat(true)} refreshKey={presupuestosRefreshKey} />}
           {tabActiva === "movimientos"  && <SeccionMovimientos />}
         </div>
       </div>
+
+      {/* Modal nueva categoría — renderizado aquí, fuera del overflowX:hidden, para que position:fixed funcione en iOS */}
+      {modalNuevaCat && (
+        <div
+          className="fixed inset-0 flex items-end"
+          style={{ zIndex: 300, backgroundColor: "rgba(0,0,0,0.6)", touchAction: "none" }}
+          onClick={(e) => { if (e.target === e.currentTarget) setModalNuevaCat(false); }}
+        >
+          <div
+            className="w-full slide-up"
+            style={{
+              backgroundColor: "var(--surface)",
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: "20px 20px",
+              paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)",
+              borderTop: "1px solid var(--border)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: 32, height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 18px" }} />
+            <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 16 }}>Nueva categoría</p>
+            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+              <input
+                type="text"
+                placeholder="📦"
+                value={nuevaCatEmoji}
+                onChange={(e) => setNuevaCatEmoji(e.target.value)}
+                style={{ width: 56, borderRadius: 10, padding: "10px 0", fontSize: 22, textAlign: "center", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", outline: "none" }}
+              />
+              <input
+                type="text"
+                placeholder="Nombre (ej. Mascotas)"
+                value={nuevaCatNombre}
+                onChange={(e) => setNuevaCatNombre(e.target.value)}
+                autoFocus
+                style={{ flex: 1, borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none" }}
+              />
+            </div>
+            <button
+              onClick={handleCrearCategoria}
+              disabled={guardandoCat || !nuevaCatNombre.trim()}
+              style={{ width: "100%", padding: "13px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: VERDE, color: "#fff", border: "none", cursor: "pointer", opacity: (!nuevaCatNombre.trim() || guardandoCat) ? 0.4 : 1 }}
+            >
+              {guardandoCat ? "Guardando..." : "Crear categoría"}
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
