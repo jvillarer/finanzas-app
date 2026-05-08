@@ -11,6 +11,7 @@ import {
 } from "@/lib/metas";
 import { obtenerTodasLasCategorias, crearCategoriaCustom } from "@/lib/categorias";
 import EmojiPicker from "@/components/EmojiPicker";
+import { haptico } from "@/lib/haptics";
 import type { Transaccion } from "@/lib/supabase";
 import EditarTransaccion from "@/components/EditarTransaccion";
 
