@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { crearTransaccion } from "@/lib/transacciones";
 import { haptico } from "@/lib/haptics";
 import { obtenerTodasLasCategorias, crearCategoriaCustom } from "@/lib/categorias";
+import EmojiPicker from "@/components/EmojiPicker";
 
 interface Props {
   onCerrar: () => void;
@@ -233,16 +234,8 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
               />
               {/* Selector de emoji */}
               <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>Ícono</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-                {["📦","🍽","🛒","🚗","🎬","💊","⚡","👕","🏠","📚","🐶","🏋️","🎸","💄","🍺","☕","🎮","✈️","🏖️","💰","🎁","🍕","🎵","🌿","💅","🏃","🐱","🎓","🛍️","🏥"].map((e) => (
-                  <button
-                    key={e}
-                    onClick={() => setNuevaCatEmoji(e)}
-                    style={{ width: 38, height: 38, borderRadius: 9, fontSize: 18, backgroundColor: nuevaCatEmoji === e ? "rgba(15,47,47,0.1)" : "var(--surface-2)", border: nuevaCatEmoji === e ? "1.5px solid #0F2F2F" : "1px solid transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                  >
-                    {e}
-                  </button>
-                ))}
+              <div style={{ marginBottom: 14 }}>
+                <EmojiPicker valorActual={nuevaCatEmoji} onSeleccionar={setNuevaCatEmoji} />
               </div>
               <button
                 onClick={handleCrearCategoria}

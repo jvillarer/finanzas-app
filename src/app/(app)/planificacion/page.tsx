@@ -10,6 +10,7 @@ import {
   calcularMeta, type Meta,
 } from "@/lib/metas";
 import { obtenerTodasLasCategorias, crearCategoriaCustom } from "@/lib/categorias";
+import EmojiPicker from "@/components/EmojiPicker";
 import type { Transaccion } from "@/lib/supabase";
 import EditarTransaccion from "@/components/EditarTransaccion";
 
@@ -827,16 +828,8 @@ function ModalNuevaCategoria({ onCreado, onCerrar }: { onCreado: () => void; onC
 
         {/* Selector de emoji */}
         <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>Ícono</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-          {EMOJIS_CATEGORIA.map((e) => (
-            <button
-              key={e}
-              onClick={() => setEmoji(e)}
-              style={{ width: 42, height: 42, borderRadius: 10, fontSize: 20, backgroundColor: emoji === e ? "rgba(15,47,47,0.1)" : "var(--surface-2)", border: emoji === e ? `1.5px solid ${VERDE}` : "1px solid transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-            >
-              {e}
-            </button>
-          ))}
+        <div style={{ marginBottom: 16 }}>
+          <EmojiPicker valorActual={emoji} onSeleccionar={setEmoji} />
         </div>
         <button
           onClick={handleCrear}
