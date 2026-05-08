@@ -219,23 +219,30 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
           <div className="fixed inset-0 flex items-end" style={{ zIndex: 300, backgroundColor: "rgba(0,0,0,0.6)" }}
             onClick={(e) => { if (e.target === e.currentTarget) setModalNuevaCat(false); }}>
             <div className="w-full slide-up" style={{ backgroundColor: "var(--surface)", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: "20px 20px", paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)", borderTop: "1px solid var(--border)" }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginBottom: 16 }}>Nueva categoría</p>
-              <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-                <input
-                  type="text" placeholder="Emoji" value={nuevaCatEmoji}
-                  onChange={(e) => setNuevaCatEmoji(e.target.value)}
-                  style={{ width: 56, borderRadius: 10, padding: "10px 0", fontSize: 22, textAlign: "center", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", outline: "none" }}
-                />
-                <input
-                  type="text" placeholder="Nombre (ej. Mascotas)" value={nuevaCatNombre}
-                  onChange={(e) => setNuevaCatNombre(e.target.value)}
-                  autoFocus
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="words"
-                  spellCheck={false}
-                  style={{ flex: 1, borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none" }}
-                />
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginBottom: 14 }}>Nueva categoría</p>
+              {/* Nombre */}
+              <input
+                type="text" placeholder="Nombre (ej. Mascotas)" value={nuevaCatNombre}
+                onChange={(e) => setNuevaCatNombre(e.target.value)}
+                autoFocus
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="words"
+                spellCheck={false}
+                style={{ width: "100%", borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none", marginBottom: 12 }}
+              />
+              {/* Selector de emoji */}
+              <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>Ícono</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                {["📦","🍽","🛒","🚗","🎬","💊","⚡","👕","🏠","📚","🐶","🏋️","🎸","💄","🍺","☕","🎮","✈️","🏖️","💰","🎁","🍕","🎵","🌿","💅","🏃","🐱","🎓","🛍️","🏥"].map((e) => (
+                  <button
+                    key={e}
+                    onClick={() => setNuevaCatEmoji(e)}
+                    style={{ width: 38, height: 38, borderRadius: 9, fontSize: 18, backgroundColor: nuevaCatEmoji === e ? "rgba(15,47,47,0.1)" : "var(--surface-2)", border: nuevaCatEmoji === e ? "1.5px solid #0F2F2F" : "1px solid transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    {e}
+                  </button>
+                ))}
               </div>
               <button
                 onClick={handleCrearCategoria}

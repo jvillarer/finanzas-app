@@ -776,6 +776,12 @@ function SeccionMovimientos() {
 // ─────────────────────────────────────────────────────────────────────────────
 // MODAL: NUEVA CATEGORÍA (con visualViewport para subir sobre el teclado iOS)
 // ─────────────────────────────────────────────────────────────────────────────
+const EMOJIS_CATEGORIA = [
+  "📦","🍽","🛒","🚗","🎬","💊","⚡","👕","🏠","📚",
+  "🐶","🏋️","🎸","💄","🍺","☕","🎮","✈️","🏖️","💰",
+  "🎁","🍕","🎵","🌿","💅","🏃","🐱","🎓","🛍️","🏥",
+];
+
 function ModalNuevaCategoria({ onCreado, onCerrar }: { onCreado: () => void; onCerrar: () => void }) {
   const [nombre, setNombre] = useState("");
   const [emoji, setEmoji] = useState("📦");
@@ -837,28 +843,34 @@ function ModalNuevaCategoria({ onCreado, onCerrar }: { onCreado: () => void; onC
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ width: 32, height: 4, borderRadius: 99, backgroundColor: "var(--surface-3)", margin: "0 auto 18px" }} />
-        <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 16 }}>Nueva categoría</p>
-        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-          <input
-            type="text"
-            placeholder="📦"
-            value={emoji}
-            onChange={(e) => setEmoji(e.target.value)}
-            autoComplete="off"
-            style={{ width: 56, borderRadius: 10, padding: "10px 0", fontSize: 22, textAlign: "center", backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", outline: "none" }}
-          />
-          <input
-            type="text"
-            placeholder="Nombre (ej. Mascotas)"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            autoFocus
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="words"
-            spellCheck={false}
-            style={{ flex: 1, borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none" }}
-          />
+        <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 14 }}>Nueva categoría</p>
+
+        {/* Nombre */}
+        <input
+          type="text"
+          placeholder="Nombre (ej. Mascotas)"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          autoFocus
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="words"
+          spellCheck={false}
+          style={{ width: "100%", borderRadius: 10, padding: "11px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none", marginBottom: 14 }}
+        />
+
+        {/* Selector de emoji */}
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-3)", marginBottom: 8 }}>Ícono</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+          {EMOJIS_CATEGORIA.map((e) => (
+            <button
+              key={e}
+              onClick={() => setEmoji(e)}
+              style={{ width: 42, height: 42, borderRadius: 10, fontSize: 20, backgroundColor: emoji === e ? "rgba(15,47,47,0.1)" : "var(--surface-2)", border: emoji === e ? `1.5px solid ${VERDE}` : "1px solid transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+            >
+              {e}
+            </button>
+          ))}
         </div>
         <button
           onClick={handleCrear}
