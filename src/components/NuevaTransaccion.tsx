@@ -230,6 +230,10 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
                   type="text" placeholder="Nombre (ej. Mascotas)" value={nuevaCatNombre}
                   onChange={(e) => setNuevaCatNombre(e.target.value)}
                   autoFocus
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="words"
+                  spellCheck={false}
                   style={{ flex: 1, borderRadius: 10, padding: "10px 12px", fontSize: 14, fontWeight: 600, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)", outline: "none" }}
                 />
               </div>
