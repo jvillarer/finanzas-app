@@ -43,9 +43,17 @@ const CAT_ICON: Record<string, string> = {
   Ropa: "👕", Hogar: "🏠", Educación: "📚", Otros: "📦",
 };
 
+// Fecha local YYYY-MM-DD sin depender de UTC (evita desfase de timezone en la noche)
+const fechaLocalStr = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 function agruparPorFecha(txs: Transaccion[]): [string, Transaccion[]][] {
-  const hoy = new Date().toISOString().split("T")[0];
-  const ayer = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  const hoy = fechaLocalStr(new Date());
+  const ayer = fechaLocalStr(new Date(Date.now() - 86400000));
   const grupos: Record<string, Transaccion[]> = {};
   for (const t of txs) {
     const label =
@@ -587,7 +595,7 @@ function SeccionMovimientos() {
     const tipoFiltro = filtro === "ingresos" ? "ingreso" : "gasto";
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(hoy); d.setDate(hoy.getDate() - (6 - i));
-      const fecha = d.toISOString().split("T")[0];
+      const fecha = fechaLocalStr(d);
       if (filtro === "todos") {
         // Todos: muestra gastos menos ingresos (gasto neto) para cada día
         const gastos = transacciones.filter((t) => t.tipo === "gasto" && t.fecha === fecha).reduce((s, t) => s + Number(t.monto), 0);
@@ -610,12 +618,12 @@ function SeccionMovimientos() {
   const total7d = sparkline7d.reduce((s, v) => s + v, 0);
   const labelTotal7d = filtro === "ingresos" ? `+${formatearMonto(total7d)}` : `−${formatearMonto(total7d)}`;
 
-  // Fechas de los últimos 7 días
+  // Fechas de los últimos 7 días en hora local (no UTC)
   const fechas7d = useMemo(() => {
     const hoy = new Date();
     return new Set(Array.from({ length: 7 }, (_, i) => {
       const d = new Date(hoy); d.setDate(hoy.getDate() - i);
-      return d.toISOString().split("T")[0];
+      return fechaLocalStr(d);
     }));
   }, []);
 
