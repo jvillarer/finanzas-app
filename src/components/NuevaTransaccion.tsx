@@ -35,7 +35,7 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
     try {
       await crearCategoriaCustom(nuevaCatNombre, nuevaCatEmoji);
       const actualizadas = await obtenerTodasLasCategorias();
-      setCategorias(actualizadas);
+      setCategoriasGasto(actualizadas);
       setCategoria(nuevaCatNombre.trim());
       setModalNuevaCat(false);
       setNuevaCatNombre("");
