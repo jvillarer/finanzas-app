@@ -366,19 +366,18 @@ function ModalPresupuesto({ categoria, emoji, limiteActual, onGuardar, onElimina
   }, []);
 
   // Subir el sheet exactamente la altura del teclado cambiando `bottom`
+  // Nota: no usamos vv.offsetTop porque en iOS PWA puede ser negativo y sobreestima el desplazamiento
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
     const reposicionar = () => {
       if (!sheetRef.current) return;
-      const alturasTeclado = Math.max(window.innerHeight - vv.height - vv.offsetTop, 0);
+      const alturasTeclado = Math.max(window.innerHeight - vv.height, 0);
       sheetRef.current.style.bottom = `${alturasTeclado}px`;
     };
     vv.addEventListener("resize", reposicionar);
-    vv.addEventListener("scroll", reposicionar);
     return () => {
       vv.removeEventListener("resize", reposicionar);
-      vv.removeEventListener("scroll", reposicionar);
     };
   }, []);
 
@@ -796,19 +795,18 @@ function ModalNuevaCategoria({ onCreado, onCerrar }: { onCreado: () => void; onC
   }, []);
 
   // Subir sheet exactamente la altura del teclado
+  // Nota: no usamos vv.offsetTop — en iOS PWA puede ser negativo y sobreestima el desplazamiento
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
     const reposicionar = () => {
       if (!sheetRef.current) return;
-      const alturasTeclado = Math.max(window.innerHeight - vv.height - vv.offsetTop, 0);
+      const alturasTeclado = Math.max(window.innerHeight - vv.height, 0);
       sheetRef.current.style.bottom = `${alturasTeclado}px`;
     };
     vv.addEventListener("resize", reposicionar);
-    vv.addEventListener("scroll", reposicionar);
     return () => {
       vv.removeEventListener("resize", reposicionar);
-      vv.removeEventListener("scroll", reposicionar);
     };
   }, []);
 
