@@ -19,6 +19,19 @@ export const CATEGORIAS_DEFAULT = [
   { nombre: "Otros",           emoji: "📦" },
 ];
 
+export const CATEGORIAS_INGRESO_DEFAULT = [
+  { nombre: "Sueldo",       emoji: "💼" },
+  { nombre: "Freelance",    emoji: "💻" },
+  { nombre: "Negocio",      emoji: "🏪" },
+  { nombre: "Inversiones",  emoji: "📈" },
+  { nombre: "Renta",        emoji: "🏠" },
+  { nombre: "Bono",         emoji: "🎯" },
+  { nombre: "Regalo",       emoji: "🎁" },
+  { nombre: "Reembolso",    emoji: "↩️" },
+  { nombre: "Ventas",       emoji: "🤝" },
+  { nombre: "Otros",        emoji: "💰" },
+];
+
 export async function obtenerCategoriasCustom(): Promise<CategoriaCustom[]> {
   const supabase = createClient();
   const { data, error } = await supabase

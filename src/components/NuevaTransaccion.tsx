@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { crearTransaccion } from "@/lib/transacciones";
 import { haptico } from "@/lib/haptics";
-import { obtenerTodasLasCategorias, crearCategoriaCustom } from "@/lib/categorias";
+import { obtenerTodasLasCategorias, crearCategoriaCustom, CATEGORIAS_INGRESO_DEFAULT } from "@/lib/categorias";
 import EmojiPicker from "@/components/EmojiPicker";
 
 interface Props {
@@ -19,14 +19,14 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  const [categorias, setCategorias] = useState<{ nombre: string; emoji: string }[]>([]);
+  const [categoriasGasto, setCategoriasGasto] = useState<{ nombre: string; emoji: string }[]>([]);
   const [modalNuevaCat, setModalNuevaCat] = useState(false);
   const [nuevaCatNombre, setNuevaCatNombre] = useState("");
   const [nuevaCatEmoji, setNuevaCatEmoji] = useState("📦");
   const [guardandoCat, setGuardandoCat] = useState(false);
 
   useEffect(() => {
-    obtenerTodasLasCategorias().then(setCategorias);
+    obtenerTodasLasCategorias().then(setCategoriasGasto);
   }, []);
 
   const handleCrearCategoria = async () => {
@@ -117,7 +117,7 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
             {(["gasto", "ingreso"] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => { haptico.ligero(); setTipo(t); }}
+                onClick={() => { haptico.ligero(); setTipo(t); setCategoria(""); }}
                 style={{
                   flex: 1, padding: "9px 0", borderRadius: 8,
                   fontSize: 13, fontWeight: 700,
@@ -175,7 +175,7 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
         <div style={{ marginBottom: 16 }}>
           {lbl("Categoría")}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
-            {categorias.map((cat) => {
+            {(tipo === "ingreso" ? CATEGORIAS_INGRESO_DEFAULT : categoriasGasto).map((cat) => {
               const activa = categoria === cat.nombre;
               return (
                 <button
@@ -197,21 +197,23 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
                 </button>
               );
             })}
-            {/* Botón nueva categoría */}
-            <button
-              onClick={() => setModalNuevaCat(true)}
-              className="active:scale-95 transition-transform"
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                padding: "9px 4px", borderRadius: 10,
-                backgroundColor: "var(--surface-2)",
-                border: "1px dashed var(--border)",
-                cursor: "pointer",
-              }}
-            >
-              <span style={{ fontSize: 16 }}>➕</span>
-              <span style={{ fontSize: 9, fontWeight: 600, color: "var(--text-3)" }}>Nueva</span>
-            </button>
+            {/* Botón nueva categoría — solo para gastos */}
+            {tipo === "gasto" && (
+              <button
+                onClick={() => setModalNuevaCat(true)}
+                className="active:scale-95 transition-transform"
+                style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                  padding: "9px 4px", borderRadius: 10,
+                  backgroundColor: "var(--surface-2)",
+                  border: "1px dashed var(--border)",
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ fontSize: 16 }}>➕</span>
+                <span style={{ fontSize: 9, fontWeight: 600, color: "var(--text-3)" }}>Nueva</span>
+              </button>
+            )}
           </div>
         </div>
 
