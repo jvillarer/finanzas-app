@@ -356,7 +356,6 @@ function ModalPresupuesto({ categoria, emoji, limiteActual, onGuardar, onElimina
   onGuardar: (limite: number) => void; onEliminar?: () => void; onCerrar: () => void;
 }) {
   const [valor, setValor] = useState(limiteActual ? String(limiteActual) : "");
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   // Bloquear scroll del body
   useEffect(() => {
@@ -365,37 +364,22 @@ function ModalPresupuesto({ categoria, emoji, limiteActual, onGuardar, onElimina
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // Subir el sheet exactamente la altura del teclado cambiando `bottom`
-  // Nota: no usamos vv.offsetTop porque en iOS PWA puede ser negativo y sobreestima el desplazamiento
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const reposicionar = () => {
-      if (!sheetRef.current) return;
-      const alturasTeclado = Math.max(window.innerHeight - vv.height, 0);
-      sheetRef.current.style.bottom = `${alturasTeclado}px`;
-    };
-    vv.addEventListener("resize", reposicionar);
-    return () => {
-      vv.removeEventListener("resize", reposicionar);
-    };
-  }, []);
-
   return (
     <div
-      className="fixed inset-0"
-      style={{ zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)", touchAction: "none" }}
+      style={{
+        position: "fixed", top: 0, left: 0, right: 0,
+        height: "100dvh", // 100dvh encoge cuando el teclado abre en iOS 16+
+        zIndex: 200, backgroundColor: "rgba(0,0,0,0.7)", touchAction: "none",
+        display: "flex", flexDirection: "column", justifyContent: "flex-end",
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
     >
       <div
-        ref={sheetRef}
         className="slide-up"
         style={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
           backgroundColor: "var(--surface)",
           borderTopLeftRadius: 24, borderTopRightRadius: 24,
           borderTop: "1px solid var(--border)",
-          transition: "bottom 0.15s ease-out",
           padding: "16px 20px",
           paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)",
         }}
@@ -785,29 +769,12 @@ function ModalNuevaCategoria({ onCreado, onCerrar }: { onCreado: () => void; onC
   const [nombre, setNombre] = useState("");
   const [emoji, setEmoji] = useState("📦");
   const [guardando, setGuardando] = useState(false);
-  const sheetRef = useRef<HTMLDivElement>(null);
 
   // Bloquear scroll body
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, []);
-
-  // Subir sheet exactamente la altura del teclado
-  // Nota: no usamos vv.offsetTop — en iOS PWA puede ser negativo y sobreestima el desplazamiento
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const reposicionar = () => {
-      if (!sheetRef.current) return;
-      const alturasTeclado = Math.max(window.innerHeight - vv.height, 0);
-      sheetRef.current.style.bottom = `${alturasTeclado}px`;
-    };
-    vv.addEventListener("resize", reposicionar);
-    return () => {
-      vv.removeEventListener("resize", reposicionar);
-    };
   }, []);
 
   const handleCrear = async () => {
@@ -822,19 +789,20 @@ function ModalNuevaCategoria({ onCreado, onCerrar }: { onCreado: () => void; onC
 
   return (
     <div
-      className="fixed inset-0"
-      style={{ zIndex: 300, backgroundColor: "rgba(0,0,0,0.6)", touchAction: "none" }}
+      style={{
+        position: "fixed", top: 0, left: 0, right: 0,
+        height: "100dvh", // 100dvh encoge cuando el teclado abre en iOS 16+
+        zIndex: 300, backgroundColor: "rgba(0,0,0,0.6)", touchAction: "none",
+        display: "flex", flexDirection: "column", justifyContent: "flex-end",
+      }}
       onClick={(e) => { if (e.target === e.currentTarget) onCerrar(); }}
     >
       <div
-        ref={sheetRef}
         className="slide-up"
         style={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
           backgroundColor: "var(--surface)",
           borderTopLeftRadius: 20, borderTopRightRadius: 20,
           borderTop: "1px solid var(--border)",
-          transition: "bottom 0.15s ease-out",
           padding: "20px 20px",
           paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)",
         }}
