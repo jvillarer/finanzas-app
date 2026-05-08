@@ -152,9 +152,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void cargar();
+
+    // Recargar al volver a la app (e.g. desde otra pestaña)
     const handleVisibilityChange = () => { if (document.visibilityState === "visible") void cargar(); };
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+
+    // Recargar inmediatamente cuando se guarda una nueva transacción e invalidar cache del insight
+    const handleNuevaTransaccion = () => {
+      localStorage.removeItem("lani_insight_fecha"); // forzar regeneración del insight
+      void cargar();
+    };
+    window.addEventListener("lani:transaccion-guardada", handleNuevaTransaccion);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("lani:transaccion-guardada", handleNuevaTransaccion);
+    };
   }, []);
 
   // ── Periodo ────────────────────────────────────────────────────────

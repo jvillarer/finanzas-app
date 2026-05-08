@@ -55,6 +55,8 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
       .eq("id", transaccion.id);
     if (error) { haptico.error(); setError("Error al guardar"); setGuardando(false); return; }
     haptico.exito();
+    localStorage.removeItem("lani_insight_fecha");
+    window.dispatchEvent(new CustomEvent("lani:transaccion-guardada"));
     onGuardado();
   };
 
@@ -63,6 +65,8 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
     setEliminando(true);
     const supabase = createClient();
     await supabase.from("transacciones").delete().eq("id", transaccion.id);
+    localStorage.removeItem("lani_insight_fecha");
+    window.dispatchEvent(new CustomEvent("lani:transaccion-guardada"));
     onEliminado();
   };
 

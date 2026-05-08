@@ -58,7 +58,8 @@ export default function NavBar() {
 
   const handleGuardado = () => {
     setAbierto(false);
-    // Refrescar la página actual para que se vea la nueva transacción
+    // Notificar a todos los componentes que hay una nueva transacción
+    window.dispatchEvent(new CustomEvent("lani:transaccion-guardada"));
     router.refresh();
   };
 
