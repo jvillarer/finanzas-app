@@ -10,7 +10,6 @@ import {
 import { calcularRacha } from "@/lib/gamificacion";
 import type { Transaccion } from "@/lib/supabase";
 import { createClient } from "@/lib/supabase";
-import EditarTransaccion from "@/components/EditarTransaccion";
 
 const CAT_ICON: Record<string, string> = {
   Comida: "🍽", Supermercado: "🛒", Transporte: "🚗",
@@ -88,7 +87,6 @@ export default function DashboardPage() {
   const [insightCargando, setInsightCargando] = useState(false);
   const [insightExpandido, setInsightExpandido] = useState(false);
   const [mesOffset, setMesOffset] = useState(0);
-  const [transaccionEditar, setTransaccionEditar] = useState<import("@/lib/supabase").Transaccion | null>(null);
   const [alertasDismissed, setAlertasDismissed] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try { return JSON.parse(localStorage.getItem("lani_alertas_vistas") || "[]"); } catch { return []; }
@@ -446,9 +444,9 @@ export default function DashboardPage() {
                 {periodoLabel}
               </span>
               <button
-                onClick={() => cambiarPeriodo(() => setMesOffset((o) => Math.min(0, o + 1)))}
-                disabled={mesOffset === 0}
-                style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: mesOffset === 0 ? "default" : "pointer", color: "#ffffff", opacity: mesOffset === 0 ? 0.3 : 1 }}
+                onClick={() => cambiarPeriodo(() => setMesOffset((o) => Math.min(24, o + 1)))}
+                disabled={mesOffset >= 24}
+                style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: mesOffset >= 24 ? "default" : "pointer", color: "#ffffff", opacity: mesOffset >= 24 ? 0.3 : 1 }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 10, height: 10 }}><path d="M9 18l6-6-6-6" /></svg>
               </button>
@@ -667,62 +665,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── MOVIMIENTOS RECIENTES ── */}
-      {!cargando && transacciones.length > 0 && (
-        <div style={{ padding: "8px 14px 0" }}>
-          <div style={{ background: "#ffffff", borderRadius: 18, padding: "12px 0 4px", border: "1px solid rgba(15,47,47,0.06)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, paddingLeft: 14, paddingRight: 14 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: VERDE, letterSpacing: "-0.2px" }}>Movimientos recientes</h3>
-              <span style={{ fontSize: 11, color: "rgba(15,47,47,0.45)", fontWeight: 500 }}>últimos 5</span>
-            </div>
-            {transacciones.slice(0, 5).map((t, idx) => {
-              const esIngreso = t.tipo === "ingreso";
-              const emoji = esIngreso ? "💰" : (CAT_ICON[t.categoria] || "📦");
-              const fechaLabel = (() => {
-                const hoy = new Date().toISOString().split("T")[0];
-                const ayer = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-                if (t.fecha === hoy) return "Hoy";
-                if (t.fecha === ayer) return "Ayer";
-                return new Date(t.fecha + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" });
-              })();
-              return (
-                <div
-                  key={t.id}
-                  onClick={() => setTransaccionEditar(t)}
-                  style={{
-                    padding: "10px 14px", display: "flex", alignItems: "center", gap: 12,
-                    borderTop: idx > 0 ? "1px solid rgba(15,47,47,0.05)" : "none",
-                    cursor: "pointer",
-                  }}
-                  onTouchStart={(e) => (e.currentTarget.style.backgroundColor = "#f9f7f4")}
-                  onTouchEnd={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                >
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "#f5f7f5", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>{emoji}</div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: VERDE, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {t.descripcion || t.categoria || "Sin descripción"}
-                    </p>
-                    <p style={{ fontSize: 11, color: "rgba(15,47,47,0.4)", fontWeight: 500, marginTop: 1 }}>{fechaLabel}</p>
-                  </div>
-                  <span style={{ fontSize: 14, fontWeight: 700, fontStyle: "italic", fontFamily: "var(--font-display), Georgia, serif", color: esIngreso ? "var(--success)" : "var(--danger)", flexShrink: 0 }}>
-                    {esIngreso ? "+" : "−"}{formatearMonto(t.monto)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* EditarTransaccion desde dashboard */}
-      {transaccionEditar && (
-        <EditarTransaccion
-          transaccion={transaccionEditar}
-          onCerrar={() => setTransaccionEditar(null)}
-          onGuardado={() => { setTransaccionEditar(null); void cargar(); }}
-          onEliminado={() => { setTransaccionEditar(null); void cargar(); }}
-        />
-      )}
 
     </main>
   );
