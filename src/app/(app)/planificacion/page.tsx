@@ -569,7 +569,10 @@ function SeccionMovimientos({ onEditar, onConfirmarEliminar }: { onEditar: (t: T
   const touchStartX = useRef<number>(0);
 
   useEffect(() => {
-    obtenerTransacciones().then(setTransacciones).finally(() => setCargando(false));
+    const cargar = () => obtenerTransacciones().then(setTransacciones).finally(() => setCargando(false));
+    cargar();
+    window.addEventListener("lani:transaccion-guardada", cargar);
+    return () => window.removeEventListener("lani:transaccion-guardada", cargar);
   }, []);
 
   useEffect(() => { setPagina(30); }, [filtro]);
