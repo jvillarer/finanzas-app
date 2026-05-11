@@ -198,6 +198,16 @@ export default function DashboardPage() {
 
   const { ingresos, gastos, balance } = useMemo(() => calcularResumen(txsVista), [txsVista]);
 
+  // Máximo offset permitido = mes de la transacción más futura
+  const maxMesOffset = useMemo(() => {
+    if (transacciones.length === 0) return 0;
+    const hoy = new Date();
+    const maxFecha = transacciones.reduce((max, t) => t.fecha > max ? t.fecha : max, transacciones[0].fecha);
+    const maxDate = new Date(maxFecha + "T12:00:00");
+    const diff = (maxDate.getFullYear() - hoy.getFullYear()) * 12 + (maxDate.getMonth() - hoy.getMonth());
+    return Math.max(0, diff);
+  }, [transacciones]);
+
   // Días restantes del mes actual
   const { diaActual, diasEnMes, diasRestantes } = useMemo(() => {
     const hoy = new Date();
@@ -444,9 +454,9 @@ export default function DashboardPage() {
                 {periodoLabel}
               </span>
               <button
-                onClick={() => cambiarPeriodo(() => setMesOffset((o) => Math.min(24, o + 1)))}
-                disabled={mesOffset >= 24}
-                style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: mesOffset >= 24 ? "default" : "pointer", color: "#ffffff", opacity: mesOffset >= 24 ? 0.3 : 1 }}
+                onClick={() => cambiarPeriodo(() => setMesOffset((o) => Math.min(maxMesOffset, o + 1)))}
+                disabled={mesOffset >= maxMesOffset}
+                style={{ width: 24, height: 24, borderRadius: "50%", background: "rgba(255,255,255,0.12)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: mesOffset >= maxMesOffset ? "default" : "pointer", color: "#ffffff", opacity: mesOffset >= maxMesOffset ? 0.3 : 1 }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 10, height: 10 }}><path d="M9 18l6-6-6-6" /></svg>
               </button>
