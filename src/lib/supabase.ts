@@ -17,4 +17,5 @@ export type Transaccion = {
   tipo: "ingreso" | "gasto";
   fecha: string;
   creado_en: string;
+  grupo_msi?: string | null;
 };

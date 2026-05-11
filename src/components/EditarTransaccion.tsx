@@ -62,11 +62,15 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
     onGuardado();
   };
 
-  const handleEliminar = async () => {
+  const handleEliminar = async (soloEste: boolean) => {
     haptico.peligro();
     setEliminando(true);
     const supabase = createClient();
-    await supabase.from("transacciones").delete().eq("id", transaccion.id);
+    if (!soloEste && transaccion.grupo_msi) {
+      await supabase.from("transacciones").delete().eq("grupo_msi", transaccion.grupo_msi);
+    } else {
+      await supabase.from("transacciones").delete().eq("id", transaccion.id);
+    }
     localStorage.removeItem("lani_insight_fecha");
     window.dispatchEvent(new CustomEvent("lani:transaccion-guardada"));
     onEliminado();
@@ -247,7 +251,34 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
             >
               Eliminar movimiento
             </button>
+          ) : transaccion.grupo_msi ? (
+            /* MSI: dos opciones */
+            <div style={{ borderRadius: 14, padding: "14px 14px", backgroundColor: "var(--danger-dim)", border: "1px solid rgba(240,110,110,0.2)" }}>
+              <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, textAlign: "center", color: "var(--text-1)" }}>¿Eliminar este movimiento?</p>
+              <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginBottom: 12 }}>Forma parte de una compra a meses</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <button
+                  onClick={() => handleEliminar(false)} disabled={eliminando}
+                  style={{ width: "100%", padding: "12px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: "var(--danger)", color: "#fff", border: "none", cursor: "pointer", opacity: eliminando ? 0.4 : 1 }}
+                >
+                  {eliminando ? "..." : "Eliminar todos los meses"}
+                </button>
+                <button
+                  onClick={() => handleEliminar(true)} disabled={eliminando}
+                  style={{ width: "100%", padding: "12px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: "var(--surface-3)", color: "var(--danger)", border: "none", cursor: "pointer", opacity: eliminando ? 0.4 : 1 }}
+                >
+                  Solo este pago
+                </button>
+                <button
+                  onClick={() => setConfirmarEliminar(false)}
+                  style={{ width: "100%", padding: "12px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: "var(--surface-2)", color: "var(--text-2)", border: "none", cursor: "pointer" }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           ) : (
+            /* Transacción normal */
             <div style={{ borderRadius: 14, padding: "14px 14px", backgroundColor: "var(--danger-dim)", border: "1px solid rgba(240,110,110,0.2)" }}>
               <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, textAlign: "center", color: "var(--text-1)" }}>¿Eliminar este movimiento?</p>
               <div style={{ display: "flex", gap: 8 }}>
@@ -258,7 +289,7 @@ export default function EditarTransaccion({ transaccion, onCerrar, onGuardado, o
                   Cancelar
                 </button>
                 <button
-                  onClick={handleEliminar} disabled={eliminando}
+                  onClick={() => handleEliminar(true)} disabled={eliminando}
                   style={{ flex: 1, padding: "12px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, backgroundColor: "var(--danger)", color: "#fff", border: "none", cursor: "pointer", opacity: eliminando ? 0.4 : 1 }}
                 >
                   {eliminando ? "..." : "Sí, eliminar"}

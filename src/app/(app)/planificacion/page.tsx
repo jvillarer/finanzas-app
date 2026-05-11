@@ -899,11 +899,15 @@ export default function PlanificacionPage() {
   const [confirmarEliminarTx, setConfirmarEliminarTx] = useState<Transaccion | null>(null);
   const [eliminando, setEliminando] = useState(false);
 
-  const handleEliminarConfirmado = async () => {
+  const handleEliminarConfirmado = async (soloEste: boolean) => {
     if (!confirmarEliminarTx) return;
     setEliminando(true);
     const supabase = createClient();
-    await supabase.from("transacciones").delete().eq("id", confirmarEliminarTx.id);
+    if (!soloEste && confirmarEliminarTx.grupo_msi) {
+      await supabase.from("transacciones").delete().eq("grupo_msi", confirmarEliminarTx.grupo_msi);
+    } else {
+      await supabase.from("transacciones").delete().eq("id", confirmarEliminarTx.id);
+    }
     localStorage.removeItem("lani_insight_fecha");
     window.dispatchEvent(new CustomEvent("lani:transaccion-guardada"));
     setConfirmarEliminarTx(null);
@@ -1056,23 +1060,53 @@ export default function PlanificacionPage() {
               {confirmarEliminarTx.descripcion || confirmarEliminarTx.categoria || "Sin descripción"}
             </p>
             <p style={{ fontSize: 13, color: "var(--text-3)", textAlign: "center", marginBottom: 24 }}>
-              Esta acción no se puede deshacer
+              {confirmarEliminarTx.grupo_msi
+                ? "Este movimiento es parte de una compra a meses"
+                : "Esta acción no se puede deshacer"}
             </p>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={() => setConfirmarEliminarTx(null)}
-                style={{ flex: 1, padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--surface-2)", color: "var(--text-2)", border: "none", cursor: "pointer" }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleEliminarConfirmado}
-                disabled={eliminando}
-                style={{ flex: 1, padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--danger)", color: "#fff", border: "none", cursor: "pointer", opacity: eliminando ? 0.5 : 1 }}
-              >
-                {eliminando ? "Eliminando..." : "Sí, eliminar"}
-              </button>
-            </div>
+
+            {confirmarEliminarTx.grupo_msi ? (
+              /* MSI: dos opciones */
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <button
+                  onClick={() => handleEliminarConfirmado(false)}
+                  disabled={eliminando}
+                  style={{ width: "100%", padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--danger)", color: "#fff", border: "none", cursor: "pointer", opacity: eliminando ? 0.5 : 1 }}
+                >
+                  {eliminando ? "Eliminando..." : "Eliminar todos los meses"}
+                </button>
+                <button
+                  onClick={() => handleEliminarConfirmado(true)}
+                  disabled={eliminando}
+                  style={{ width: "100%", padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--surface-3)", color: "var(--danger)", border: "none", cursor: "pointer", opacity: eliminando ? 0.5 : 1 }}
+                >
+                  Solo este pago
+                </button>
+                <button
+                  onClick={() => setConfirmarEliminarTx(null)}
+                  style={{ width: "100%", padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--surface-2)", color: "var(--text-2)", border: "none", cursor: "pointer" }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              /* Transacción normal */
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => setConfirmarEliminarTx(null)}
+                  style={{ flex: 1, padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--surface-2)", color: "var(--text-2)", border: "none", cursor: "pointer" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleEliminarConfirmado(true)}
+                  disabled={eliminando}
+                  style={{ flex: 1, padding: "14px 0", borderRadius: 14, fontSize: 14, fontWeight: 700, backgroundColor: "var(--danger)", color: "#fff", border: "none", cursor: "pointer", opacity: eliminando ? 0.5 : 1 }}
+                >
+                  {eliminando ? "Eliminando..." : "Sí, eliminar"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

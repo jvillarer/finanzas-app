@@ -49,6 +49,8 @@ export async function crearTransaccionesMSI(
 
   const [anio, mes, dia] = base.fecha.split("-").map(Number);
 
+  const grupoMsi = crypto.randomUUID();
+
   const filas = Array.from({ length: meses }, (_, i) => {
     const d = new Date(anio, mes - 1 + i, dia);
     const fecha = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -60,6 +62,7 @@ export async function crearTransaccionesMSI(
       descripcion: `${desc} (${i + 1}/${meses})`,
       fecha,
       usuario_id: user?.id,
+      grupo_msi: grupoMsi,
     };
   });
 
