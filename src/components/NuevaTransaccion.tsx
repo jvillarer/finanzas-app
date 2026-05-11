@@ -257,6 +257,24 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
             />
           </div>
 
+          {/* Fecha — arriba de categoría para que el usuario la vea antes de scrollear */}
+          <div style={{ marginBottom: 16 }}>
+            {lbl(aMeses ? "Fecha primera cuota" : "Fecha")}
+            <input
+              type="date" value={fecha} onChange={(e) => setFecha(e.target.value)}
+              style={{
+                width: "100%", borderRadius: 12, padding: "12px 14px",
+                fontSize: 14, fontWeight: 500, outline: "none",
+                backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)",
+              }}
+            />
+            {aMeses && (
+              <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6, fontWeight: 500 }}>
+                La última cuota se registrará el mes {numMeses}
+              </p>
+            )}
+          </div>
+
           {/* Categorías */}
           <div style={{ marginBottom: 16 }}>
             {lbl("Categoría")}
@@ -327,23 +345,6 @@ export default function NuevaTransaccion({ onCerrar, onGuardado }: Props) {
             </div>
           )}
 
-          {/* Fecha */}
-          <div style={{ marginBottom: 20 }}>
-            {lbl(aMeses ? "Fecha primera cuota" : "Fecha")}
-            <input
-              type="date" value={fecha} onChange={(e) => setFecha(e.target.value)}
-              style={{
-                width: "100%", borderRadius: 12, padding: "12px 14px",
-                fontSize: 14, fontWeight: 500, outline: "none",
-                backgroundColor: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-1)",
-              }}
-            />
-            {aMeses && (
-              <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6, fontWeight: 500 }}>
-                La última cuota se registrará el mes {numMeses}
-              </p>
-            )}
-          </div>
 
         </div>{/* fin zona scrolleable */}
 
