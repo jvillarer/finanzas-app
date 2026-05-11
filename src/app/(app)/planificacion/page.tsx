@@ -615,16 +615,17 @@ function SeccionMovimientos({ onEditar, onConfirmarEliminar }: { onEditar: (t: T
     }));
   }, []);
 
+  // Los conteos y la lista muestran TODOS los movimientos (sin límite de 7 días)
+  // La sparkline y el resumen del banner siguen siendo solo los últimos 7 días
   const conteos = useMemo(() => ({
-    todos: transacciones.filter((t) => fechas7d.has(t.fecha)).length,
-    gastos: transacciones.filter((t) => t.tipo === "gasto" && fechas7d.has(t.fecha)).length,
-    ingresos: transacciones.filter((t) => t.tipo === "ingreso" && fechas7d.has(t.fecha)).length,
-  }), [transacciones, fechas7d]);
+    todos: transacciones.length,
+    gastos: transacciones.filter((t) => t.tipo === "gasto").length,
+    ingresos: transacciones.filter((t) => t.tipo === "ingreso").length,
+  }), [transacciones]);
 
   const listaBase = transacciones.filter((t) => {
-    const dentroDeRango = fechas7d.has(t.fecha);
     const porTipo = filtro === "todos" ? true : filtro === "gastos" ? t.tipo === "gasto" : t.tipo === "ingreso";
-    return dentroDeRango && porTipo;
+    return porTipo;
   });
   const lista = listaBase.slice(0, pagina);
   const hayMas = listaBase.length > pagina;
