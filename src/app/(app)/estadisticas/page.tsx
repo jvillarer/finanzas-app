@@ -169,13 +169,15 @@ function Donut({ datos, tamaño = 130, trazo = 18 }: { datos: DatoDonut[]; tama�
         <circle cx={tamaño/2} cy={tamaño/2} r={r} fill="none" stroke={HAIR} strokeWidth={trazo}/>
         {datos.map((d, i) => {
           const len    = (d.valor / total) * c;
-          const offset = c - acc;
+          // Gap de 1.5px entre segmentos — sin restar del segmento para no perder cobertura
+          const gap    = datos.length > 1 ? 1.5 : 0;
+          const offset = c - acc + gap / 2;
           acc += len;
           return (
             <circle key={i} cx={tamaño/2} cy={tamaño/2} r={r}
               fill="none" stroke={d.color} strokeWidth={trazo}
-              strokeDasharray={`${Math.max(len - 2, 0)} ${c}`}
-              strokeDashoffset={offset} strokeLinecap="round"/>
+              strokeDasharray={`${Math.max(len - gap, 0)} ${c}`}
+              strokeDashoffset={offset} strokeLinecap="butt"/>
           );
         })}
       </svg>
