@@ -160,30 +160,40 @@ interface DatoDonut { valor: number; color: string; label: string }
 
 function Donut({ datos, tamaño = 130, trazo = 18 }: { datos: DatoDonut[]; tamaño?: number; trazo?: number }) {
   const total = datos.reduce((s, d) => s + d.valor, 0) || 1;
-  const r = tamaño / 2 - trazo / 2 - 4;
-  const c = 2 * Math.PI * r;
-  let acc = 0;
+  const cx = tamaño / 2;
+  const r  = cx - trazo / 2 - 2;
+  const circ = 2 * Math.PI * r;
+  // Gap en grados entre segmentos (solo si hay más de uno)
+  const gapGrados = datos.length > 1 ? 1.5 : 0;
+
+  let rotActual = -90; // arriba
+
   return (
     <div style={{ position: "relative", width: tamaño, height: tamaño, flexShrink: 0 }}>
-      <svg width={tamaño} height={tamaño} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={tamaño/2} cy={tamaño/2} r={r} fill="none" stroke={HAIR} strokeWidth={trazo}/>
+      <svg width={tamaño} height={tamaño}>
+        {/* Pista de fondo */}
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke={HAIR} strokeWidth={trazo}/>
         {datos.map((d, i) => {
-          const len    = (d.valor / total) * c;
-          // Gap de 1.5px entre segmentos — sin restar del segmento para no perder cobertura
-          const gap    = datos.length > 1 ? 1.5 : 0;
-          const offset = c - acc + gap / 2;
-          acc += len;
+          const pct      = d.valor / total;           // 0..1
+          const grados   = pct * 360 - gapGrados;     // ángulo del arco menos el hueco
+          const dashLen  = (grados / 360) * circ;     // longitud del arco visible
+          const rot      = rotActual + gapGrados / 2; // empieza después del hueco
+          rotActual += pct * 360;                     // avanzamos el ángulo total
+          if (dashLen <= 0) return null;
           return (
-            <circle key={i} cx={tamaño/2} cy={tamaño/2} r={r}
+            <circle key={i} cx={cx} cy={cx} r={r}
               fill="none" stroke={d.color} strokeWidth={trazo}
-              strokeDasharray={`${Math.max(len - gap, 0)} ${c}`}
-              strokeDashoffset={offset} strokeLinecap="butt"/>
+              strokeDasharray={`${dashLen} ${circ}`}
+              strokeDashoffset={0}
+              strokeLinecap="butt"
+              transform={`rotate(${rot}, ${cx}, ${cx})`}
+            />
           );
         })}
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <span style={{ fontSize: "9px", fontWeight: 700, color: MUTED, letterSpacing: "1px", textTransform: "uppercase" }}>Top cat.</span>
-        <span style={{ fontSize: "13px", fontWeight: 700, color: INK, marginTop: "2px" }}>{datos[0]?.label ?? "—"}</span>
+        <span style={{ fontSize: "12px", fontWeight: 700, color: INK, marginTop: "2px", textAlign: "center", padding: "0 4px" }}>{datos[0]?.label ?? "—"}</span>
         <span style={{ fontSize: "22px", fontWeight: 700, color: datos[0]?.color ?? INK, lineHeight: 1, marginTop: "2px" }}>
           {Math.round((datos[0]?.valor ?? 0) / total * 100)}<span style={{ fontSize: "13px" }}>%</span>
         </span>
@@ -552,31 +562,6 @@ export default function EstadisticasPage() {
                 </div>
               </div>
 
-              {/* Ranking */}
-              <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${HAIR}` }}>
-                <p style={{ fontSize: 10, color: MUTED, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 10 }}>Ranking de categorías</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  {categorias.map((c, i) => (
-                    <div key={c.nombre} style={{ display: "grid", gridTemplateColumns: "22px 32px 1fr", gap: 10, alignItems: "center" }}>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: MUTED, fontStyle: "italic" }}>0{i + 1}</span>
-                      <div style={{
-                        width: 30, height: 30, borderRadius: 9,
-                        background: `${c.color}1a`,
-                        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15,
-                      }}>{c.icono}</div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-                          <span style={{ fontSize: 12.5, color: INK, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nombre}</span>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: INK, letterSpacing: "-0.2px", fontStyle: "italic", marginLeft: 8, flexShrink: 0 }}>{fmt(c.monto)}</span>
-                        </div>
-                        <div style={{ height: 4, background: HAIR, borderRadius: 3, overflow: "hidden" }}>
-                          <div style={{ height: "100%", width: `${c.pct}%`, background: c.color, borderRadius: 3 }}/>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         )}
